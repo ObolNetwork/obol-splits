@@ -10,29 +10,31 @@ The following smart contracts are, as of now, un-audited, please do not use in p
 
 ## Quickstart
 
-This repo is built with [foundry](https://github.com/gakonst/foundry), a rust-based solidity development environment.
+This repo is built with [foundry](https://github.com/gakonst/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.tech/docs/sc/introducing-obol-managers) for more information on what Distributed Validators are, and their smart contract lifecycle.
 
 ### Installation
 
-Follow the instructions here to install [foundry](https://github.com/gakonst/foundry#installation)
+Follow the instructions here to install [foundry](https://github.com/gakonst/foundry#installation).
 
-Then install the contract dependencies
+Then install the contract dependencies:
 
 ```sh
-forge install rari-capital/solmate 
-forge install dapphub/ds-test
+forge install rari-capital/solmate dapphub/ds-test
 ```
 
 ### Local Development
 
+To test your changes to the codebase run the unit tests with:
+
 ```sh
-# To run the tests
 forge test
 ```
 
 This command starts runs all tests.
 
 ### Build
+
+To compile your smart contracts and generate their ABIs run:
 
 ```sh
 forge build
@@ -47,4 +49,3 @@ This repo can be deployed with `forge create`.
 ### Versioning
 
 Versioning of releases to this repo has not been implemented.
-
