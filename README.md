@@ -32,6 +32,11 @@ forge test
 
 This command starts runs all tests.
 
+> NOTE: To run a specific test:
+```sh
+forge test --match-contract ContractTest --match-test testFunction -vv
+```
+
 ### Build
 
 To compile your smart contracts and generate their ABIs run:
