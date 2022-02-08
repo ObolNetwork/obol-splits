@@ -5,7 +5,7 @@ import "ds-test/test.sol";
 
 import "./utils/mocks/MockWithdrawalRecipient.sol";
 
-contract WithdrawalRecipientTest is DSTest {
+contract WithdrawalRecipientOwnableTest is DSTest {
     MockWithdrawalRecipient mockWithdrawalRecipient;
 
     function setUp() public {
@@ -33,4 +33,15 @@ contract WithdrawalRecipientTest is DSTest {
         mockWithdrawalRecipient.setOwner(address(0));
         mockWithdrawalRecipient.withdraw(payable(address(0xABEE)));
     }
+
+    function testChangeOwnerAsOwner() public {
+        mockWithdrawalRecipient.setOwner(address(0xABEE));
+        assertEq(mockWithdrawalRecipient.owner(), address(0xABEE));
+    }
+
+    function testFailChangeOwnerAsNonOwner() public {
+        mockWithdrawalRecipient.setOwner(address(0));
+        mockWithdrawalRecipient.setOwner(address(0xABEE));
+    }
+
 }

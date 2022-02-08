@@ -6,7 +6,15 @@ import "ds-test/test.sol";
 
 /// @notice Withdrawal contract that allows only the owner account to withdraw
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
-contract WithdrawalRecipient is Auth, DSTest {
+contract WithdrawalRecipientOwnable is Auth {
+    /*///////////////////////////////////////////////////////////////
+                                  EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    event Withdrawal(address indexed user, address indexed recipient);
+
+    event OwnerChanged(address indexed user, address indexed newOwner);
+
     /*///////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -20,6 +28,18 @@ contract WithdrawalRecipient is Auth, DSTest {
     function withdraw(address payable recipient) public requiresAuth {
         (bool sent, bytes memory data) = recipient.call{value: address(this).balance}("");
         require(sent, "Failed to withdraw balance");
+
+        emit Withdrawal(msg.sender, recipient);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                            OWNER CHANGE LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function changeOwner(address newOwner) public requiresAuth {
+        owner = newOwner;
+
+        emit OwnerChanged(msg.sender, newOwner);
     }
 
     /*///////////////////////////////////////////////////////////////
