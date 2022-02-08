@@ -30,18 +30,18 @@ contract WithdrawalRecipientOwnableTest is DSTest {
     }
 
     function testFailWithdrawAsNonOwner() public {
-        mockWithdrawalRecipient.setOwner(address(0));
+        mockWithdrawalRecipient.changeOwner(address(0));
         mockWithdrawalRecipient.withdraw(payable(address(0xABEE)));
     }
 
     function testChangeOwnerAsOwner() public {
-        mockWithdrawalRecipient.setOwner(address(0xABEE));
+        mockWithdrawalRecipient.changeOwner(address(0xABEE));
         assertEq(mockWithdrawalRecipient.owner(), address(0xABEE));
     }
 
     function testFailChangeOwnerAsNonOwner() public {
-        mockWithdrawalRecipient.setOwner(address(0));
-        mockWithdrawalRecipient.setOwner(address(0xABEE));
+        mockWithdrawalRecipient.changeOwner(address(0));
+        mockWithdrawalRecipient.changeOwner(address(0xABEE));
     }
 
 }
