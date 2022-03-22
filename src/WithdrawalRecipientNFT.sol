@@ -2,11 +2,11 @@
 pragma solidity >=0.8.10;
 
 import "solmate/auth/Auth.sol";
-import "ds-test/test.sol";
+import "solmate/tokens/ERC721.sol";
 
 /// @notice Withdrawal contract that allows only the owner account to withdraw
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
-contract WithdrawalRecipientOwnable is Auth {
+contract WithdrawalRecipientNFT is Auth {
     /*///////////////////////////////////////////////////////////////
                                   EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -16,18 +16,32 @@ contract WithdrawalRecipientOwnable is Auth {
     event OwnerChanged(address indexed user, address indexed newOwner);
 
     /*///////////////////////////////////////////////////////////////
+                                  IMMUTABLES
+    //////////////////////////////////////////////////////////////*/
+
+    ERC721 public nftContract;
+    uint256 public tokenID;
+
+    /*///////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _owner, Authority _authority) Auth(_owner, _authority) {}
+    constructor(
+        ERC721 _nftContract, 
+        uint256 _tokenID, 
+        address _owner, 
+        Authority _authority
+    ) Auth(_owner, _authority) {
+        nftContract = _nftContract;
+        tokenID = _tokenID;
+    }
 
     /*///////////////////////////////////////////////////////////////
                             WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function withdraw(address payable recipient) public requiresAuth {
-        (bool sent, bytes memory data) = recipient.call{value: address(this).balance}("");
-        require(sent, "Failed to withdraw balance");
+    function withdraw(address recipient) public requiresAuth {
+        nftContract.transferFrom(address(this), recipient, tokenID);
 
         emit Withdrawal(msg.sender, recipient);
     }

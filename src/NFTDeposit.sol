@@ -3,6 +3,8 @@ pragma solidity >=0.8.0;
 
 import "solmate/tokens/ERC721.sol";
 
+error DoesNotExist();
+
 /// @notice Deposit contract wrapper which mints an NFT on successful deposit.
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork(
 contract NFTDeposit is ERC721 {
@@ -17,13 +19,20 @@ contract NFTDeposit is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
    uint256 public totalSupply;
+   string public baseURI;
 
     /*///////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-   constructor(IDepositContract _depositContract) ERC721(name, symbol) {
+   constructor(
+       IDepositContract _depositContract, 
+       string memory name, 
+       string memory symbol,
+       string memory _baseURI
+   ) ERC721(name, symbol) {
        depositContract = _depositContract;
+       baseURI = _baseURI;
    }
 
     /*///////////////////////////////////////////////////////////////
@@ -35,10 +44,16 @@ contract NFTDeposit is ERC721 {
         bytes calldata signature,
         bytes32 deposit_data_root
     ) external payable {
-        depositContract.deposit.value(msg.value)(pubkey, withdrawal_credentials, signature, deposit_data_root);
+        depositContract.deposit{value: msg.value}(pubkey, withdrawal_credentials, signature, deposit_data_root);
 
         _mint(msg.sender, totalSupply);
         totalSupply++;
+    }
+
+    function tokenURI(uint256 id) public view override returns (string memory) {
+        if (ownerOf[id] == address(0)) revert DoesNotExist();
+
+        return string(abi.encodePacked(baseURI, id));
     }
 }
 
