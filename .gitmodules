@@ -7,3 +7,6 @@
 [submodule "lib/splits-contracts"]
 	path = lib/splits-contracts
 	url = https://github.com/0xSplits/splits-contracts
+[submodule "lib/consensus-specs"]
+	path = lib/consensus-specs
+	url = https://github.com/ethereum/consensus-specs
