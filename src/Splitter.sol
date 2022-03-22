@@ -22,6 +22,9 @@ contract ObolSplitterDeployer {
         obolWallet = _obolWallet;
     }
 
+    /*///////////////////////////////////////////////////////////////
+                            DEPLOY LOGIC
+    //////////////////////////////////////////////////////////////*/
 
     function deploy(address[] calldata accounts) public returns (address) {
         // Calculate percentAllocations.
