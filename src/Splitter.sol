@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.4;
+pragma solidity >=0.8.13;
 
 /// @notice A deployer contract which deploys fixed-cut 0xSplitter contracts.
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
