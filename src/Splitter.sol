@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.13;
 
+import "ds-test/test.sol";
+
 /// @notice A deployer contract which deploys fixed-cut 0xSplitter contracts.
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
 contract ObolSplitterDeployer { 
@@ -25,6 +27,9 @@ contract ObolSplitterDeployer {
     //////////////////////////////////////////////////////////////*/
 
     function deploy(address[] calldata accounts) public returns (address) {
+        // Revert if function is called without any accounts.
+        require(accounts.length != 0, "Deploy called without any recipients");
+
         // Calculate percentAllocations.
         uint32[] memory percentAllocations = new uint32[](accounts.length + 1);
         // 4% standard share for Obol
