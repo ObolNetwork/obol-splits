@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+import "ds-test/test.sol";
 import "solmate/tokens/ERC721.sol";
 
 error DoesNotExist();
@@ -39,15 +40,18 @@ contract NFTDeposit is ERC721 {
                             DEPOSIT LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function deposit(bytes calldata pubkey,
+    function deposit(
+        bytes calldata pubkey,
         bytes calldata withdrawal_credentials,
         bytes calldata signature,
         bytes32 deposit_data_root
-    ) external payable {
+    ) external payable returns (uint256) {
         depositContract.deposit{value: msg.value}(pubkey, withdrawal_credentials, signature, deposit_data_root);
 
-        _mint(msg.sender, totalSupply);
+        uint256 id = totalSupply;
+        _mint(msg.sender, id);
         totalSupply++;
+        return id;
     }
 
     function tokenURI(uint256 id) public view override returns (string memory) {
