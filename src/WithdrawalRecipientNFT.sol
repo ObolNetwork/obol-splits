@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.10;
 
+import "ds-test/test.sol";
 import "solmate/auth/Auth.sol";
 import "solmate/tokens/ERC721.sol";
 
