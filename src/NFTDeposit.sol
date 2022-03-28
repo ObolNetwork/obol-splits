@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity =0.8.13;
 
 import "ds-test/test.sol";
 import "solmate/tokens/ERC721.sol";
@@ -7,7 +7,7 @@ import "solmate/tokens/ERC721.sol";
 error DoesNotExist();
 
 /// @notice Deposit contract wrapper which mints an NFT on successful deposit.
-/// @author Obol Labs Inc. (https://github.com/ObolNetwork(
+/// @author Obol Labs Inc. (https://github.com/ObolNetwork)
 contract NFTDeposit is ERC721 {
     /*///////////////////////////////////////////////////////////////
                                   IMMUTABLES

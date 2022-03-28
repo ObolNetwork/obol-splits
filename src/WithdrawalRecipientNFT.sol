@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.10;
+pragma solidity =0.8.13;
 
 import "ds-test/test.sol";
 import "solmate/auth/Auth.sol";
 import "solmate/tokens/ERC721.sol";
 
-/// @notice Withdrawal contract that allows only the owner account to withdraw
+/// @notice Withdrawal contract that allows sending NFT to withdrawal recipient account
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
 contract WithdrawalRecipientNFT is Auth {
     /*///////////////////////////////////////////////////////////////

@@ -41,4 +41,29 @@ contract SplitterTest is DSTest {
 
         assertEq(mockSplitter.showController(), address(this));
     }
+
+    function testCallDeploy7() public {
+        uint256 splitCnt = 7;
+        uint160 firstAddr = 0x0A00;
+        address[] memory accounts = new address[](splitCnt);
+        for (uint256 i = 0; i < splitCnt; i++) {
+            accounts[i] = address(firstAddr);
+            firstAddr += 1;
+        }
+
+        address returnal = mockSplitterDeployer.deploy(accounts);
+        assertEq(returnal, address(0xFFFF));
+
+        for (uint256 i = 0; i < splitCnt; i++) {
+            assertEq(mockSplitter.showSplitRecipient(i), accounts[i]);
+        }
+        assertEq(mockSplitter.showSplitRecipient(splitCnt), address(0x0B01));
+
+        for (uint256 i = 0; i < splitCnt; i++) {
+            assertEq(mockSplitter.showSplitAllocation(i), 137142);
+        }
+        assertEq(mockSplitter.showSplitAllocation(splitCnt), 40006);
+
+        assertEq(mockSplitter.showController(), address(this));
+    }
 }
