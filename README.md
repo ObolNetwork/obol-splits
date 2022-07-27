@@ -2,7 +2,7 @@
 *by 0xArbiter*
 
 <img src="/img/banner.png"/>
-**This smart contract is used to wrap a 0xSplits deterministic splitter. The purpose of this contract is to receive staking rewards, allowing the depositor to retrieve their 32 Ether staking principal directly whilst forwarding any excess amounts to a 0xSplits splitter.**
+** This smart contract is used to wrap a 0xSplits deterministic splitter. The purpose of this contract is to receive staking rewards, allowing the depositor to retrieve their 32 Ether staking principal directly whilst forwarding any excess amounts to a 0xSplits splitter. **
 
 ### How can I run this?
 
