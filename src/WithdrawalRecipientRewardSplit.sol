@@ -88,8 +88,14 @@ contract WithdrawalRecipientRewardSplit is Ownable {
     /// @return status is true on successful execution
     function withdrawAllEther(address recipientAddress_) external onlyOwner returns(bool status){
 
-        // Call the withdrawEther function with all principal owed as the amount parameter
-        status = withdrawEther(address(this).balance, recipientAddress_); 
+        // Call the withdrawEther function with the contract balance as the amount parameter
+        if(address(this).balance <= 32 ether){
+            // Withdraw entire contract balance
+            status = withdrawEther(address(this).balance, recipientAddress_); 
+        }else{
+            // Withdraw maximum 32 ether
+            status = withdrawEther(32 ether, recipientAddress_); 
+        }
 
     }
     
