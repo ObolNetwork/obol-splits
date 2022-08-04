@@ -122,7 +122,6 @@ contract WithdrawalRecipientRewardSplit is Ownable {
             // If we CAN pay out the beneficiary: Pay them
             cumulativeWithdrawn += beneficiaryRemainder;
             payable(Ownable.owner()).transfer(beneficiaryRemainder);
-            return true;
         }
 
         // Now we know that the amount owed to the beneficiary must be zero

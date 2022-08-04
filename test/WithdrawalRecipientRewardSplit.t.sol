@@ -560,22 +560,13 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         if(beneficiaryBalanceIntermediate - beneficiaryBalanceBefore != 32 ether){
             revert("The first skimEther did not give the lazy beneficiary their balance!");
         }
-        // And the contract didn't send out more than 32 ETH
-        if(address(wrapper).balance != amount_){
-            console2.log(address(wrapper).balance);
-            console2.log(amount_);
-            revert("The contract sent out too much ETH!");
+        // If the contract is not empty
+        if(address(wrapper).balance != 0){
+            revert("The contract didn't empty");
         }
         // Reset an earlier variable so the below tests work
         beneficiaryBalanceBefore = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance;
 
-        vm.prank(address(0x1111));
-        // Do a second skim call
-        returnStatus = wrapper.skimEther(addresses,percentages);
-
-        if(returnStatus != true){
-            revert("The execution didn't return true!");
-        }
 
         // STEP 6 - Call withdraw (sends the money from 0xSplits to the address) for each of the addresses 
 
@@ -743,22 +734,12 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         if(beneficiaryBalanceIntermediate - beneficiaryBalanceBefore != 32 ether - beneficiaryTotalClaim_){
             revert("The first skimEther did not give the lazy beneficiary their balance!");
         }
-        // And the contract didn't send out more than 32 ETH
-        if(address(wrapper).balance != amount_){
-            console2.log(address(wrapper).balance);
-            console2.log(amount_);
-            revert("The contract sent out too much ETH!");
+        // If the contract is not empty
+        if(address(wrapper).balance != 0){
+            revert("The contract didn't empty");
         }
         // Reset an earlier variable so the below tests work
         beneficiaryBalanceBefore = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance;
-
-        vm.prank(address(0x1111));
-        // Do a second skim call
-        returnStatus = wrapper.skimEther(addresses,percentages);
-
-        if(returnStatus != true){
-            revert("The execution didn't return true!");
-        }
 
         // STEP 6 - Call withdraw (sends the money from 0xSplits to the address) for each of the addresses 
 
@@ -964,14 +945,7 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         // The validators use skimEther and sends 31.4 out to the beneficiary, leaving 0.7 in the contract
         vm.prank(address(0x1111));
         wrapper.skimEther(addresses,percentages);
-        if(address(wrapper).balance != 0.7 ether){ /// @dev This was 31.4 with old skim behaviour, it is now 0.7
-            revert("The contract's balance is incorrect!");
-        }
-
-        // The validators withdraw their 0.7 with another call to skimEther
-        vm.prank(address(0x1111));
-        wrapper.skimEther(addresses,percentages);
-        if(address(wrapper).balance != 0.0 ether){ /// @dev This was 31.4 with old skim behaviour, it is now 0.7
+        if(address(wrapper).balance != 0 ether){ /// @dev Was 0.7 in multi skimEther call implementation
             revert("The contract's balance is incorrect!");
         }
 
