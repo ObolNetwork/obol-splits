@@ -111,10 +111,22 @@ contract WithdrawalRecipientRewardSplit is Ownable {
         
         /// @dev You must add your custom onlyOperator code here or use a modifier in prod
         
-        // Check that we are leaving 32ETH for the beneficiary in here, or this won't run
-        if(address(this).balance + cumulativeWithdrawn <= 32 ether){
+        // Calculate how much we owe the beneficiary
+        uint256 beneficiaryRemainder = 32 ether - cumulativeWithdrawn; 
+
+        // Pay out an inactive beneficiary
+        if(beneficiaryRemainder > address(this).balance){
+            // If we CANNOT pay out the beneficiary: Revert
             revert BeneficiaryPrincipalNotRepaidYet();
+        }else if(beneficiaryRemainder!=0){
+            // If we CAN pay out the beneficiary: Pay them
+            cumulativeWithdrawn += beneficiaryRemainder;
+            payable(Ownable.owner()).transfer(beneficiaryRemainder);
+            return true;
         }
+
+        // Now we know that the amount owed to the beneficiary must be zero
+
         // Calculate how much we are sending the splitter 
         uint256 amountToSend = address(this).balance - (32 ether - cumulativeWithdrawn);
         // Transfer the ETH to the deterministic splitter (these are two commands for readability)

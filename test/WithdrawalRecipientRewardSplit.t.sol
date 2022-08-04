@@ -257,6 +257,7 @@ contract WithdrawalRecipientRewardSplitTest is Test {
 
         // Other cases (zero withdrawal, cumulative > 32, etc.) are handled in withdrawEther (which this wraps)
         
+        
     }
 
 
@@ -312,7 +313,7 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         
     }
 
-
+    // SkimEther - Intended success case
     /** 
 
         @dev - This test is complicated! Let me explain how it works:
@@ -370,7 +371,7 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         // STEP 2 - Withdraw 32 ether for the beneficiary so we can skim
 
         address beneficiary = wrapper.owner();
-        vm.deal(address(wrapper),32 ether);
+        payable(address(wrapper)).transfer(32 ether);
         vm.prank(beneficiary);
         wrapper.withdrawAllEther(beneficiary);
 
@@ -395,6 +396,194 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         // STEP 5 - Call skimEther (updates the balances in the 0xSplits contract) for the split once
         
         bool returnStatus = wrapper.skimEther(addresses,percentages);
+        if(returnStatus != true){
+            revert("The execution didn't return true!");
+        }
+
+        // STEP 6 - Call withdraw (sends the money from 0xSplits to the address) for each of the addresses 
+
+        // Create an empty ERC20[] array (SplitMain:withdraw uses as function param)
+        ERC20[] memory emptyTokenArray = new ERC20[](0);
+
+        // Withdraw from 0xSplits for each wallet
+        vm.prank(address(0x1111));
+        splitter.withdraw(address(0x1111),1,emptyTokenArray); 
+        vm.prank(address(0x2222));
+        splitter.withdraw(address(0x2222),1,emptyTokenArray); 
+        vm.prank(address(0x3333));
+        splitter.withdraw(address(0x3333),1,emptyTokenArray); 
+        vm.prank(address(0x4444));
+        splitter.withdraw(address(0x4444),1,emptyTokenArray); 
+        vm.prank(address(0xbe4Ef1C1A4EE0000000000000000000000000000));
+        splitter.withdraw(address(0xbe4Ef1C1A4EE0000000000000000000000000000),1,emptyTokenArray); 
+        vm.prank(address(0x0b01000000000000000000000000000000000000));
+        splitter.withdraw(address(0x0b01000000000000000000000000000000000000),1,emptyTokenArray); 
+
+        // STEP 7 - Log the new balances of each address
+
+        uint256 v1BalanceDiff = address(0x1111).balance - v1BalanceBefore;
+        uint256 v2BalanceDiff = address(0x2222).balance - v2BalanceBefore;
+        uint256 v3BalanceDiff = address(0x3333).balance - v3BalanceBefore;
+        uint256 v4BalanceDiff = address(0x4444).balance - v4BalanceBefore;
+        uint256 beneficiaryBalanceDiff = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance - beneficiaryBalanceBefore;
+        uint256 obolBalanceDiff = address(0x0b01000000000000000000000000000000000000).balance - obolBalanceBefore;
+
+        // STEP 8 - Check that the balances of the addresses are correct after they withdraw from 0xSplits
+        
+        /** 
+            @dev This part needs explaining because it seems very "hacky" but it isn't in reality.
+            So, firstly, SplitMain uses '_scaleAmountByPercentage' internally which I have copied here.
+            However, all of the numbers are off by 1 Wei! Why is this? Well, we see 0xSplits say:
+                "if mainBalance is positive, leave 1 in SplitMain for gas efficiency"
+            So all of our calculations have to be off by 1 to pass the tests!
+            In short: 0xSplits always shortchanges you 1 Wei.
+        
+        */
+
+        // Four validators
+        if(v1BalanceDiff != _scaleAmountByPercentage(amount_, percentages[0]) - 1){
+            console2.log("The final balance of validator #1 is incorrect: expected",_scaleAmountByPercentage(amount_, percentages[0])-1," got ",v1BalanceDiff);
+            revert("Validator #1 balance mismatch");
+        }
+        console2.log("1111:",_scaleAmountByPercentage(amount_, percentages[0]) - 1);
+        if(v2BalanceDiff != _scaleAmountByPercentage(amount_, percentages[1]) - 1){
+            console2.log("The final balance of validator #2 is incorrect: expected",_scaleAmountByPercentage(amount_, percentages[1])-1," got ",v2BalanceDiff);
+            revert("Validator #2 balance mismatch");
+        }
+        console2.log("2222:",_scaleAmountByPercentage(amount_, percentages[1]) - 1);
+        if(v3BalanceDiff != _scaleAmountByPercentage(amount_, percentages[2]) - 1){
+            console2.log("The final balance of validator #3 is incorrect: expected",_scaleAmountByPercentage(amount_, percentages[2])-1," got ",v3BalanceDiff);
+            revert("Validator #3 balance mismatch");
+        }
+        console2.log("3333:",_scaleAmountByPercentage(amount_, percentages[2]) - 1);
+        if(v4BalanceDiff != _scaleAmountByPercentage(amount_, percentages[3]) - 1){
+            console2.log("The final balance of validator #4 is incorrect: expected",_scaleAmountByPercentage(amount_, percentages[3])-1," got ",v4BalanceDiff);
+            revert("Validator #4 balance mismatch");
+        }
+        console2.log("4444:",_scaleAmountByPercentage(amount_, percentages[3]) - 1);
+
+        // Obol
+        if(obolBalanceDiff != _scaleAmountByPercentage(amount_, percentages[4]) - 1){
+            console2.log("The final balance Obol is incorrect: expected",_scaleAmountByPercentage(amount_, percentages[4])-1," got ",obolBalanceDiff);
+            revert("Obol balance mismatch");
+        }
+        console2.log("Obol:",_scaleAmountByPercentage(amount_, percentages[4]) - 1);
+
+        // Beneficiary
+        if(beneficiaryBalanceDiff != _scaleAmountByPercentage(amount_, percentages[5]) - 1){
+            console2.log("The final balance of the beneficiary is incorrect: expected",_scaleAmountByPercentage(amount_, percentages[5]) - 1," got ",beneficiaryBalanceDiff);
+            revert("Beneficiary balance mismatch");
+        }
+        console2.log("Beneficiary:",_scaleAmountByPercentage(amount_, percentages[5]) - 1);
+
+    } 
+
+    // SkimEther - New success case
+    /** 
+
+        @dev - This test is complicated! Let me explain how it works:
+            1 - Set up a splitter and send it ETH
+            2 - Call distributeETH to update splitter contract state (once per split, so one time in total)
+            3 - Call withdraw to withdraw the ETH (once per address, so six times in total)
+            4 - Make sure that the balances of the addresses changes by the correct amount!
+
+        I have only fuzzed the amount here as 0xSplits is fussy when it comes to param ordering and fuzzing
+        will just do virtually infinity global rejects for things like address arrays.
+
+    */
+    // Test skimEther success case by setting up a 0xSplits contract
+    function testSkimEtherNewSuccessCases(uint256 amount_)public{
+
+        // STEP 0 - Assumptions
+
+        vm.assume(amount_ > 1e6 && amount_ < 1000 ether);
+
+        // STEP 1 - Create a deterministic splitter instance
+
+        // Set up arrays of addresses and percentages
+        address[] memory addresses = new address[](6);
+        uint32[] memory percentages = new uint32[](6);
+       
+        addresses[0] = address(0x1111); // Validator 1
+        percentages[0] = 1e6 * 0.0225;
+        addresses[1] = address(0x2222); // Validator 2
+        percentages[1] = 1e6 * 0.0225;
+        addresses[2] = address(0x3333); // Validator 3
+        percentages[2] = 1e6 * 0.0225;
+        addresses[3] = address(0x4444); // Validator 4
+        percentages[3] = 1e6 * 0.0225;
+
+        addresses[4] = address(0x0b01000000000000000000000000000000000000); // Obol address
+        percentages[4] = 1e6 * 0.0100;
+        addresses[5] = address(0xbe4Ef1C1A4EE0000000000000000000000000000); // Beneficiary address (Must be ordered)
+        percentages[5] = 1e6 * 0.9000;
+
+        // Ensure that the sum of the percentages is 100%
+        vm.assume(_getSum(percentages) == 1e6);
+
+        // Create the deterministic splitter
+        address splitterAddress = splitter.createSplit(
+            addresses, /// @dev - Addresses must be in *ascending order* or SplitMain reverts
+            percentages,
+            0, // Distributor fee assumed to be zero
+            address(0) // Using CREATE2 (deterministic splits) means that the controller must be the zero address
+        );
+
+        if(splitterAddress != wrapper.splitterAddress()){
+            revert("The address of the created splitter contract is incorrect!");
+        }
+
+        // STEP 2 - Deal the wrapper 33 ether - the first skim should give the beneficiary 32 and the second split 1
+
+        payable(address(wrapper)).transfer(32 ether);
+
+        // STEP 3 - Send in some amount of Ether from staking
+        
+        vm.prank(address(0));
+        vm.deal(address(0), amount_);
+        console2.log("Sending the wrapper ",amount_);
+        payable(address(wrapper)).transfer(amount_);
+
+        
+        // STEP 4 - Log address balances prior to withdrawing ETH 
+
+        // The split is deterministic so we reuse addresses and therefore need to do this
+        uint256 v1BalanceBefore = address(0x1111).balance;
+        uint256 v2BalanceBefore = address(0x2222).balance;
+        uint256 v3BalanceBefore = address(0x3333).balance;
+        uint256 v4BalanceBefore = address(0x4444).balance;
+        uint256 beneficiaryBalanceBefore = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance;
+        uint256 obolBalanceBefore = address(0x0b01000000000000000000000000000000000000).balance;
+        
+        // STEP 5 - Call skimEther (updates the balances in the 0xSplits contract) for the split once
+        
+        // Prank as a validator
+        vm.prank(address(0x1111));
+        // First skim will give the beneficiary 32 ether
+        bool returnStatus = wrapper.skimEther(addresses,percentages);
+
+        if(returnStatus != true){
+            revert("The execution didn't return true!");
+        }
+
+        // Check that the beneficiary received 32 ETH
+        uint256 beneficiaryBalanceIntermediate = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance;
+        if(beneficiaryBalanceIntermediate - beneficiaryBalanceBefore != 32 ether){
+            revert("The first skimEther did not give the lazy beneficiary their balance!");
+        }
+        // And the contract didn't send out more than 32 ETH
+        if(address(wrapper).balance != amount_){
+            console2.log(address(wrapper).balance);
+            console2.log(amount_);
+            revert("The contract sent out too much ETH!");
+        }
+        // Reset an earlier variable so the below tests work
+        beneficiaryBalanceBefore = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance;
+
+        vm.prank(address(0x1111));
+        // Do a second skim call
+        returnStatus = wrapper.skimEther(addresses,percentages);
+
         if(returnStatus != true){
             revert("The execution didn't return true!");
         }
@@ -528,6 +717,17 @@ contract WithdrawalRecipientRewardSplitTest is Test {
     } 
 
     // Narrative test - simulating what a typical lifecycle for the wrapper contract will look like
+    /** @dev
+        Cashflows are:
+        0.6 IN
+        31.9 IN (0.1 SLASHED)
+        0.2 IN
+        Results are:
+        Beneficiary 32 ETH
+        Others share 0.7 ETH
+    */
+    //
+    //
     function testNarrative() public {
 
         // Set up a splitter to wrap (code from testSkimEther)
@@ -589,19 +789,22 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         // 31.90 ether is sent into the contract as they have been slashed
         payable(address(wrapper)).transfer(31.90 ether);
 
-        // The validators use skimEther to skim the non-principal portion (0.7 ETH)
+        // The validators use skimEther and sends 31.4 out to the beneficiary, leaving 0.7 in the contract
         vm.prank(address(0x1111));
         wrapper.skimEther(addresses,percentages);
-        if(address(wrapper).balance != 31.4 ether){
+        if(address(wrapper).balance != 0.7 ether){ /// @dev This was 31.4 with old skim behaviour, it is now 0.7
             revert("The contract's balance is incorrect!");
         }
 
-        // The beneficiary withdraws the remaining amount from the contract (31.4 ETH)
-        beneficiaryBalanceBefore = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance;
-        vm.prank(address(0xbe4Ef1C1A4EE0000000000000000000000000000));
-        wrapper.withdrawAllEther(beneficiaryAddress);
+        // The validators withdraw their 0.7 with another call to skimEther
+        vm.prank(address(0x1111));
+        wrapper.skimEther(addresses,percentages);
+        if(address(wrapper).balance != 0.0 ether){ /// @dev This was 31.4 with old skim behaviour, it is now 0.7
+            revert("The contract's balance is incorrect!");
+        }
+
         beneficiaryBalanceAfter = address(0xbe4Ef1C1A4EE0000000000000000000000000000).balance;
-        if(beneficiaryBalanceAfter - beneficiaryBalanceBefore != 31.4 ether){
+        if(beneficiaryBalanceAfter - beneficiaryBalanceBefore != 32 ether){
             revert("The beneficiary didn't get all their capital back!");
         }
         if(address(wrapper).balance != 0 ether){
