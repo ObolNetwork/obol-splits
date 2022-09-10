@@ -1,22 +1,78 @@
-# Obol Labs - 0xSplits Wrapper
-*by 0xArbiter*
+![Obol Logo](https://obol.tech/obolnetwork.png)
 
-<img src="/img/banner.png"/>
-** This smart contract is used to wrap a 0xSplits deterministic splitter. The purpose of this contract is to receive staking rewards, allowing the depositor to retrieve their 32 Ether staking principal directly whilst forwarding any excess amounts to a 0xSplits splitter. **
+<h1 align="center">Obol Manager Contracts</h1>
 
-### How can I run this?
+This repo intends to serve as a reference implementations of Obol Manager smart contracts. This suite of smart contracts and associated tests are intended to serve as a public good to to enable the safe and secure creation of Distributed Validators for Ethereum Consensus-based networks.
 
-This is built in Forge/Foundry and has Solmate and OpenZeppelin dependencies (Solmate for 0xSplits code and OpenZeppelin for `Ownable`). The test contract is very heavy so you will have to use intermediate representation to get it to run.
+## Disclaimer
 
-First, install Forge/Foundry and install Solmate and OpenZeppelin by following [this guide](https://mirror.xyz/juliancanderson.eth/D94omhhrd4wiWkqSWjY55y-jhtVIBLl9ZZoHk1IERPE) to install the necessary dependencies. Once you're set up, run the following line:
+**The following smart contracts are, as of now, un-audited, please do not use in production.**
 
-`forge test --via-ir `
+## Quickstart
 
-or if you want to see more verbose execution:
+This repo is built with [foundry](https://github.com/gakonst/foundry), a rust-based solidity development environment, and relies on [0xSplits](https://github.com/0xSplits/splits-contracts), [solmate](https://github.com/Rari-Capital/solmate), and [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts) smart contract libraries. Read more on our [docs site](https://docs.obol.tech/docs/sc/introducing-obol-managers) about what Distributed Validators are, and their smart contract lifecycle.
 
-`forge test -vvvvv --via-ir `
+### Installation
 
-### How does this work?
+Follow the instructions here to install [foundry](https://github.com/gakonst/foundry#installation).
+
+Then install the contract dependencies:
+
+```sh
+git submodule update
+```
+
+### Local Development
+
+To test your changes to the codebase run the unit tests with:
+
+```sh
+forge test --via-ir
+```
+
+This command starts runs all tests.
+
+> NOTE: To run a specific test:
+```sh
+forge test --via-ir --match-contract ContractTest --match-test testFunction -vv
+```
+
+### Build
+
+To compile your smart contracts and generate their ABIs run:
+
+```sh
+forge build --via-ir
+```
+
+This command generates compilation output into the `out` directory.
+
+### Deployment
+
+This repo can be deployed with `forge create`. 
+
+### Versioning
+
+Versioning of releases to this repo has not been implemented.
+
+
+# Contract Overview
+
+## WithdrawalRecipientOwnable
+
+This is the simplest withdrawal recipient contract, and has two methods, `withdraw()`, and `changeOwner()`, both of which can only be called by the current owner of the smart contract. This allows the change of beneficial ownership of a validator without its exit, and is a good building block on top of which to build more complex validator tokenisation contracts.
+
+## WithdrawalRecipientRewardSplit
+
+Implemented by [0xArbiter](https://github.com/The-Arbiter).
+
+This smart contract is used to wrap an 0xSplits deterministic splitter contract. The purpose of this contract is to receive staking rewards, allowing the depositor to retrieve their 32 Ether staking principal directly whilst forwarding any excess amounts to an 0xSplits splitter. 
+
+This smart contract, if set as an 0x01 withdrawal credential for an Ethereum validator, will allow 32 ether to flow to the deployer (contract owner), before switching to forwarding all ether to an 0xSplits splitter contract from there on. 
+
+This is a common withdrawal pattern used in most delegated staking models where fees are calculated as a percentage of profits earned not principal. This implementation of reward splitting however does favour the depositor rather than the operator, as they get paid in full first before the operator gets paid, this is a result of the lack of visibility from the EVM side to the consensus layer withdrawals process. Until a future where the EVM can read consensus layer [state](https://eips.ethereum.org/EIPS/eip-4788), solidity contracts can't easily differentiate between a reward skim, a block proposal/mev-bribe, a normal eth transaction, or a severe slashing. This means this contract assumes only one validator will point at it, and that until 32 ether has flown through it to the owner, it cannot be sure that the principal of the deposit has been repaid.  
+
+### How does this Withdrawal Recipient Reward Split Contract work?
 
 0xSplits has a main contract `SplitMain.sol` that deploys either deterministic or non-deterministic splitter contracts which are derived from parameters like list of accounts and split percentages.
 
@@ -53,9 +109,11 @@ You will notice that `skimEther` is expensive; this is because `distributeETH` i
 
 ### Deploying this code
 
-I've set it up such that you can simply pass in the address of the 0xSplits `SplitMain.sol` contract on the network you're deploying to in the constructor for `WithdrawalRecipientRewardSplit`:
+To deploy the reward split contract you must first create a split. The 0xSplits team [maintain a dapp](https://docs.0xsplits.xyz/smartcontracts/overview#addresses) for creating splits. 
 
-```
+You must also pass in the address of the 0xSplits `SplitMain.sol` contract on [the network you're deploying to](https://docs.0xsplits.xyz/smartcontracts/overview#addresses) in the constructor for `WithdrawalRecipientRewardSplit`. 
+
+```solidity
 // Constructor takes the deterministic splitter address and the 0xSplits SplitMain contract address
 	
 	constructor (address splitterAddress_, SplitMain _splitmain) {
@@ -66,7 +124,3 @@ I've set it up such that you can simply pass in the address of the 0xSplits `Spl
 	
 }
 ```
-
-Here, `SplitMain` is just a contract type from `SplitMain.sol`.
-
-You could also use Forge's `mainnet-forking` tool to deploy on mainnet.

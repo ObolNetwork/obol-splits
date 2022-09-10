@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "src/WithdrawalRecipientRewardSplit.sol";
@@ -17,10 +17,14 @@ contract WithdrawalRecipientRewardSplitTest is Test {
     // You can change this as you see fit
     address constant beneficiaryAddress = address(0xbe4Ef1C1A4EE0000000000000000000000000000);
     address constant deterministicSplitterAddress = address(0x7F9c98f308C652E252B8b2B01af1F6d35E8bCd5f);
+    
+    // Constants needed for the uint256 to string workaround
+    bytes16 private constant _SYMBOLS = "0123456789abcdef";
+    uint8 private constant _ADDRESS_LENGTH = 20;
 
     receive() payable external{}
 
-    // Setup
+    /// @dev Setup Tests
     function setUp() public {
         
         address deployerAddress_ = beneficiaryAddress;
@@ -39,12 +43,77 @@ contract WithdrawalRecipientRewardSplitTest is Test {
         
     }
 
-    /// @dev helper for other tests
+    function log10(uint256 value) internal pure returns (uint256) {
+        uint256 result = 0;
+        unchecked {
+            if (value >= 10**64) {
+                value /= 10**64;
+                result += 64;
+            }
+            if (value >= 10**32) {
+                value /= 10**32;
+                result += 32;
+            }
+            if (value >= 10**16) {
+                value /= 10**16;
+                result += 16;
+            }
+            if (value >= 10**8) {
+                value /= 10**8;
+                result += 8;
+            }
+            if (value >= 10**4) {
+                value /= 10**4;
+                result += 4;
+            }
+            if (value >= 10**2) {
+                value /= 10**2;
+                result += 2;
+            }
+            if (value >= 10**1) {
+                result += 1;
+            }
+        }
+        return result;
+    }
+
+    /// @dev This is the best way to convert a uint to string in 2022...
+    function _toString(uint256 value) internal pure returns (string memory) {
+        unchecked {
+            uint256 length = log10(value) + 1;
+            string memory buffer = new string(length);
+            uint256 ptr;
+            /// @solidity memory-safe-assembly
+            assembly {
+                ptr := add(buffer, add(32, length))
+            }
+            while (true) {
+                ptr--;
+                /// @solidity memory-safe-assembly
+                assembly {
+                    mstore8(ptr, byte(mod(value, 10), _SYMBOLS))
+                }
+                value /= 10;
+                if (value == 0) break;
+            }
+            return buffer;
+        }
+    }
+
+    /// @dev helper for other tests. Excludes particular addresses from fuzzing.
     function _fuzzTestRestrictions(address fuzzAddress_) internal {
-        // Exclude VM address
         vm.assume(fuzzAddress_ != address(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D)); // VM address
-        vm.assume(fuzzAddress_ != address(0xCe71065D4017F316EC606Fe4422e11eB2c47c246));
+        vm.assume(fuzzAddress_ != address(0xCe71065D4017F316EC606Fe4422e11eB2c47c246)); // Fuzzer Dict
+        vm.assume(fuzzAddress_ != address(0x4e59b44847b379578588920cA78FbF26c0B4956C)); // Create2 Precompile Address
+        vm.assume(fuzzAddress_ != address(0x000000000000000000636F6e736F6c652e6c6f67)); // Console address
+        vm.assume(fuzzAddress_ != address(0x00a329c0648769A73afAc7F9381E08FB43dBEA72)); // Parity recovery address
+        vm.assume(fuzzAddress_ != address(0x0000000000000000000000000000000000000009)); // Precompile Address
+        vm.assume(fuzzAddress_ != address(0x0000000000000000000000000000000000000008)); // Precompile Address
+        vm.assume(fuzzAddress_ != address(0x0000000000000000000000000000000000000004)); // Precompile Address
+        vm.assume(fuzzAddress_ != address(0x0000000000000000000000000000000000000001)); // Precompile Address
+        vm.assume(fuzzAddress_ != address(0x0000000000000000000000000000000000000000)); // Zero Address
         vm.assume(fuzzAddress_ != address(this)); // This contract
+        vm.assume(address(fuzzAddress_).balance == 0); // Ignore non-zero recipients because it breaks our math
     }
 
 
@@ -213,8 +282,8 @@ contract WithdrawalRecipientRewardSplitTest is Test {
             revert("The execution didn't return true!");
         }
         if(address(someAddress_).balance != firstAmountToWithdraw_){
-            console2.log(address(someAddress_).balance);
-            revert("It didn't withdraw the requested amount to the specified address");
+            // console2.log(address(someAddress_).balance);
+            revert(string.concat("It didn't withdraw the requested amount to the specified address. Balance: ",_toString(address(someAddress_).balance),". Expected Balance: ",_toString(firstAmountToWithdraw_)));
         }
         if(address(wrapper).balance != totalDeposits_ - firstAmountToWithdraw_){
             revert("It didn't withdraw the correct amount of ETH!");
@@ -229,10 +298,10 @@ contract WithdrawalRecipientRewardSplitTest is Test {
             revert("The execution didn't return true!");
         }
         if(address(someAddress_).balance != totalDeposits_){
-            revert("It didn't withdraw the requested amount to the specified address");
+            revert("It didn't withdraw the remaining amount to the specified address");
         }
         if(address(wrapper).balance != 0){
-            revert("It didn't withdraw the correct amount of ETH!");
+            revert("It didn't withdraw all Ether from the wrapper");
         }
         
     }
