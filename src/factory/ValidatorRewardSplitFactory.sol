@@ -4,6 +4,7 @@ pragma solidity =0.8.13;
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
 import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
 
+/// @dev Creates multiple waterfall contracts and connects
 contract ValidatorRewardSplitFactory {
     /// @dev waterfall factory
     IWaterfallFactoryModule public immutable waterfallFactoryModule;
@@ -28,7 +29,7 @@ contract ValidatorRewardSplitFactory {
             _split.accounts,
             _split.percentAllocations,
             _split.distributorFee,
-            address(0x0)
+            _split.controller
         );
 
         address[] memory waterfallRecipients = new address[](2);
@@ -36,7 +37,7 @@ contract ValidatorRewardSplitFactory {
         waterfallRecipients[1] = feeRecipeint;
 
         uint256[] memory thresholds = new uint256[](1);
-        thresholds[0] = 32 ether * _numberOfValidators;
+        thresholds[0] = 32 ether;
 
         withdrawAddresses = new address[](_numberOfValidators);
 
