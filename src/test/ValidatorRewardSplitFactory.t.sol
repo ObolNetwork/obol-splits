@@ -13,12 +13,14 @@ contract ValidatorRewardSplitFactoryTest is Test {
         string memory GOERLI_RPC_URL = vm.envString("GOERLI_RPC_URL");
         // select create and select goerli fork
         vm.createSelectFork(GOERLI_RPC_URL);
-
         // deploy ValidatorRewardSplitFactory
         // use goerli addresses
+        address WATERFALL_FACTORY_MODULE_GOERLI = 0xd647B9bE093Ec237be72bB17f54b0C5Ada886A25;
+        address SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
+        
         factory = new ValidatorRewardSplitFactory(
-            0xd647B9bE093Ec237be72bB17f54b0C5Ada886A25,
-            0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE
+            WATERFALL_FACTORY_MODULE_GOERLI,
+            SPLIT_MAIN_GOERLI
         );
     }
 
