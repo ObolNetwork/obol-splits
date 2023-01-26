@@ -24,8 +24,12 @@ contract ValidatorRewardSplitFactory {
         external
         returns (address[] memory withdrawAddresses, address feeRecipeint)
     {
-        feeRecipeint =
-            splitMain.createSplit(_split.accounts, _split.percentAllocations, _split.distributorFee, address(0x0));
+        feeRecipeint = splitMain.createSplit(
+            _split.accounts,
+            _split.percentAllocations,
+            _split.distributorFee,
+            address(0x0)
+        );
 
         address[] memory waterfallRecipients = new address[](2);
         waterfallRecipients[0] = _principal;
@@ -36,7 +40,7 @@ contract ValidatorRewardSplitFactory {
 
         withdrawAddresses = new address[](_numberOfValidators);
 
-        for (uint256 i; i < _numberOfValidators;) {
+        for (uint256 i = 0; i < _numberOfValidators;) {
             // create Waterfall contracts
             withdrawAddresses[i] = waterfallFactoryModule.createWaterfallModule(
                 address(0x0), address(0x0), waterfallRecipients, thresholds
