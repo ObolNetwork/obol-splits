@@ -12,9 +12,9 @@ contract ValidatorRewardSplitFactory {
     /// @dev splitMain factory
     ISplitMain public immutable splitMain;
 
-    constructor(IWaterfallFactoryModule _waterfallFactoryModule, ISplitMain _splitMain) {
-        waterfallFactoryModule = _waterfallFactoryModule;
-        splitMain = _splitMain;
+    constructor(address _waterfallFactoryModule, address _splitMain) {
+        waterfallFactoryModule = IWaterfallFactoryModule(_waterfallFactoryModule);
+        splitMain = ISplitMain(_splitMain);
     }
 
     /// @dev Create reward split
