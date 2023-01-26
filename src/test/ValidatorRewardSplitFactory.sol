@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import "ds-test/test.sol";
 
-contract ValidatorsRewardSplitTest is DSTest {
+contract ValidatorRewardSplitFactoryTest is DSTest {
     function setUp() public {
         // fork goerli testnet
     }
