@@ -10,7 +10,7 @@ contract ValidatorRewardSplitFactoryScript is Script {
         vm.startBroadcast(privKey);
 
         new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(waterfallFactoryModule, splitMain);
-        
+
         vm.stopBroadcast();
     }
 }

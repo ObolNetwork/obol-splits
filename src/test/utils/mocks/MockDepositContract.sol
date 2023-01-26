@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.13;
 
-import { IDepositContract } from "../../../NFTDeposit.sol";
+import {IDepositContract} from "../../../NFTDeposit.sol";
 
 contract MockDepositContract is IDepositContract {
     function deposit(

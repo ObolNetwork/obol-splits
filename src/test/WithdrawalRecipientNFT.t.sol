@@ -46,5 +46,4 @@ contract WithdrawalRecipientNFTTest is DSTest {
         mockWithdrawalRecipientNFT.changeOwner(address(0));
         mockWithdrawalRecipientNFT.changeOwner(address(0xABEE));
     }
-
 }

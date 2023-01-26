@@ -2,7 +2,6 @@
 pragma solidity =0.8.13;
 
 interface IWaterfallFactoryModule {
-
     /// Create a new WaterfallModule clone
     /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
     /// @param nonWaterfallRecipient Address to recover non-waterfall tokens to
@@ -16,5 +15,4 @@ interface IWaterfallFactoryModule {
         address[] calldata recipients,
         uint256[] calldata thresholds
     ) external returns (address);
-
 }

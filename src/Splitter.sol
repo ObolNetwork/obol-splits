@@ -5,7 +5,7 @@ import "ds-test/test.sol";
 
 /// @notice A deployer contract which deploys fixed-cut 0xSplitter contracts.
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
-contract ObolSplitterDeployer { 
+contract ObolSplitterDeployer {
     /*///////////////////////////////////////////////////////////////
                                IMMUTABLES
     //////////////////////////////////////////////////////////////*/
@@ -66,10 +66,10 @@ contract ObolSplitterDeployer {
  * @author 0xSplits <will@0xSplits.xyz>
  */
 interface ISplitMain {
-  function createSplit(
-    address[] calldata accounts,
-    uint32[] calldata percentAllocations,
-    uint32 distributorFee,
-    address controller
-  ) external returns (address);
+    function createSplit(
+        address[] calldata accounts,
+        uint32[] calldata percentAllocations,
+        uint32 distributorFee,
+        address controller
+    ) external returns (address);
 }

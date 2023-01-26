@@ -22,8 +22,8 @@ contract SplitterTest is DSTest {
 
     function testCallDeploy() public {
         address[] memory accounts = new address[](3);
-        accounts[0] = address(0xABEE); 
-        accounts[1] = address(0xBEEF); 
+        accounts[0] = address(0xABEE);
+        accounts[1] = address(0xBEEF);
         accounts[2] = address(0xCAFE);
         address returnal = mockSplitterDeployer.deploy(accounts);
 

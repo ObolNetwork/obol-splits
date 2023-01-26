@@ -47,5 +47,4 @@ contract WithdrawalRecipientOwnable is Auth {
     //////////////////////////////////////////////////////////////*/
 
     receive() external payable {}
-
 }

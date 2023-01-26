@@ -13,28 +13,25 @@ contract NFTDeposit is ERC721 {
                                   IMMUTABLES
     //////////////////////////////////////////////////////////////*/
 
-   IDepositContract public immutable depositContract;
+    IDepositContract public immutable depositContract;
 
     /*///////////////////////////////////////////////////////////////
                                   VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-   uint256 public totalSupply;
-   string public baseURI;
+    uint256 public totalSupply;
+    string public baseURI;
 
     /*///////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-   constructor(
-       IDepositContract _depositContract, 
-       string memory name, 
-       string memory symbol,
-       string memory _baseURI
-   ) ERC721(name, symbol) {
-       depositContract = _depositContract;
-       baseURI = _baseURI;
-   }
+    constructor(IDepositContract _depositContract, string memory name, string memory symbol, string memory _baseURI)
+        ERC721(name, symbol)
+    {
+        depositContract = _depositContract;
+        baseURI = _baseURI;
+    }
 
     /*///////////////////////////////////////////////////////////////
                             DEPOSIT LOGIC

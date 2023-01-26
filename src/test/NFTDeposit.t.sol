@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import "ds-test/test.sol";
 
-import { IDepositContract } from "../NFTDeposit.sol";
+import {IDepositContract} from "../NFTDeposit.sol";
 import "./utils/mocks/MockNFTDeposit.sol";
 import "./utils/mocks/MockDepositContract.sol";
 

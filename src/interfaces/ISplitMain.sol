@@ -9,9 +9,6 @@ struct SplitConfiguration {
 }
 
 interface ISplitMain {
-    
-
-
     /// @notice Creates a new split with recipients `accounts` with ownerships `percentAllocations`, a keeper fee for splitting of `distributorFee` and the controlling address `controller`
     /// @param accounts Ordered, unique list of addresses with ownership in the split
     /// @param percentAllocations Percent allocations associated with each address

@@ -21,7 +21,7 @@ contract WithdrawalRecipientOwnableTest is DSTest {
     }
 
     function testWithdrawAsOwner() public {
-        uint initialBalance = address(mockWithdrawalRecipient).balance;
+        uint256 initialBalance = address(mockWithdrawalRecipient).balance;
 
         mockWithdrawalRecipient.withdraw(payable(address(0xABEE)));
 
@@ -43,5 +43,4 @@ contract WithdrawalRecipientOwnableTest is DSTest {
         mockWithdrawalRecipient.changeOwner(address(0));
         mockWithdrawalRecipient.changeOwner(address(0xABEE));
     }
-
 }
