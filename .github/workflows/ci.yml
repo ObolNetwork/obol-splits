@@ -21,4 +21,6 @@ jobs:
           version: nightly
 
       - name: Run tests
+        env:
+          GOERLI_RPC_URL: ${{ secrets.GOERLI_RPC_URL }}
         run: forge test -vvv
