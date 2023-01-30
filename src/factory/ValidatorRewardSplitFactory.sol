@@ -6,15 +6,14 @@ import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
 
 /// @dev Creates multiple waterfall contracts and connects it to a splitter contract
 contract ValidatorRewardSplitFactory {
-
     /// @dev amount of ETH required to run a validator
-    uint256 constant internal ETH_STAKE = 32 ether;
+    uint256 internal constant ETH_STAKE = 32 ether;
 
     /// @dev waterfall eth token representation
-    address constant internal WATERFALL_ETH_TOKEN_ADDRESS = address(0x0);
+    address internal constant WATERFALL_ETH_TOKEN_ADDRESS = address(0x0);
 
     /// @dev non waterfall receipient
-    address constant internal NON_WATERFALL_TOKEN_RECIPIENT = address(0x0);
+    address internal constant NON_WATERFALL_TOKEN_RECIPIENT = address(0x0);
 
     /// @dev waterfall factory
     IWaterfallFactoryModule public immutable waterfallFactoryModule;
@@ -35,12 +34,8 @@ contract ValidatorRewardSplitFactory {
         external
         returns (address[] memory withdrawAddresses, address splitRecipient)
     {
-        splitRecipient = splitMain.createSplit(
-            _split.accounts,
-            _split.percentAllocations,
-            _split.distributorFee,
-            _split.controller
-        );
+        splitRecipient =
+            splitMain.createSplit(_split.accounts, _split.percentAllocations, _split.distributorFee, _split.controller);
 
         address[] memory waterfallRecipients = new address[](2);
         waterfallRecipients[0] = _principal;
