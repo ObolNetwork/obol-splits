@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "forge-std/Test.sol";
 import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
 import {ValidatorRewardSplitFactory} from "../factory/ValidatorRewardSplitFactory.sol";
+import { IWaterfallFactoryModule } from "../interfaces/IWaterfallFactoryModule.sol";
 
 contract ValidatorRewardSplitFactoryTest is Test {
     
@@ -11,13 +12,13 @@ contract ValidatorRewardSplitFactoryTest is Test {
 
     function setUp() public {
         string memory GOERLI_RPC_URL = vm.envString("GOERLI_RPC_URL");
-        // select create and select goerli fork
+        
+        // create and select goerli fork
         vm.createSelectFork(GOERLI_RPC_URL);
-        // deploy ValidatorRewardSplitFactory
-        // use goerli addresses
+
         address WATERFALL_FACTORY_MODULE_GOERLI = 0xd647B9bE093Ec237be72bB17f54b0C5Ada886A25;
         address SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
-        
+
         factory = new ValidatorRewardSplitFactory(
             WATERFALL_FACTORY_MODULE_GOERLI,
             SPLIT_MAIN_GOERLI
@@ -43,6 +44,24 @@ contract ValidatorRewardSplitFactoryTest is Test {
         address principal = address(0x1);
         uint256 numberOfValidators = 1;
 
-        factory.createRewardSplit(splitConfig, principal, numberOfValidators);
+        (address[] memory withdrawAddresses, address splitRecipient) = factory.createETHRewardSplit(
+            splitConfig,
+            principal,
+            numberOfValidators
+        );
+
+        address[] memory expectedRecipients = new address[](2);
+        expectedRecipients[0] = principal;
+        expectedRecipients[1] = splitRecipient;
+
+        uint256[] memory expectedThresholds = new uint256[](1);
+        expectedThresholds[0] = 32 ether;
+
+        for(uint256 i = 0; i < withdrawAddresses.length; i++) {
+            (address[] memory recipients, uint256[] memory thresholds) = IWaterfallFactoryModule(withdrawAddresses[i]).getTranches();
+
+            assertEq(recipients, expectedRecipients, "invalid recipeints");
+            assertEq(thresholds, expectedThresholds, "invalid thresholds");
+        }
     }
 }
