@@ -35,7 +35,7 @@ contract ValidatorRewardSplitFactoryTest is Test {
 
         SplitConfiguration memory splitConfig = SplitConfiguration(accounts, percentAllocations, 0, address(0x0));
 
-        address principal = address(0x1);
+        address payable principal = payable(address(0x1));
         uint256 numberOfValidators = 1;
 
         (address[] memory withdrawAddresses, address splitRecipient) =

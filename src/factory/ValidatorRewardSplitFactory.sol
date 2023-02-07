@@ -30,7 +30,7 @@ contract ValidatorRewardSplitFactory {
     /// @param _split Split configuration data
     /// @param _principal address to receive principal
     /// @param _numberOfValidators number of validators being created
-    function createETHRewardSplit(SplitConfiguration calldata _split, address _principal, uint256 _numberOfValidators)
+    function createETHRewardSplit(SplitConfiguration calldata _split, address payable _principal, uint256 _numberOfValidators)
         external
         returns (address[] memory withdrawAddresses, address splitRecipient)
     {
