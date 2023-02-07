@@ -30,24 +30,26 @@ contract ValidatorRewardSplitFactory {
     /// @param _split Split configuration data
     /// @param _principal address to receive principal
     /// @param _numberOfValidators number of validators being created
+    /// @return withdrawalAddresses array of withdrawal addresses
+    /// @return rewardSplitContract reward split contract
     function createETHRewardSplit(SplitConfiguration calldata _split, address payable _principal, uint256 _numberOfValidators)
         external
-        returns (address[] memory withdrawAddresses, address splitRecipient)
+        returns (address[] memory withdrawalAddresses, address rewardSplitContract)
     {
-        splitRecipient =
+        rewardSplitContract =
             splitMain.createSplit(_split.accounts, _split.percentAllocations, _split.distributorFee, _split.controller);
 
         address[] memory waterfallRecipients = new address[](2);
         waterfallRecipients[0] = _principal;
-        waterfallRecipients[1] = splitRecipient;
+        waterfallRecipients[1] = rewardSplitContract;
 
         uint256[] memory thresholds = new uint256[](1);
         thresholds[0] = ETH_STAKE;
 
-        withdrawAddresses = new address[](_numberOfValidators);
+        withdrawalAddresses = new address[](_numberOfValidators);
 
         for (uint256 i = 0; i < _numberOfValidators;) {
-            withdrawAddresses[i] = waterfallFactoryModule.createWaterfallModule(
+            withdrawalAddresses[i] = waterfallFactoryModule.createWaterfallModule(
                 WATERFALL_ETH_TOKEN_ADDRESS, NON_WATERFALL_TOKEN_RECIPIENT, waterfallRecipients, thresholds
             );
             unchecked {
