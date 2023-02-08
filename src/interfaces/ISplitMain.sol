@@ -21,4 +21,18 @@ interface ISplitMain {
         uint32 distributorFee,
         address controller
     ) external returns (address);
+
+    /// @notice Predicts the address for an immutable split created with recipients `accounts` with ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
+    /// @param accounts Ordered, unique list of addresses with ownership in the split
+    /// @param percentAllocations Percent allocations associated with each address
+    /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+    /// @return split Predicted address of such an immutable split
+    function predictImmutableSplitAddress(
+        address[] calldata accounts,
+        uint32[] calldata percentAllocations,
+        uint32 distributorFee
+    )
+        external
+        view
+        returns (address split);
 }

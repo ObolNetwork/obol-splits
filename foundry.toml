@@ -4,4 +4,6 @@ out = 'out'
 libs = ['lib']
 remappings = ['ds-test/=lib/ds-test/src/', 'solmate/=lib/solmate/src/', 'forge-std/=lib/forge-std/src']
 
+[rpc_endpoints]
+goerli = "${GOERLI_RPC_URL}"
 # See more config options https://github.com/gakonst/foundry/tree/master/config

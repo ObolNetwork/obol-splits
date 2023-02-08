@@ -12,7 +12,7 @@ contract ValidatorRewardSplitFactory {
     /// @dev waterfall eth token representation
     address internal constant WATERFALL_ETH_TOKEN_ADDRESS = address(0x0);
 
-    /// @dev non waterfall receipient
+    /// @dev non waterfall recipient
     address internal constant NON_WATERFALL_TOKEN_RECIPIENT = address(0x0);
 
     /// @dev waterfall factory
