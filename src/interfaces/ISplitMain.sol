@@ -31,8 +31,5 @@ interface ISplitMain {
         address[] calldata accounts,
         uint32[] calldata percentAllocations,
         uint32 distributorFee
-    )
-        external
-        view
-        returns (address split);
+    ) external view returns (address split);
 }

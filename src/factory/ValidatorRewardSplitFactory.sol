@@ -32,10 +32,11 @@ contract ValidatorRewardSplitFactory {
     /// @param _numberOfValidators number of validators being created
     /// @return withdrawalAddresses array of withdrawal addresses
     /// @return rewardSplitContract reward split contract
-    function createETHRewardSplit(SplitConfiguration calldata _split, address payable _principal, uint256 _numberOfValidators)
-        external
-        returns (address[] memory withdrawalAddresses, address rewardSplitContract)
-    {
+    function createETHRewardSplit(
+        SplitConfiguration calldata _split,
+        address payable _principal,
+        uint256 _numberOfValidators
+    ) external returns (address[] memory withdrawalAddresses, address rewardSplitContract) {
         rewardSplitContract =
             splitMain.createSplit(_split.accounts, _split.percentAllocations, _split.distributorFee, _split.controller);
 

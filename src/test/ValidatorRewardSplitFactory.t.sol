@@ -37,9 +37,10 @@ contract ValidatorRewardSplitFactoryTest is Test {
 
         (address[] memory withdrawAddresses, address splitRecipient) =
             factory.createETHRewardSplit(splitConfig, principal, numberOfValidators);
-        
+
         // confirm expected splitrecipient address
-        address expectedSplitRecipient = ISplitMain(SPLIT_MAIN_GOERLI).predictImmutableSplitAddress(accounts, percentAllocations, 0);
+        address expectedSplitRecipient =
+            ISplitMain(SPLIT_MAIN_GOERLI).predictImmutableSplitAddress(accounts, percentAllocations, 0);
         assertEq(splitRecipient, expectedSplitRecipient, "invalid split configuration");
 
         address[] memory expectedRecipients = new address[](2);
