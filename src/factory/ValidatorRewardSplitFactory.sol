@@ -3,6 +3,7 @@ pragma solidity =0.8.13;
 
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
 import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
+import {IENSReverseRegistrar} from "./IENSReverseRegistrar.sol";
 
 /// @dev Creates multiple waterfall contracts and connects it to a splitter contract
 contract ValidatorRewardSplitFactory {
@@ -21,9 +22,11 @@ contract ValidatorRewardSplitFactory {
     /// @dev splitMain factory
     ISplitMain public immutable splitMain;
 
-    constructor(address _waterfallFactoryModule, address _splitMain) {
+    constructor(address _waterfallFactoryModule, address _splitMain, address _ensReverseRegistrar, address _ensOwner) {
         waterfallFactoryModule = IWaterfallFactoryModule(_waterfallFactoryModule);
         splitMain = ISplitMain(_splitMain);
+        IENSReverseRegistrar(_ensReverseRegistrar).setName("launchpad.obol.eth");
+        IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
     }
 
     /// @dev Create reward split for ETH rewards
