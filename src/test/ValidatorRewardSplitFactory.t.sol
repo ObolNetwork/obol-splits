@@ -18,14 +18,10 @@ contract ValidatorRewardSplitFactoryTest is Test {
         vm.createSelectFork(getChain("goerli").rpcUrl);
         // for local tests, mock the ENS reverse registrar at its goerli address.
         vm.mockCall(
-            ensReverseRegistrar,
-            abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
-            bytes.concat(bytes32(0))
+            ensReverseRegistrar, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
         );
         vm.mockCall(
-            ensReverseRegistrar,
-            abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
-            bytes.concat(bytes32(0))
+            ensReverseRegistrar, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
         );
 
         factory = new ValidatorRewardSplitFactory(
