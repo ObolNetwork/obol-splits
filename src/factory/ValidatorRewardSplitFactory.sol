@@ -3,7 +3,7 @@ pragma solidity =0.8.13;
 
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
 import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
-import {IENSReverseRegistrar} from "./IENSReverseRegistrar.sol";
+import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
 
 /// @dev Creates multiple waterfall contracts and connects it to a splitter contract
 contract ValidatorRewardSplitFactory {

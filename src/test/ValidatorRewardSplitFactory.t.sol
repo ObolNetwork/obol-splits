@@ -3,21 +3,36 @@ pragma solidity >=0.8.0;
 
 import "forge-std/Test.sol";
 import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
+import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
 import {ValidatorRewardSplitFactory} from "../factory/ValidatorRewardSplitFactory.sol";
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
 
 contract ValidatorRewardSplitFactoryTest is Test {
     ValidatorRewardSplitFactory public factory;
+    address public ensReverseRegistrar = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
     address internal WATERFALL_FACTORY_MODULE_GOERLI = 0xd647B9bE093Ec237be72bB17f54b0C5Ada886A25;
     address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
 
     function setUp() public {
         vm.createSelectFork(getChain("goerli").rpcUrl);
+        // for local tests, mock the ENS reverse registrar at its goerli address.
+        vm.mockCall(
+            ensReverseRegistrar,
+            abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
+            bytes.concat(bytes32(0))
+        );
+        vm.mockCall(
+            ensReverseRegistrar,
+            abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
+            bytes.concat(bytes32(0))
+        );
 
         factory = new ValidatorRewardSplitFactory(
             WATERFALL_FACTORY_MODULE_GOERLI,
-            SPLIT_MAIN_GOERLI
+            SPLIT_MAIN_GOERLI,
+            ensReverseRegistrar,
+            address(0)
         );
     }
 
