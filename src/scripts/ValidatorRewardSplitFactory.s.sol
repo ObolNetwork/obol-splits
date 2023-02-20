@@ -23,4 +23,20 @@ contract ValidatorRewardSplitFactoryScript is Script {
 
         vm.stopBroadcast();
     }
+
+    function predictAddress(address waterfallFactoryModule, address splitMain, address ensReverseRegistrar, address ensOnwer)
+        external
+    {
+        string memory ensName = "launchpad.obol.tech";
+        
+        ValidatorRewardSplitFactory factory =  new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
+            waterfallFactoryModule,
+            splitMain,
+            ensName,
+            ensReverseRegistrar,
+            ensOnwer
+        );
+
+        console.logAddress(address(factory));
+    }
 }
