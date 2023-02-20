@@ -5,15 +5,18 @@ import "forge-std/Script.sol";
 import {ValidatorRewardSplitFactory} from "../factory/ValidatorRewardSplitFactory.sol";
 
 contract ValidatorRewardSplitFactoryScript is Script {
-    function run(address waterfallFactoryModule, address splitMain, address ensReverseRegistrar, address ensOnwer)
-        external
-    {
-        uint256 privKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(privKey);
+  function run(
+    address waterfallFactoryModule,
+    address splitMain,
+    address ensReverseRegistrar,
+    address ensOnwer
+  ) external {
+    uint256 privKey = vm.envUint("PRIVATE_KEY");
+    vm.startBroadcast(privKey);
 
-        string memory ensName = "launchpad.obol.tech";
+    string memory ensName = "launchpad.obol.tech";
 
-        new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
+    new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
             waterfallFactoryModule,
             splitMain,
             ensName,
@@ -21,15 +24,19 @@ contract ValidatorRewardSplitFactoryScript is Script {
             ensOnwer
         );
 
-        vm.stopBroadcast();
-    }
+    vm.stopBroadcast();
+  }
 
-    function predictAddress(address waterfallFactoryModule, address splitMain, address ensReverseRegistrar, address ensOnwer)
-        external
-    {
-        string memory ensName = "launchpad.obol.tech";
-        
-        ValidatorRewardSplitFactory factory =  new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
+  function predictAddress(
+    address waterfallFactoryModule,
+    address splitMain,
+    address ensReverseRegistrar,
+    address ensOnwer
+  ) external {
+    string memory ensName = "launchpad.obol.tech";
+
+    ValidatorRewardSplitFactory factory =
+    new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
             waterfallFactoryModule,
             splitMain,
             ensName,
@@ -37,6 +44,6 @@ contract ValidatorRewardSplitFactoryScript is Script {
             ensOnwer
         );
 
-        console.logAddress(address(factory));
-    }
+    console.logAddress(address(factory));
+  }
 }

@@ -7,44 +7,44 @@ import "ds-test/test.sol";
 /// @notice Withdrawal contract that allows only the owner account to withdraw
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
 contract WithdrawalRecipientOwnable is Auth {
-    /*///////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////
                                   EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event Withdrawal(address indexed user, address indexed recipient);
+  event Withdrawal(address indexed user, address indexed recipient);
 
-    event OwnerChanged(address indexed user, address indexed newOwner);
+  event OwnerChanged(address indexed user, address indexed newOwner);
 
-    /*///////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _owner, Authority _authority) Auth(_owner, _authority) {}
+  constructor(address _owner, Authority _authority) Auth(_owner, _authority) {}
 
-    /*///////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////
                             WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function withdraw(address payable recipient) public requiresAuth {
-        (bool sent, bytes memory data) = recipient.call{value: address(this).balance}("");
-        require(sent, "Failed to withdraw balance");
+  function withdraw(address payable recipient) public requiresAuth {
+    (bool sent, bytes memory data) = recipient.call{value: address(this).balance}("");
+    require(sent, "Failed to withdraw balance");
 
-        emit Withdrawal(msg.sender, recipient);
-    }
+    emit Withdrawal(msg.sender, recipient);
+  }
 
-    /*///////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////
                             OWNER CHANGE LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function changeOwner(address newOwner) public requiresAuth {
-        owner = newOwner;
+  function changeOwner(address newOwner) public requiresAuth {
+    owner = newOwner;
 
-        emit OwnerChanged(msg.sender, newOwner);
-    }
+    emit OwnerChanged(msg.sender, newOwner);
+  }
 
-    /*///////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////
                             RECEIVE LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    receive() external payable {}
+  receive() external payable {}
 }
