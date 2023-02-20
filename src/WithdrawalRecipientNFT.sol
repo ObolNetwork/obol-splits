@@ -27,9 +27,7 @@ contract WithdrawalRecipientNFT is Auth {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-  constructor(ERC721 _nftContract, uint256 _tokenID, address _owner, Authority _authority)
-    Auth(_owner, _authority)
-  {
+  constructor(ERC721 _nftContract, uint256 _tokenID, address _owner, Authority _authority) Auth(_owner, _authority) {
     nftContract = _nftContract;
     tokenID = _tokenID;
   }

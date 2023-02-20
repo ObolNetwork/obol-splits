@@ -20,9 +20,7 @@ contract NFTDepositTest is DSTest {
     bytes memory withdrawal_credentials = "0x32";
     bytes memory signature = "0x48";
     bytes32 deposit_data_root = "root";
-    uint256 id = mockNFTDeposit.deposit{value: 32e18}(
-      pubkey, withdrawal_credentials, signature, deposit_data_root
-    );
+    uint256 id = mockNFTDeposit.deposit{value: 32e18}(pubkey, withdrawal_credentials, signature, deposit_data_root);
 
     assertEq(mockNFTDeposit.ownerOf(id), address(this));
   }

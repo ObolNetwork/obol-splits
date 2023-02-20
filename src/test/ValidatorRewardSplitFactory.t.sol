@@ -18,14 +18,10 @@ contract ValidatorRewardSplitFactoryTest is Test {
     vm.createSelectFork(getChain("goerli").rpcUrl);
     // for local tests, mock the ENS reverse registrar at its goerli address.
     vm.mockCall(
-      ensReverseRegistrar,
-      abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
-      bytes.concat(bytes32(0))
+      ensReverseRegistrar, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
     );
     vm.mockCall(
-      ensReverseRegistrar,
-      abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
-      bytes.concat(bytes32(0))
+      ensReverseRegistrar, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
     );
 
     factory = new ValidatorRewardSplitFactory(
@@ -46,8 +42,7 @@ contract ValidatorRewardSplitFactoryTest is Test {
     percentAllocations[0] = 400_000;
     percentAllocations[1] = 600_000;
 
-    SplitConfiguration memory splitConfig =
-      SplitConfiguration(accounts, percentAllocations, 0, address(0x0));
+    SplitConfiguration memory splitConfig = SplitConfiguration(accounts, percentAllocations, 0, address(0x0));
 
     address payable principal = payable(makeAddr("accounts2"));
     uint256 numberOfValidators = 10;

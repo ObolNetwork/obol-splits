@@ -46,9 +46,8 @@ contract ValidatorRewardSplitFactory {
     address payable _principal,
     uint256 _numberOfValidators
   ) external returns (address[] memory withdrawalAddresses, address rewardSplitContract) {
-    rewardSplitContract = splitMain.createSplit(
-      _split.accounts, _split.percentAllocations, _split.distributorFee, _split.controller
-    );
+    rewardSplitContract =
+      splitMain.createSplit(_split.accounts, _split.percentAllocations, _split.distributorFee, _split.controller);
 
     address[] memory waterfallRecipients = new address[](2);
     waterfallRecipients[0] = _principal;

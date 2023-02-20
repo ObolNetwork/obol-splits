@@ -7,7 +7,5 @@ import "solmate/auth/Auth.sol";
 import {WithdrawalRecipientNFT} from "../../../WithdrawalRecipientNFT.sol";
 
 contract MockWithdrawalRecipientNFT is WithdrawalRecipientNFT {
-  constructor(ERC721 nftContract)
-    WithdrawalRecipientNFT(nftContract, 0, msg.sender, Authority(address(0)))
-  {}
+  constructor(ERC721 nftContract) WithdrawalRecipientNFT(nftContract, 0, msg.sender, Authority(address(0))) {}
 }

@@ -19,8 +19,5 @@ interface IWaterfallFactoryModule {
   /// Return unpacked tranches
   /// @return recipients Addresses to waterfall payments to
   /// @return thresholds Absolute payment thresholds for waterfall recipients
-  function getTranches()
-    external
-    pure
-    returns (address[] memory recipients, uint256[] memory thresholds);
+  function getTranches() external pure returns (address[] memory recipients, uint256[] memory thresholds);
 }

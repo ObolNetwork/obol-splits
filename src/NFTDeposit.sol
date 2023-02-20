@@ -26,12 +26,9 @@ contract NFTDeposit is ERC721 {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-  constructor(
-    IDepositContract _depositContract,
-    string memory name,
-    string memory symbol,
-    string memory _baseURI
-  ) ERC721(name, symbol) {
+  constructor(IDepositContract _depositContract, string memory name, string memory symbol, string memory _baseURI)
+    ERC721(name, symbol)
+  {
     depositContract = _depositContract;
     baseURI = _baseURI;
   }
@@ -46,9 +43,7 @@ contract NFTDeposit is ERC721 {
     bytes calldata signature,
     bytes32 deposit_data_root
   ) external payable returns (uint256) {
-    depositContract.deposit{value: msg.value}(
-      pubkey, withdrawal_credentials, signature, deposit_data_root
-    );
+    depositContract.deposit{value: msg.value}(pubkey, withdrawal_credentials, signature, deposit_data_root);
 
     uint256 id = totalSupply;
     _mint(msg.sender, id);
