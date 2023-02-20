@@ -27,6 +27,7 @@ contract ValidatorRewardSplitFactoryTest is Test {
         factory = new ValidatorRewardSplitFactory(
             WATERFALL_FACTORY_MODULE_GOERLI,
             SPLIT_MAIN_GOERLI,
+            "launchpad.obol.tech",
             ensReverseRegistrar,
             address(0)
         );

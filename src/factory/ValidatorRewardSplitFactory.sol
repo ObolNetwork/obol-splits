@@ -22,10 +22,10 @@ contract ValidatorRewardSplitFactory {
     /// @dev splitMain factory
     ISplitMain public immutable splitMain;
 
-    constructor(address _waterfallFactoryModule, address _splitMain, address _ensReverseRegistrar, address _ensOwner) {
+    constructor(address _waterfallFactoryModule, address _splitMain, string memory _ensName, address _ensReverseRegistrar, address _ensOwner) {
         waterfallFactoryModule = IWaterfallFactoryModule(_waterfallFactoryModule);
         splitMain = ISplitMain(_splitMain);
-        IENSReverseRegistrar(_ensReverseRegistrar).setName("launchpad.obol.eth");
+        IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
         IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
     }
 

@@ -11,9 +11,12 @@ contract ValidatorRewardSplitFactoryScript is Script {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(privKey);
 
+        string memory ensName = "launchpad.obol.tech";
+
         new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
             waterfallFactoryModule,
             splitMain,
+            ensName,
             ensReverseRegistrar,
             ensOnwer
         );
