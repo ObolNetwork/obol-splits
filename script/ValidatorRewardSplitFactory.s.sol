@@ -20,7 +20,6 @@ contract ValidatorRewardSplitFactoryScript is Script {
             ensReverseRegistrar,
             ensOnwer
         );
-    console.logAddress(address(factory));
     vm.stopBroadcast();
   }
 
