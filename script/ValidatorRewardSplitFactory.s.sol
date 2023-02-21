@@ -13,7 +13,7 @@ contract ValidatorRewardSplitFactoryScript is Script {
 
     string memory ensName = "launchpad.obol.eth";
 
-    ValidatorRewardSplitFactory factory = new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
+    new ValidatorRewardSplitFactory{salt: keccak256("obol.validatorRewardSplitFactory.v1")}(
             waterfallFactoryModule,
             splitMain,
             ensName,
@@ -22,5 +22,4 @@ contract ValidatorRewardSplitFactoryScript is Script {
         );
     vm.stopBroadcast();
   }
-
 }
