@@ -15,7 +15,9 @@ contract ValidatorRewardSplitFactoryTest is Test {
   address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
 
   function setUp() public {
-    vm.createSelectFork(getChain("goerli").rpcUrl);
+    uint256 goerliBlock = 8529931;
+    
+    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
     // for local tests, mock the ENS reverse registrar at its goerli address.
     vm.mockCall(
       ensReverseRegistrar, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
