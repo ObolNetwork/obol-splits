@@ -127,7 +127,6 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
 
     /// send tokens_ to $passThrough
     function passThroughTokens(address[] calldata tokens_) external pausable returns (uint256[] memory amounts) {
-        address _passThrough = $passThrough;
         uint256 length = tokens_.length;
         amounts = new uint256[](length);
         for (uint256 i; i < length;) {
@@ -167,5 +166,9 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
         }
 
         emit ExecCalls(calls_);
+    }
+
+    function owner() internal {
+        // get the owner of the token id of the NFT
     }
 }
