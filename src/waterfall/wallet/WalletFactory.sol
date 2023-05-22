@@ -12,7 +12,7 @@ import {PassThroughWalletImpl} from "./PassThroughWalletImpl.sol";
 contract WalletFactory {
     using LibClone for address;
 
-    event CreatePassThroughWallet(
+    event CreateWallet(
         PassThroughWalletImpl indexed passThroughWallet, PassThroughWalletImpl.InitParams params
     );
 
@@ -22,7 +22,7 @@ contract WalletFactory {
         passThroughWalletImpl = new PassThroughWalletImpl();
     }
 
-    function createPassThroughWallet(PassThroughWalletImpl.InitParams calldata params_)
+    function createWallet(PassThroughWalletImpl.InitParams calldata params_)
         external
         returns (PassThroughWalletImpl passThroughWallet)
     {
