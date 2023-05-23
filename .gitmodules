@@ -1,6 +1,3 @@
-[submodule "lib/solmate"]
-	path = lib/solmate
-	url = https://github.com/transmissions11/solmate
 [submodule "lib/ds-test"]
 	path = lib/ds-test
 	url = https://github.com/dapphub/ds-test
@@ -15,3 +12,6 @@
 [submodule "lib/splits-utils"]
 	path = lib/splits-utils
 	url = https://github.com/0xSplits/splits-utils
+[submodule "lib/solmate"]
+	path = lib/solmate
+	url = https://github.com/transmissions11/solmate
