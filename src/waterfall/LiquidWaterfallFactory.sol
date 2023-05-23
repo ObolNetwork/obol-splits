@@ -24,6 +24,22 @@ contract LiquidWaterfallFactory {
         address[] calldata _recipients,
         uint256[] calldata _thresholds
     ) external returns (address liquidWaterfall) {
+        // deploy nft
+        // deploy wallet
+        
+        // mint nft to wallet
+
+        // deploy waterfall
+
+    }
+
+    // function 
+
+    function _mintNft() internal {
+
+    }
+
+    function _createWallet(address ) internal {
 
     }
 }

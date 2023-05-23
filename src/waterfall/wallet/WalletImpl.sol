@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
+import {Clone} from "solady/utils/Clone.sol";
 import {ERC1155TokenReceiver} from "solmate/tokens/ERC1155.sol";
 import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 import {TokenUtils} from "splits-utils/TokenUtils.sol";
+import {ILiquidWaterfall} from "../../interfaces/ILiquidWaterfall.sol";
+
 
 /// @title Pass-Through Wallet Implementation
 /// @author 0xSplits
 /// @notice A clone-implementation of a pass-through wallet.
 /// Please be aware, owner has _FULL CONTROL_ of the deployment.
 /// @dev This contract uses token = address(0) to refer to ETH.
-contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
+contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
     /// -----------------------------------------------------------------------
     /// libraries
     /// -----------------------------------------------------------------------
@@ -18,14 +21,18 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
     using TokenUtils for address;
 
     /// -----------------------------------------------------------------------
-    /// structs
+    /// storage - cwia offsets
     /// -----------------------------------------------------------------------
 
-    struct InitParams {
-        address owner;
-        bool paused;
-        address passThrough;
-    }
+    // 0; first item
+    uint256 internal constant TOKEN_ADDRESS_OFFSET = 0;
+
+    /// 1; second item
+    uint256 internal constant TOKEN_ID_OFFSET = 20;
+
+    /// -----------------------------------------------------------------------
+    /// structs
+    /// -----------------------------------------------------------------------
     
     struct Call {
         address to;
@@ -33,14 +40,9 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
         bytes data;
     }
 
-
-
     /// -----------------------------------------------------------------------
     /// events
     /// -----------------------------------------------------------------------
-
-    event SetPassThrough(address passThrough);
-    event PassThrough(address indexed passThrough, address[] tokens, uint256[] amounts);
     event ExecCalls(Call[] calls);
 
     // emitted in clone bytecode
@@ -51,46 +53,13 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
     /// -----------------------------------------------------------------------
 
     /// -----------------------------------------------------------------------
-    /// storage - constants & immutables
-    /// -----------------------------------------------------------------------
-
-    address public immutable passThroughWalletFactory;
-
-    /// -----------------------------------------------------------------------
     /// storage - mutables
     /// -----------------------------------------------------------------------
-
-    /// slot 0 - 11 bytes free
-
-    /// OwnableImpl storage
-    /// address internal $owner;
-    /// 20 bytes
-
-    /// PausableImpl storage
-    /// bool internal $paused;
-    /// 1 byte
-
-    /// slot 1 - 12 bytes free
-
-    /// address to pass-through funds to
-    address internal $passThrough;
-    /// 20 bytes
-
     /// -----------------------------------------------------------------------
     /// constructor & initializer
     /// -----------------------------------------------------------------------
 
     constructor() {
-        passThroughWalletFactory = msg.sender;
-    }
-
-    function initializer(InitParams calldata params_) external {
-        // only passThroughWalletFactory may call `initializer`
-        if (msg.sender != passThroughWalletFactory) revert Unauthorized();
-
-        // don't need to init wallet separately
-        __initPausable({owner_: params_.owner, paused_: params_.paused});
-        $passThrough = params_.passThrough;
     }
 
     /// -----------------------------------------------------------------------
@@ -100,20 +69,6 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
     /// -----------------------------------------------------------------------
     /// functions - public & external - onlyOwner
     /// -----------------------------------------------------------------------
-
-    /// set passThrough
-    function setPassThrough(address passThrough_) external onlyOwner {
-        $passThrough = passThrough_;
-        emit SetPassThrough(passThrough_);
-    }
-
-    /// -----------------------------------------------------------------------
-    /// functions - public & external - view
-    /// -----------------------------------------------------------------------
-
-    function passThrough() external view returns (address) {
-        return $passThrough;
-    }
 
     /// -----------------------------------------------------------------------
     /// functions - public & external - permissionless
@@ -126,14 +81,16 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
     /* } */
 
     /// send tokens_ to $passThrough
-    function passThroughTokens(address[] calldata tokens_) external pausable returns (uint256[] memory amounts) {
+    function passThroughTokens(address[] calldata tokens_, address receiver) external returns (uint256[] memory amounts) {
+        require(_isOwner(receiver), "unauthorized");
+        
         uint256 length = tokens_.length;
         amounts = new uint256[](length);
         for (uint256 i; i < length;) {
             address token = tokens_[i];
             uint256 amount = token._balanceOf(address(this));
             amounts[i] = amount;
-            token._safeTransfer(_passThrough, amount);
+            token._safeTransfer(receiver, amount);
 
             unchecked {
                 ++i;
@@ -168,7 +125,21 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver {
         emit ExecCalls(calls_);
     }
 
-    function owner() internal {
+    function _getTokenAddress() internal pure returns(address) {
+        return _getArgAddress(TOKEN_ADDRESS_OFFSET);
+    }
+
+    function _getTokenID() internal pure returns(uint256) {
+        return _getArgUint256(TOKEN_ID_OFFSET);
+    }
+
+    function _isOwner(address sender) internal returns (bool) {
         // get the owner of the token id of the NFT
+        return ILiquidWaterfall(_getTokenAddress()).balanceOf(sender, _getTokenID()) > 0;
+    }
+
+    modifier onlyOwner() {
+        require(_isOwner(msg.sender), "unauthorized");
+        _;
     }
 }
