@@ -37,10 +37,10 @@ contract LiquidWaterfallCloneImpl is ERC1155, Ownable {
             Base64.encode(
                 bytes(
                     string.concat(
-                        '{"name": "Liquid Split ',
+                        '{"name": "Obol Liquid Split ',
                         utils.shortAddressToString(address(this)),
                         '", "description": ',
-                        '"Each token represents 0.1% of this Liquid Split.", ',
+                        '"Each token represents share of this Liquid Waterfall.", ',
                         '"external_url": ',
                         '"https://app.0xsplits.xyz/accounts/',
                         utils.addressToString(address(this)),
