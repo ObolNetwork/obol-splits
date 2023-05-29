@@ -6,22 +6,22 @@ import {WalletCloneImpl} from "./wallet/WalletCloneImpl.sol";
 import {LW1155CloneImpl} from "./token/LW1155CloneImpl.sol";
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
 
-contract LiquidWaterfallFactory {
+contract LWFactory {
   using LibClone for address;
 
   /// @dev wallet implementation
-  address public immutable walletImpl;
+  WalletCloneImpl public immutable walletImpl;
 
   /// @dev liquid waterfall implementation
-  address public immutable liquidWaterfallImpl;
+  LW1155CloneImpl public immutable lw1155ClonefallImpl;
 
   /// @dev waterfall factory
   IWaterfallFactoryModule public immutable waterfallFactoryModule;
 
   constructor(IWaterfallFactoryModule _waterfallFactoryModule) {
-    walletImpl = new WalletImpl();
-    liquidWaterfallImpl = new LiquidWaterfallCloneImpl();
-    waterfallModuleFactory = _waterfallFactoryModule;
+    walletImpl = new WalletCloneImpl();
+    lw1155ClonefallImpl = new LW1155CloneImpl();
+    waterfallFactoryModule = _waterfallFactoryModule;
   }
 
   /// Create a new WaterfallModule clone
@@ -35,9 +35,10 @@ contract LiquidWaterfallFactory {
     address _token,
     address _nonWaterfallRecipient,
     address[] calldata _recipients,
-    uint256[] calldata _thresholds
-  ) external returns (address liquidWaterfall, address waterfall, address memory wallets) {
-    bytes32 liquidWaterfallSalt = keccak256(1);
+    uint256[] calldata _thresholds,
+    bytes calldata _salt
+  ) external returns (address liquidWaterfall, address waterfall, address[] memory wallets) {
+    bytes32 liquidWaterfallSalt = keccak256(_salt);
 
     liquidWaterfall = _deployLiquidWaterfall(liquidWaterfallSalt, _recipients);
 
@@ -48,18 +49,17 @@ contract LiquidWaterfallFactory {
     }
 
     // deploy waterfall
-    waterfall = waterfallModuleFactory.createWaterfallModule(_token, _nonWaterfallRecipient, wallets, _thresholds);
+    waterfall = waterfallFactoryModule.createWaterfallModule(_token, _nonWaterfallRecipient, wallets, _thresholds);
   }
 
   function _deployLiquidWaterfall(bytes32 salt, address[] calldata accounts) internal returns (address liquidWaterfall) {
-    liquidWaterfall = liquidWaterfallImpl.cloneDeterministic(salt);
+    liquidWaterfall = address(lw1155ClonefallImpl).cloneDeterministic(salt);
     // intialize
-    LiquidWaterfallCloneImpl(liquidWaterfallClone).initialize(accounts);
+    LW1155CloneImpl(liquidWaterfall).initialize(accounts);
   }
 
   function _createWallet(address liquidWaterfall, uint256 tokenId) internal returns (address wallet) {
     bytes memory data = abi.encodePacked(liquidWaterfall, tokenId);
-    wallet = LiquidWaterfallCloneImpl(liquidWaterfallImpl).clone(data);
-    // emit event
+    wallet = address(walletImpl).clone(data);
   }
 }

@@ -17,6 +17,10 @@ contract WalletCloneImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
   /// @dev unauthorized user
   error UnAuthorized();
 
+
+  event PassThrough(address indexed receiver, address[] tokens, uint256[] amounts);
+
+
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -94,7 +98,7 @@ contract WalletCloneImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
       }
     }
 
-    emit PassThrough(_passThrough, tokens_, amounts);
+    emit PassThrough(receiver, tokens_, amounts);
   }
 
   /// allow owner to execute arbitrary calls
