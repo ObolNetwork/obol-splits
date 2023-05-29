@@ -12,7 +12,11 @@ import {ILiquidWaterfall} from "../../interfaces/ILiquidWaterfall.sol";
 /// @notice A clone-implementation of a pass-through wallet.
 /// Please be aware, owner has _FULL CONTROL_ of the deployment.
 /// @dev This contract uses token = address(0) to refer to ETH.
-contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
+contract WalletCloneImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
+
+  /// @dev unauthorized user
+  error UnAuthorized();
+
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -72,16 +76,11 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
   /// functions - public & external - permissionless
   /// -----------------------------------------------------------------------
 
-  /// emit event when receiving ETH
-  /// @dev implemented w/i clone bytecode
-  /* receive() external payable { */
-  /*     emit ReceiveETH(msg.value); */
-  /* } */
-
-  /// send tokens_ to $passThrough
-  function passThroughTokens(address[] calldata tokens_, address receiver) external returns (uint256[] memory amounts) {
-    require(_isOwner(receiver), "unauthorized");
-
+  /// @dev send tokens and ETH to receiver
+  /// @notice Ensures the receiver is the right address to receive the tokens
+  /// @param tokens_ address of tokens, address(0) represents ETH
+  /// @param receiver address holding the NFT
+  function passThroughTokens(address[] calldata tokens_, address receiver) external onlyOwner(receiver) returns (uint256[] memory amounts) {
     uint256 length = tokens_.length;
     amounts = new uint256[](length);
     for (uint256 i; i < length;) {
@@ -102,7 +101,7 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
   function execCalls(Call[] calldata calls_)
     external
     payable
-    onlyOwner
+    onlyOwner(msg.sender)
     returns (uint256 blockNumber, bytes[] memory returnData)
   {
     blockNumber = block.number;
@@ -136,8 +135,10 @@ contract WalletImpl is ERC1155TokenReceiver, ERC721TokenReceiver, Clone {
     return ILiquidWaterfall(_getTokenAddress()).balanceOf(sender, _getTokenID()) > 0;
   }
 
-  modifier onlyOwner() {
-    require(_isOwner(msg.sender), "unauthorized");
+  modifier onlyOwner(address sender) {
+    if(_isOwner(sender) == false) {
+      revert UnAuthorized();
+    }
     _;
   }
 }

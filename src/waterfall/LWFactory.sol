@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {LibClone} from "solady/utils/LibClone.sol";
-import {WalletImpl} from "./wallet/WalletImpl.sol";
-import {LiquidWaterfallCloneImpl} from "./token/LiquidWaterfallCloneImpl.sol";
+import {WalletCloneImpl} from "./wallet/WalletCloneImpl.sol";
+import {LW1155CloneImpl} from "./token/LW1155CloneImpl.sol";
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
 
 contract LiquidWaterfallFactory {

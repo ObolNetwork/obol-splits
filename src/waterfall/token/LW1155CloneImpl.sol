@@ -20,9 +20,6 @@ contract LW1155CloneImpl is ERC1155, Ownable {
     /// @dev clone has already been intialised
     error Initialized();
 
-    /// @dev token id
-    uint256 internal constant TOKEN_ID = 0;
-
     /// @dev intialize the clone
     /// @param accounts list of accounts to receive NFTs
     function initialize(address[] calldata accounts) external {
@@ -51,7 +48,7 @@ contract LW1155CloneImpl is ERC1155, Ownable {
                         '{"name": "Obol Liquid Split ',
                         utils.shortAddressToString(address(this)),
                         '", "description": ',
-                        '"Each token represents share of this Liquid Waterfall.", ',
+                        '"Each token represents a tranche of this Liquid Waterfall.", ',
                         '"external_url": ',
                         '"https://app.0xsplits.xyz/accounts/',
                         utils.addressToString(address(this)),
