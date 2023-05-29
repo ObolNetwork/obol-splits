@@ -9,14 +9,22 @@ import {Base64} from "solady/utils/Base64.sol";
 import {Renderer} from "../../lib/Renderer.sol";
 
 
-error Initialized();
+// @title LW1155CloneImpl
+/// @author Obol
+/// @notice A minimal liquid waterfall implementation designed to be used as part of a
+/// clones-with-immutable-args implementation.
+/// Ownership is represented by 1155s (each = 100% of waterfall tranche)
 
-/// @notice Deposit contract wrapper which mints an NFT on successful deposit.
-/// @author Obol Labs Inc. (https://github.com/ObolNetwork)
-contract LiquidWaterfallCloneImpl is ERC1155, Ownable {
+contract LW1155CloneImpl is ERC1155, Ownable {
 
+    /// @dev clone has already been intialised
+    error Initialized();
+
+    /// @dev token id
     uint256 internal constant TOKEN_ID = 0;
 
+    /// @dev intialize the clone
+    /// @param accounts list of accounts to receive NFTs
     function initialize(address[] calldata accounts) external {
         // prevent from being initialized multiple times
         if (owner() != address(0)) {
@@ -33,6 +41,7 @@ contract LiquidWaterfallCloneImpl is ERC1155, Ownable {
         }
     }
 
+    /// @dev Returns token uri
     function uri(uint256) public view override returns(string memory) {
        return string.concat(
             "data:application/json;base64,",
