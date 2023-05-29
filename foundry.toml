@@ -7,6 +7,8 @@ remappings = [
     'solmate/=lib/solmate/src/',
     'splits-tests/=lib/splits-utils/test/'
 ]
+solc_version = '0.8.17'
+
 
 [rpc_endpoints]
 goerli = "${GOERLI_RPC_URL}"

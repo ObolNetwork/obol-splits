@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity ^0.8.13;
 
 import {Ownable} from "solady/auth/Ownable.sol";
 import {ERC1155} from "solmate/tokens/ERC1155.sol";
@@ -9,7 +9,7 @@ import {Base64} from "solady/utils/Base64.sol";
 import {Renderer} from "../../lib/Renderer.sol";
 
 
-error DoesNotExist();
+error Initialized();
 
 /// @notice Deposit contract wrapper which mints an NFT on successful deposit.
 /// @author Obol Labs Inc. (https://github.com/ObolNetwork)
@@ -19,8 +19,10 @@ contract LiquidWaterfallCloneImpl is ERC1155, Ownable {
 
     function initialize(address[] calldata accounts) external {
         // prevent from being initialized multiple times
-        require(owner() == address(0), "intialized");
-        
+        if (owner() != address(0)) {
+            revert Initialized();
+        }
+
         _initializeOwner(msg.sender);
 
         uint256 numAccs = accounts.length;

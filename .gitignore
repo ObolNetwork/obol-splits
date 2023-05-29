@@ -3,3 +3,4 @@ out/
 .gas-snapshot
 .env
 broadcast
+remappings.txt
