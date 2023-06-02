@@ -1,68 +1,87 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity =0.8.17;
 
 import {LibClone} from "solady/utils/LibClone.sol";
-import {WalletCloneImpl} from "./wallet/WalletCloneImpl.sol";
-import {LW1155CloneImpl} from "./token/LW1155CloneImpl.sol";
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
+import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
+import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
+import {LW1155} from "./token/LW1155.sol";
 
-/// @title LWFactory
-/// @author Obol
+/// @dev Creates liquid waterfall and splitter contract contracts 
 contract LWFactory {
 
   using LibClone for address;
 
-  /// @dev wallet implementation
-  WalletCloneImpl public immutable walletImpl;
+  /// @dev amount of ETH required to run a validator
+  uint256 internal constant ETH_STAKE = 32 ether;
 
-  /// @dev liquid waterfall implementation
-  LW1155CloneImpl public immutable lw1155ClonefallImpl;
+  /// @dev waterfall eth token representation
+  address internal constant WATERFALL_ETH_TOKEN_ADDRESS = address(0x0);
+
+  /// @dev non waterfall recipient
+  address internal constant NON_WATERFALL_TOKEN_RECIPIENT = address(0x0);
 
   /// @dev waterfall factory
   IWaterfallFactoryModule public immutable waterfallFactoryModule;
 
-  constructor(IWaterfallFactoryModule _waterfallFactoryModule) {
-    walletImpl = new WalletCloneImpl();
-    lw1155ClonefallImpl = new LW1155CloneImpl();
-    waterfallFactoryModule = _waterfallFactoryModule;
+  /// @dev splitMain factory
+  ISplitMain public immutable splitMain;
+
+  /// @dev liquid waterfall implementation
+  LW1155 public immutable lw1155;
+
+  constructor(
+    address _waterfallFactoryModule,
+    address _splitMain,
+    string memory _ensName,
+    address _ensReverseRegistrar,
+    address _ensOwner
+  ) {
+    waterfallFactoryModule = IWaterfallFactoryModule(_waterfallFactoryModule);
+    splitMain = ISplitMain(_splitMain);
+    lw1155 = new LW1155(ISplitMain(_splitMain));
+    IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
+    IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
   }
 
-  /// Create a new WaterfallModule clone
-  /// @param _token Address of ERC20 to waterfall (0x0 used for ETH)
-  /// @param _nonWaterfallRecipient Address to recover non-waterfall tokens to
-  /// @param _recipients Addresses to waterfall payments to
-  /// @param _thresholds Absolute payment thresholds for waterfall recipients
-  /// (last recipient has no threshold & receives all residual flows)
-  /// @return liquidWaterfall Address of new WaterfallModule clone
-  function createLiquidWaterfall(
-    address _token,
-    address _nonWaterfallRecipient,
-    address[] calldata _recipients,
-    uint256[] calldata _thresholds,
-    bytes calldata _salt
-  ) external returns (address liquidWaterfall, address waterfall, address[] memory wallets) {
-    bytes32 liquidWaterfallSalt = keccak256(_salt);
+  /// @dev Create reward split for ETH rewards
+  /// @param _split Split configuration data
+  /// @param _principal address to receive principal
+  /// @param _numberOfValidators number of validators being created
+  /// @return withdrawalAddresses array of withdrawal addresses
+  /// @return rewardSplitContract reward split contract
+  function createETHRewardSplit(
+    SplitConfiguration calldata _split,
+    address payable _principal,
+    uint256 _numberOfValidators
+  ) external returns (address[] memory withdrawalAddresses, address rewardSplitContract) {
 
-    liquidWaterfall = _deployLiquidWaterfall(liquidWaterfallSalt, _recipients);
+    require(_split.accounts[0] == address(lw1155), "invalid_address");
 
-    // deploy wallet
-    wallets = new address[](_recipients.length);
-    for (uint256 i = 0; i < _recipients.length; i++) {
-      wallets[i] = _createWallet(liquidWaterfall, i);
+    rewardSplitContract =
+      splitMain.createSplit(_split.accounts, _split.percentAllocations, _split.distributorFee, _split.controller);
+
+    address[] memory waterfallRecipients = new address[](2);
+    waterfallRecipients[0] = address(lw1155);
+    waterfallRecipients[1] = rewardSplitContract;
+
+    uint256[] memory thresholds = new uint256[](1);
+    thresholds[0] = ETH_STAKE;
+
+    withdrawalAddresses = new address[](_numberOfValidators);
+
+    for (uint256 i = 0; i < _numberOfValidators;) {
+      withdrawalAddresses[i] = waterfallFactoryModule.createWaterfallModule(
+        WATERFALL_ETH_TOKEN_ADDRESS, NON_WATERFALL_TOKEN_RECIPIENT, waterfallRecipients, thresholds
+      );
+      
+      // mint tokens to principal account
+      lw1155.mint(_principal, rewardSplitContract, withdrawalAddresses[i], _split);
+
+      unchecked {
+        i++;
+      }
     }
-
-    // deploy waterfall
-    waterfall = waterfallFactoryModule.createWaterfallModule(_token, _nonWaterfallRecipient, wallets, _thresholds);
   }
-
-  function _deployLiquidWaterfall(bytes32 salt, address[] calldata accounts) internal returns (address liquidWaterfall) {
-    liquidWaterfall = address(lw1155ClonefallImpl).cloneDeterministic(salt);
-    // intialize
-    LW1155CloneImpl(liquidWaterfall).initialize(accounts);
-  }
-
-  function _createWallet(address liquidWaterfall, uint256 tokenId) internal returns (address wallet) {
-    bytes memory data = abi.encodePacked(liquidWaterfall, tokenId);
-    wallet = address(walletImpl).clone(data);
-  }
+  
 }
