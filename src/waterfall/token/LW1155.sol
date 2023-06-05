@@ -19,17 +19,21 @@ import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 contract LW1155 is ERC1155, Ownable {
   /// @dev invalid owner
   error InvalidOwner();
+  /// @dev zero address
+  error InvalidAddress();
+  /// @dev zero number
+  error ZeroAmount();
 
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
-
   using TokenUtils for address;
 
   /// -----------------------------------------------------------------------
   /// events
   /// -----------------------------------------------------------------------
-  event ReceiveETH(address sender, uint256 amount);
+  event ReceiveETH(address indexed sender, uint256 amount);
+  event Recovered(address sender, address token, uint256 amount);
 
   /// -----------------------------------------------------------------------
   /// structs
@@ -45,6 +49,8 @@ contract LW1155 is ERC1155, Ownable {
   /// -----------------------------------------------------------------------
   /// @dev splitMain factory
   ISplitMain public immutable splitMain;
+  /// @dev obol treasury
+  address public immutable obolTreasury;
 
   /// -----------------------------------------------------------------------
   /// storage - mutables
@@ -53,8 +59,13 @@ contract LW1155 is ERC1155, Ownable {
   /// @dev nft claim information
   mapping(uint256 => Claim) public claimData;
 
-  constructor(ISplitMain _splitMain) {
+  constructor(ISplitMain _splitMain, address _obolTreasury) {
+    if (_obolTreasury == address(0)) {
+      revert InvalidAddress();
+    }
+    
     splitMain = _splitMain;
+    obolTreasury = _obolTreasury;
     _initializeOwner(msg.sender);
   }
 
@@ -74,15 +85,15 @@ contract LW1155 is ERC1155, Ownable {
 
   /// @dev send tokens and ETH to receiver
   /// @notice Ensures the receiver is the right address to receive the tokens
-  /// @param tokenIds address of tokens, address(0) represents ETH
-  /// @param receiver address holding the NFT
-  function claim(uint256[] calldata tokenIds, address receiver) external {
-    uint256 size = tokenIds.length;
+  /// @param _tokenIds address of tokens, address(0) represents ETH
+  /// @param _receiver address holding the NFT
+  function claim(uint256[] calldata _tokenIds, address _receiver) external {
+    uint256 size = _tokenIds.length;
 
     for (uint256 i = 0; i < size;) {
-      uint256 tokenId = tokenIds[i];
+      uint256 tokenId = _tokenIds[i];
 
-      if (balanceOf[receiver][tokenId] == 0) revert InvalidOwner();
+      if (balanceOf[_receiver][tokenId] == 0) revert InvalidOwner();
 
       // fetch claim information
       Claim memory tokenClaim = claimData[tokenId];
@@ -90,7 +101,7 @@ contract LW1155 is ERC1155, Ownable {
       // claim from waterfall
       tokenClaim.waterfall.waterfallFunds();
       address token = tokenClaim.waterfall.token();
-      token._safeTransfer(receiver, token._balanceOf(address(this)));
+      token._safeTransfer(_receiver, token._balanceOf(address(this)));
 
       // claim from splitter
       splitMain.distributeETH(
@@ -102,12 +113,27 @@ contract LW1155 is ERC1155, Ownable {
       );
       ERC20[] memory emptyTokens = new ERC20[](0);
       splitMain.withdraw(address(this), 1, emptyTokens);
-      token._safeTransfer(receiver, token._balanceOf(address(this)));
+      token._safeTransfer(_receiver, token._balanceOf(address(this)));
 
       unchecked {
         ++i;
       }
     }
+  }
+
+  
+  /// Transfers a given `_amount` of an ERC20-token (defined by the `_token` contract address)
+  /// currently belonging to the burner contract address to the Lido treasury address.
+  /// @param _token an ERC20-compatible token
+  /// @param _amount token amount
+  function recover(ERC20 _token, uint256 _amount) external {
+    if (_amount == 0) {
+      revert ZeroAmount();
+    }
+
+    emit Recovered(msg.sender, address(_token), _amount);
+    
+    address(_token)._safeTransfer(obolTreasury, _amount);
   }
 
   /// @dev Returns token uri

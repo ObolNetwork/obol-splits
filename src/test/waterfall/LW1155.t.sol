@@ -24,6 +24,7 @@ contract BaseTest is AddressBook, Test {
 
   address rewardSplit;
   address waterfallModule;
+  address obolTreasury;
   SplitConfiguration configuration;
 
   error Unauthorized();
@@ -38,7 +39,8 @@ contract BaseTest is AddressBook, Test {
 
     user1 = makeAddr("1");
     user2 = makeAddr("2");
-    lw1155 = new LW1155(ISplitMain(SPLIT_MAIN_GOERLI));
+    obolTreasury = makeAddr("3");
+    lw1155 = new LW1155(ISplitMain(SPLIT_MAIN_GOERLI), obolTreasury);
 
     uint32[] memory percentAllocations = new uint32[](2);
     percentAllocations[0] = 500_000;
