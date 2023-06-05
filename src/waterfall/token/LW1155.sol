@@ -136,10 +136,12 @@ contract LW1155 is ERC1155, Ownable {
     );
   }
 
+  /// @dev Returns ERC1155 name
   function name() external view returns (string memory) {
     return string.concat("Obol Liquid Waterfall + Split ", utils.shortAddressToString(address(this)));
   }
 
+  /// @dev Enables ERC1155 to receive ETH
   receive() external payable {
     emit ReceiveETH(msg.sender, msg.value);
   }
