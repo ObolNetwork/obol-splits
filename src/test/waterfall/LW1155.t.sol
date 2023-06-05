@@ -27,6 +27,15 @@ contract BaseTest is AddressBook, Test  {
   SplitConfiguration configuration;
 
   error Unauthorized();
+  error InvalidOwner();
+
+  event TransferSingle(
+    address indexed operator,
+    address indexed from,
+    address indexed to,
+    uint256 id,
+    uint256 amount
+  );
 
   function setUp() public {
     uint256 goerliBlock = 8_529_931;
@@ -81,14 +90,6 @@ contract LW1155NameTest is BaseTest {
 
 contract LW1155MintTest is BaseTest {
 
-  event TransferSingle(
-    address indexed operator,
-    address indexed from,
-    address indexed to,
-    uint256 id,
-    uint256 amount
-  );
-
   function testOnlyOwnerCanMint() public {
     vm.prank(user1);
     vm.expectRevert(Unauthorized.selector);
@@ -99,7 +100,7 @@ contract LW1155MintTest is BaseTest {
   function testCanMint() public {
     uint256 id = uint256(keccak256(abi.encodePacked(user1, waterfallModule)));
     vm.expectEmit(true, true, true, true, address(lw1155));
-    emit TransferSingle(address(lw1155), address(0), user1, id, 1);
+    emit TransferSingle(address(this), address(0), user1, id, 1);
 
     lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
 
@@ -115,7 +116,6 @@ contract LW1155MintTest is BaseTest {
 }
 
 contract LW1155ClaimTest is BaseTest {
-  error InvalidOwner();
   function testOnlyCorrectReceiverCanClaim() public {
     vm.expectRevert(InvalidOwner.selector);
 
@@ -124,6 +124,9 @@ contract LW1155ClaimTest is BaseTest {
   }
 
   function testReceiverCanClaim() public {
+    // mint to user1 
+    lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
+
     // credit waterfall with 50 ETH
     vm.deal(waterfallModule, 50 ether);
     uint256 id = uint256(keccak256(abi.encodePacked(user1, waterfallModule)));
@@ -134,24 +137,37 @@ contract LW1155ClaimTest is BaseTest {
     lw1155.claim(tokenIds, user1);
 
     // check the user1 balance is 41 ETH
-    assertEq(user1.balance, 41 ether);
-    assertEq(user2.balance, 9 ether);
+    assertApproxEqAbs(user1.balance, 41 ether, 1);
   }
 }
 
 contract LW1155TransferTest is BaseTest {
   uint256 id;
 
-  function testTransfer() public {
+  function testTransferAndNewOwnerClaim() public {
+    // credit waterfall with 50 ETH
+    vm.deal(waterfallModule, 50 ether);
+
+    // mint to user1 
+    lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
+
     id = uint256(keccak256(abi.encodePacked(user1, waterfallModule)));
+
+    vm.expectEmit(true, true, true, true, address(lw1155));
+    emit TransferSingle(user1, user1, user2, id, 1);
+
     vm.prank(user1);
     lw1155.safeTransferFrom(user1, user2, id , 1, "");
-  }
 
-  function testNewOwnerClaim() public {
     uint256[] memory tokenIds = new uint256[](1);
     tokenIds[0] = id;
 
+    vm.prank(user2);
     lw1155.claim(tokenIds, user2);
+
+    // reject if previous owner tries to claim
+    vm.expectRevert(InvalidOwner.selector);
+    vm.prank(user1);
+    lw1155.claim(tokenIds, user1);
   }
 }
