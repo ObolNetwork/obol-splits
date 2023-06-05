@@ -66,8 +66,7 @@ contract ValidatorRewardSplitFactoryTest is Test {
     expectedThresholds[0] = 32 ether;
 
     for (uint256 i = 0; i < withdrawAddresses.length; i++) {
-      (address[] memory recipients, uint256[] memory thresholds) =
-        IWaterfallModule(withdrawAddresses[i]).getTranches();
+      (address[] memory recipients, uint256[] memory thresholds) = IWaterfallModule(withdrawAddresses[i]).getTranches();
 
       assertEq(recipients, expectedRecipients, "invalid recipients");
       assertEq(thresholds, expectedThresholds, "invalid thresholds");

@@ -15,6 +15,4 @@ interface IWaterfallFactoryModule {
     address[] calldata recipients,
     uint256[] calldata thresholds
   ) external returns (address);
-
-
 }

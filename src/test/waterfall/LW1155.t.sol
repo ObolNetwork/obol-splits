@@ -16,7 +16,7 @@ contract AddressBook {
   address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
 }
 
-contract BaseTest is AddressBook, Test  {
+contract BaseTest is AddressBook, Test {
   LW1155 public lw1155;
 
   address user1;
@@ -29,13 +29,7 @@ contract BaseTest is AddressBook, Test  {
   error Unauthorized();
   error InvalidOwner();
 
-  event TransferSingle(
-    address indexed operator,
-    address indexed from,
-    address indexed to,
-    uint256 id,
-    uint256 amount
-  );
+  event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 amount);
 
   function setUp() public {
     uint256 goerliBlock = 8_529_931;
@@ -65,7 +59,9 @@ contract BaseTest is AddressBook, Test  {
     uint256[] memory thresholds = new uint256[](1);
     thresholds[0] = ETH_STAKE;
 
-    waterfallModule = IWaterfallFactoryModule(WATERFALL_FACTORY_MODULE_GOERLI).createWaterfallModule(address(0), address(0), waterfallRecipients, thresholds);
+    waterfallModule = IWaterfallFactoryModule(WATERFALL_FACTORY_MODULE_GOERLI).createWaterfallModule(
+      address(0), address(0), waterfallRecipients, thresholds
+    );
   }
 }
 
@@ -89,7 +85,6 @@ contract LW1155NameTest is BaseTest {
 }
 
 contract LW1155MintTest is BaseTest {
-
   function testOnlyOwnerCanMint() public {
     vm.prank(user1);
     vm.expectRevert(Unauthorized.selector);
@@ -105,7 +100,8 @@ contract LW1155MintTest is BaseTest {
     lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
 
     // assert claim information
-    (ISplitMain receivedRewardSplit, IWaterfallModule receivedWaterfallModule, SplitConfiguration memory receivedConfig) =  lw1155.claimData(id);
+    (ISplitMain receivedRewardSplit, IWaterfallModule receivedWaterfallModule, SplitConfiguration memory receivedConfig)
+    = lw1155.claimData(id);
     assertEq(address(receivedRewardSplit), rewardSplit);
     assertEq(address(receivedWaterfallModule), waterfallModule);
     assertEq(configuration.accounts, receivedConfig.accounts);
@@ -124,7 +120,7 @@ contract LW1155ClaimTest is BaseTest {
   }
 
   function testReceiverCanClaim() public {
-    // mint to user1 
+    // mint to user1
     lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
 
     // credit waterfall with 50 ETH
@@ -148,7 +144,7 @@ contract LW1155TransferTest is BaseTest {
     // credit waterfall with 50 ETH
     vm.deal(waterfallModule, 50 ether);
 
-    // mint to user1 
+    // mint to user1
     lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
 
     id = uint256(keccak256(abi.encodePacked(user1, waterfallModule)));
@@ -157,7 +153,7 @@ contract LW1155TransferTest is BaseTest {
     emit TransferSingle(user1, user1, user2, id, 1);
 
     vm.prank(user1);
-    lw1155.safeTransferFrom(user1, user2, id , 1, "");
+    lw1155.safeTransferFrom(user1, user2, id, 1, "");
 
     uint256[] memory tokenIds = new uint256[](1);
     tokenIds[0] = id;

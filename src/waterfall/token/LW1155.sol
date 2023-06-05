@@ -14,9 +14,8 @@ import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 
 // @title LW1155
 /// @author Obol
-/// @notice A minimal liquid waterfall implementation designed to be used as part of a
-/// clones-with-immutable-args implementation.
-/// Ownership is represented by 1155s (each = 100% of waterfall tranche)
+/// @notice A minimal liquid waterfall and splits implementation
+/// Ownership is represented by 1155s (each = 100% of waterfall tranche + split)
 contract LW1155 is ERC1155, Ownable {
   /// @dev invalid owner
   error InvalidOwner();
@@ -73,32 +72,6 @@ contract LW1155 is ERC1155, Ownable {
     _mint({to: _recipient, id: id, amount: 1, data: ""});
   }
 
-  /// @dev Returns token uri
-  function uri(uint256) public view override returns (string memory) {
-    return string.concat(
-      "data:application/json;base64,",
-      Base64.encode(
-        bytes(
-          string.concat(
-            '{"name": "Obol Liquid Split ',
-            utils.shortAddressToString(address(this)),
-            '", "description": ',
-            '"Each token represents 32 ETH staked plus rewards", ',
-            '"external_url": ',
-            '"https://app.0xsplits.xyz/accounts/',
-            utils.addressToString(address(this)),
-            "/?chainId=",
-            utils.uint2str(block.chainid),
-            '", ',
-            '"image": "data:image/svg+xml;base64,',
-            Base64.encode(bytes(Renderer.render(address(this)))),
-            '"}'
-          )
-        )
-      )
-    );
-  }
-
   /// @dev send tokens and ETH to receiver
   /// @notice Ensures the receiver is the right address to receive the tokens
   /// @param tokenIds address of tokens, address(0) represents ETH
@@ -137,12 +110,37 @@ contract LW1155 is ERC1155, Ownable {
     }
   }
 
+  /// @dev Returns token uri
+  function uri(uint256) public view override returns (string memory) {
+    return string.concat(
+      "data:application/json;base64,",
+      Base64.encode(
+        bytes(
+          string.concat(
+            '{"name": "Obol Liquid Waterfall + Split ',
+            utils.shortAddressToString(address(this)),
+            '", "description": ',
+            '"Each token represents 32 ETH staked plus rewards", ',
+            '"external_url": ',
+            '"https://app.0xsplits.xyz/accounts/',
+            utils.addressToString(address(this)),
+            "/?chainId=",
+            utils.uint2str(block.chainid),
+            '", ',
+            '"image": "data:image/svg+xml;base64,',
+            Base64.encode(bytes(Renderer.render(address(this)))),
+            '"}'
+          )
+        )
+      )
+    );
+  }
+
   function name() external view returns (string memory) {
-    return string.concat("Obol Liquid Waterfall Split ", utils.shortAddressToString(address(this)));
+    return string.concat("Obol Liquid Waterfall + Split ", utils.shortAddressToString(address(this)));
   }
 
   receive() external payable {
     emit ReceiveETH(msg.sender, msg.value);
   }
-
 }
