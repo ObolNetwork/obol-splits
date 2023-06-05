@@ -7,7 +7,7 @@ error DoesNotExist();
 
 contract MockNFT is ERC721("NFT", "NFT") {
   function tokenURI(uint256 id) public view override returns (string memory) {
-    if (ownerOf[id] == address(0)) revert DoesNotExist();
+    if (_ownerOf[id] == address(0)) revert DoesNotExist();
 
     return string(abi.encodePacked("NFT", id));
   }

@@ -7,10 +7,11 @@ import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
 import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
 import {LW1155} from "./token/LW1155.sol";
 
-/// @dev Creates liquid waterfall and splitter contract contracts 
+/// @dev Creates liquid waterfall and splitter contract contracts
 contract LWFactory {
-
-  using LibClone for address;
+  /// -----------------------------------------------------------------------
+  /// storage - constants and immutables
+  /// -----------------------------------------------------------------------
 
   /// @dev amount of ETH required to run a validator
   uint256 internal constant ETH_STAKE = 32 ether;
@@ -55,7 +56,6 @@ contract LWFactory {
     address payable _principal,
     uint256 _numberOfValidators
   ) external returns (address[] memory withdrawalAddresses, address rewardSplitContract) {
-
     require(_split.accounts[0] == address(lw1155), "invalid_address");
 
     rewardSplitContract =
@@ -74,7 +74,7 @@ contract LWFactory {
       withdrawalAddresses[i] = waterfallFactoryModule.createWaterfallModule(
         WATERFALL_ETH_TOKEN_ADDRESS, NON_WATERFALL_TOKEN_RECIPIENT, waterfallRecipients, thresholds
       );
-      
+
       // mint tokens to principal account
       lw1155.mint(_principal, rewardSplitContract, withdrawalAddresses[i], _split);
 
@@ -83,5 +83,4 @@ contract LWFactory {
       }
     }
   }
-  
 }

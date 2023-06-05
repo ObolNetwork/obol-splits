@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import {ERC20} from 'solmate/tokens/ERC20.sol';
+
+import {ERC20} from "solmate/tokens/ERC20.sol";
 
 struct SplitConfiguration {
   address[] accounts;
@@ -56,9 +57,5 @@ interface ISplitMain {
   /// @param account Address to withdraw on behalf of
   /// @param withdrawETH Withdraw all ETH if nonzero
   /// @param tokens Addresses of ERC20s to withdraw
-  function withdraw(
-    address account,
-    uint256 withdrawETH,
-    ERC20[] calldata tokens
-  ) external;
+  function withdraw(address account, uint256 withdrawETH, ERC20[] calldata tokens) external;
 }

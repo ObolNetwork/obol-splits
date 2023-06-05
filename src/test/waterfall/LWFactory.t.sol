@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
-import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
-import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
-import {ValidatorRewardSplitFactory} from "../factory/ValidatorRewardSplitFactory.sol";
-import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
-import {IWaterfallModule} from "../interfaces/IWaterfallModule.sol";
+import {AddressBook} from "./LW1155.t.sol";
+import {LWFactory} from "../../waterfall/LWFactory.sol";
+import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
+import {ISplitMain, SplitConfiguration} from "../../interfaces/ISplitMain.sol";
+import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 
-contract ValidatorRewardSplitFactoryTest is Test {
-  ValidatorRewardSplitFactory public factory;
-  address public ensReverseRegistrar = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
-
-  address internal WATERFALL_FACTORY_MODULE_GOERLI = 0xd647B9bE093Ec237be72bB17f54b0C5Ada886A25;
-  address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
+contract LWFactoryTest is Test, AddressBook {
+  LWFactory lwFactory;
 
   function setUp() public {
     uint256 goerliBlock = 8_529_931;
@@ -27,18 +23,18 @@ contract ValidatorRewardSplitFactoryTest is Test {
       ensReverseRegistrar, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
     );
 
-    factory = new ValidatorRewardSplitFactory(
+    lwFactory = new LWFactory(
             WATERFALL_FACTORY_MODULE_GOERLI,
             SPLIT_MAIN_GOERLI,
-            "launchpad.obol.tech",
+            "demo.obol.eth",
             ensReverseRegistrar,
-            address(0)
+            address(this)
         );
   }
 
-  function testCreateRewardSplit() external {
+  function testCreateETHRewardSplit() external {
     address[] memory accounts = new address[](2);
-    accounts[0] = makeAddr("accounts0");
+    accounts[0] = address(lwFactory.lw1155());
     accounts[1] = makeAddr("accounts1");
 
     uint32[] memory percentAllocations = new uint32[](2);
@@ -51,7 +47,7 @@ contract ValidatorRewardSplitFactoryTest is Test {
     uint256 numberOfValidators = 10;
 
     (address[] memory withdrawAddresses, address splitRecipient) =
-      factory.createETHRewardSplit(splitConfig, principal, numberOfValidators);
+      lwFactory.createETHRewardSplit(splitConfig, principal, numberOfValidators);
 
     // confirm expected splitrecipient address
     address expectedSplitRecipient =
@@ -59,18 +55,18 @@ contract ValidatorRewardSplitFactoryTest is Test {
     assertEq(splitRecipient, expectedSplitRecipient, "invalid split configuration");
 
     address[] memory expectedRecipients = new address[](2);
-    expectedRecipients[0] = principal;
+    expectedRecipients[0] = address(lwFactory.lw1155());
     expectedRecipients[1] = splitRecipient;
 
     uint256[] memory expectedThresholds = new uint256[](1);
     expectedThresholds[0] = 32 ether;
 
     for (uint256 i = 0; i < withdrawAddresses.length; i++) {
-      (address[] memory recipients, uint256[] memory thresholds) =
-        IWaterfallModule(withdrawAddresses[i]).getTranches();
+        (address[] memory recipients, uint256[] memory thresholds) =
+            IWaterfallModule(withdrawAddresses[i]).getTranches();
 
-      assertEq(recipients, expectedRecipients, "invalid recipients");
-      assertEq(thresholds, expectedThresholds, "invalid thresholds");
+        assertEq(recipients, expectedRecipients, "invalid recipients");
+        assertEq(thresholds, expectedThresholds, "invalid thresholds");
     }
   }
 }
