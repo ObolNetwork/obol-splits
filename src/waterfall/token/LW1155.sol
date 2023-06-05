@@ -120,7 +120,6 @@ contract LW1155 is ERC1155, Ownable {
       }
     }
   }
-
   
   /// Transfers a given `_amount` of an ERC20-token (defined by the `_token` contract address)
   /// currently belonging to the burner contract address to the Lido treasury address.
@@ -132,7 +131,7 @@ contract LW1155 is ERC1155, Ownable {
     }
 
     emit Recovered(msg.sender, address(_token), _amount);
-    
+
     address(_token)._safeTransfer(obolTreasury, _amount);
   }
 

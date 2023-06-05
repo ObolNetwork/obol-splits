@@ -8,6 +8,9 @@ import {utils} from "../../lib/Utils.sol";
 import {ISplitMain, SplitConfiguration} from "../../interfaces/ISplitMain.sol";
 import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 import {IWaterfallFactoryModule} from "../../interfaces/IWaterfallFactoryModule.sol";
+import {MockERC20} from "../utils/mocks/MockERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+
 
 contract AddressBook {
   address public ensReverseRegistrar = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
@@ -26,6 +29,7 @@ contract BaseTest is AddressBook, Test {
   address waterfallModule;
   address obolTreasury;
   SplitConfiguration configuration;
+  MockERC20 mockERC20;
 
   error Unauthorized();
   error InvalidOwner();
@@ -41,6 +45,8 @@ contract BaseTest is AddressBook, Test {
     user2 = makeAddr("2");
     obolTreasury = makeAddr("3");
     lw1155 = new LW1155(ISplitMain(SPLIT_MAIN_GOERLI), obolTreasury);
+
+    mockERC20 = new MockERC20("demo", "DMT", 18);
 
     uint32[] memory percentAllocations = new uint32[](2);
     percentAllocations[0] = 500_000;
@@ -167,5 +173,31 @@ contract LW1155TransferTest is BaseTest {
     vm.expectRevert(InvalidOwner.selector);
     vm.prank(user1);
     lw1155.claim(tokenIds, user1);
+  }
+}
+
+contract LW1155RecoverTest is BaseTest {
+  function testRecoverETH() public {
+    vm.deal(address(lw1155), 10 ether);
+
+    lw1155.recover(ERC20(address(0)), 5 ether);
+
+    assertEq(obolTreasury.balance, 5 ether);
+
+    lw1155.recover(ERC20(address(0)), 5 ether);
+
+    assertEq(obolTreasury.balance, 10 ether);
+  }
+
+  function testRecoverToken() public {
+    deal(address(mockERC20), address(lw1155), 10000);
+
+    lw1155.recover(ERC20(address(mockERC20)), 5000);
+    
+    assertEq(mockERC20.balanceOf(obolTreasury), 5000);
+
+    lw1155.recover(ERC20(address(mockERC20)), 5000);
+
+    assertEq(mockERC20.balanceOf(obolTreasury), 10000);
   }
 }

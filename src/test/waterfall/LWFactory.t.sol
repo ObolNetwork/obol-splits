@@ -28,6 +28,7 @@ contract LWFactoryTest is Test, AddressBook {
             SPLIT_MAIN_GOERLI,
             "demo.obol.eth",
             ensReverseRegistrar,
+            address(this),
             address(this)
         );
   }
