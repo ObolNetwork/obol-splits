@@ -88,7 +88,7 @@ contract LW1155UriTest is BaseTest {
 
 contract LW1155NameTest is BaseTest {
   function testCanFetchName() public {
-    assertEq(lw1155.name(), string.concat("Obol Liquid Waterfall Split ", utils.shortAddressToString(address(lw1155))));
+    assertEq(lw1155.name(), string.concat("Obol Liquid Waterfall + Split ", utils.shortAddressToString(address(lw1155))));
   }
 }
 

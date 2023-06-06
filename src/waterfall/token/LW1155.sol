@@ -23,6 +23,8 @@ contract LW1155 is ERC1155, Ownable {
   error InvalidAddress();
   /// @dev zero number
   error ZeroAmount();
+  /// @dev claim exists
+  error ClaimExists();
 
   /// -----------------------------------------------------------------------
   /// libraries
@@ -79,6 +81,11 @@ contract LW1155 is ERC1155, Ownable {
     // waterfall is unique per validator
     uint256 id = uint256(keccak256(abi.encodePacked(_recipient, _waterfall)));
     Claim memory claiminfo = Claim(ISplitMain(_split), IWaterfallModule(_waterfall), _configuration);
+
+    if (address(claimData[id].split) != address(0)) {
+      revert ClaimExists();
+    }
+
     claimData[id] = claiminfo;
     _mint({to: _recipient, id: id, amount: 1, data: ""});
   }
@@ -101,7 +108,6 @@ contract LW1155 is ERC1155, Ownable {
       // claim from waterfall
       tokenClaim.waterfall.waterfallFunds();
       address token = tokenClaim.waterfall.token();
-      token._safeTransfer(_receiver, token._balanceOf(address(this)));
 
       // claim from splitter
       splitMain.distributeETH(
@@ -113,6 +119,8 @@ contract LW1155 is ERC1155, Ownable {
       );
       ERC20[] memory emptyTokens = new ERC20[](0);
       splitMain.withdraw(address(this), 1, emptyTokens);
+
+      // transfer claimed tokens to receiver
       token._safeTransfer(_receiver, token._balanceOf(address(this)));
 
       unchecked {
