@@ -17,7 +17,7 @@ import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 /// @notice A minimal liquid waterfall and splits implementation
 /// Ownership is represented by 1155s (each = 100% of waterfall tranche + split)
 contract LW1155 is ERC1155, Ownable {
-  
+
   /// @dev invalid owner
   error InvalidOwner();
   /// @dev zero address
@@ -50,6 +50,8 @@ contract LW1155 is ERC1155, Ownable {
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
+  /// @dev ETH address representation
+  address internal constant ETH_TOKEN_ADDRESS = address(0x0);
   /// @dev splitMain factory
   ISplitMain public immutable splitMain;
   /// @dev obol treasury
@@ -108,7 +110,6 @@ contract LW1155 is ERC1155, Ownable {
 
       // claim from waterfall
       tokenClaim.waterfall.waterfallFunds();
-      address token = tokenClaim.waterfall.token();
 
       // claim from splitter
       splitMain.distributeETH(
@@ -121,8 +122,8 @@ contract LW1155 is ERC1155, Ownable {
       ERC20[] memory emptyTokens = new ERC20[](0);
       splitMain.withdraw(address(this), 1, emptyTokens);
 
-      // transfer claimed tokens to receiver
-      token._safeTransfer(_receiver, token._balanceOf(address(this)));
+      // transfer claimed eth to receiver
+      ETH_TOKEN_ADDRESS._safeTransfer(_receiver, ETH_TOKEN_ADDRESS._balanceOf(address(this)));
 
       unchecked {
         ++i;
