@@ -17,6 +17,7 @@ import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 /// @notice A minimal liquid waterfall and splits implementation
 /// Ownership is represented by 1155s (each = 100% of waterfall tranche + split)
 contract LW1155 is ERC1155, Ownable {
+  
   /// @dev invalid owner
   error InvalidOwner();
   /// @dev zero address
@@ -129,8 +130,7 @@ contract LW1155 is ERC1155, Ownable {
     }
   }
   
-  /// Transfers a given `_amount` of an ERC20-token (defined by the `_token` contract address)
-  /// currently belonging to the burner contract address to the Lido treasury address.
+  /// Transfers a given `_amount` of an ERC20-token where address(0) is ETH
   /// @param _token an ERC20-compatible token
   /// @param _amount token amount
   function recover(ERC20 _token, uint256 _amount) external {

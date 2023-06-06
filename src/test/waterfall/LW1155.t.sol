@@ -177,6 +177,11 @@ contract LW1155TransferTest is BaseTest {
 }
 
 contract LW1155RecoverTest is BaseTest {
+
+  function testReoveryWalletAddress() external {
+    assertEq(lw1155.recoveryWallet(), recoveryWallet);
+  }
+
   function testRecoverETH() public {
     vm.deal(address(lw1155), 10 ether);
 
