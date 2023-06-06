@@ -93,10 +93,18 @@ contract LW1155NameTest is BaseTest {
 }
 
 contract LW1155MintTest is BaseTest {
+  error ClaimExists();
+
   function testOnlyOwnerCanMint() public {
     vm.prank(user1);
     vm.expectRevert(Unauthorized.selector);
 
+    lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
+  }
+
+  function testCannotMintDoubleIds() public {
+    lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
+    vm.expectRevert(ClaimExists.selector);
     lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
   }
 
