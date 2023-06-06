@@ -52,7 +52,7 @@ contract LW1155 is ERC1155, Ownable {
   /// @dev splitMain factory
   ISplitMain public immutable splitMain;
   /// @dev obol treasury
-  address public immutable obolTreasury;
+  address public immutable recoveryWallet;
 
   /// -----------------------------------------------------------------------
   /// storage - mutables
@@ -61,13 +61,13 @@ contract LW1155 is ERC1155, Ownable {
   /// @dev nft claim information
   mapping(uint256 => Claim) public claimData;
 
-  constructor(ISplitMain _splitMain, address _obolTreasury) {
-    if (_obolTreasury == address(0)) {
+  constructor(ISplitMain _splitMain, address _recoveryWallet) {
+    if (_recoveryWallet == address(0)) {
       revert InvalidAddress();
     }
     
     splitMain = _splitMain;
-    obolTreasury = _obolTreasury;
+    recoveryWallet = _recoveryWallet;
     _initializeOwner(msg.sender);
   }
 
@@ -140,7 +140,7 @@ contract LW1155 is ERC1155, Ownable {
 
     emit Recovered(msg.sender, address(_token), _amount);
 
-    address(_token)._safeTransfer(obolTreasury, _amount);
+    address(_token)._safeTransfer(recoveryWallet, _amount);
   }
 
   /// @dev Returns token uri

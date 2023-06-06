@@ -27,7 +27,7 @@ contract BaseTest is AddressBook, Test {
 
   address rewardSplit;
   address waterfallModule;
-  address obolTreasury;
+  address recoveryWallet;
   SplitConfiguration configuration;
   MockERC20 mockERC20;
 
@@ -43,8 +43,8 @@ contract BaseTest is AddressBook, Test {
 
     user1 = makeAddr("1");
     user2 = makeAddr("2");
-    obolTreasury = makeAddr("3");
-    lw1155 = new LW1155(ISplitMain(SPLIT_MAIN_GOERLI), obolTreasury);
+    recoveryWallet = makeAddr("3");
+    lw1155 = new LW1155(ISplitMain(SPLIT_MAIN_GOERLI), recoveryWallet);
 
     mockERC20 = new MockERC20("demo", "DMT", 18);
 
@@ -182,11 +182,11 @@ contract LW1155RecoverTest is BaseTest {
 
     lw1155.recover(ERC20(address(0)), 5 ether);
 
-    assertEq(obolTreasury.balance, 5 ether);
+    assertEq(recoveryWallet.balance, 5 ether);
 
     lw1155.recover(ERC20(address(0)), 5 ether);
 
-    assertEq(obolTreasury.balance, 10 ether);
+    assertEq(recoveryWallet.balance, 10 ether);
   }
 
   function testRecoverToken() public {
@@ -194,10 +194,10 @@ contract LW1155RecoverTest is BaseTest {
 
     lw1155.recover(ERC20(address(mockERC20)), 5000);
     
-    assertEq(mockERC20.balanceOf(obolTreasury), 5000);
+    assertEq(mockERC20.balanceOf(recoveryWallet), 5000);
 
     lw1155.recover(ERC20(address(mockERC20)), 5000);
 
-    assertEq(mockERC20.balanceOf(obolTreasury), 10000);
+    assertEq(mockERC20.balanceOf(recoveryWallet), 10000);
   }
 }

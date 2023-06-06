@@ -37,11 +37,11 @@ contract LWFactory {
     string memory _ensName,
     address _ensReverseRegistrar,
     address _ensOwner,
-    address _obolTreasury
+    address _recoveryWallet
   ) {
     waterfallFactoryModule = IWaterfallFactoryModule(_waterfallFactoryModule);
     splitMain = ISplitMain(_splitMain);
-    lw1155 = new LW1155(ISplitMain(_splitMain), _obolTreasury);
+    lw1155 = new LW1155(ISplitMain(_splitMain), _recoveryWallet);
     IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
     IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
   }
