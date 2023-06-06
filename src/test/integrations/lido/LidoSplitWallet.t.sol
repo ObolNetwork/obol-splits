@@ -11,19 +11,9 @@ contract LidoIntegration is Test {
 
     LidoSplitWallet lidoSplitWallet;
 
-    address user1;
-    address user2;
-    address user3;
-    address user4;
-
     function setUp() {
         uint256 mainnetBlock = 17421005;
         vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
-        // mainnet fork credit lido split wallet with tokens
-        // credit some lido tokens to splitwallet
-        // call sendERC20 to main to ensure wstETH is what's getting
-        // sent 
-        // that's all
 
         lidoSplitWallet = new LidoSplitWallet(
             ERC20(STETH_MAINNET_ADDRESS),
