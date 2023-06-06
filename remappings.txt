@@ -1,6 +1,0 @@
-ds-test/=lib/ds-test/src/
-forge-std/=lib/forge-std/src/
-solady/=lib/solady/src/
-solmate/=lib/solmate/src/
-splits-tests/=lib/splits-utils/test/
-splits-utils/=lib/splits-utils/src/
