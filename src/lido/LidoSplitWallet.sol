@@ -77,9 +77,10 @@ contract LidoSplitWallet {
   /** @notice Sends amount `amount` of ETH in proxy to SplitMain
    *  @dev payable reduces gas cost; no vulnerability to accidentally lock
    *  ETH introduced since fn call is restricted to SplitMain
-   *  @param amount Amount to send
+   *  @return amount Amount sent
    */
-  function sendETHToMain(uint256 amount) external payable onlySplitMain() {
+  function sendETHToMain() external payable onlySplitMain() returns(uint256 amount) {
+    amount = address(this).balance;
     address(splitMain).safeTransferETH(amount);
   }
 
@@ -87,17 +88,18 @@ contract LidoSplitWallet {
    *  @dev payable reduces gas cost; no vulnerability to accidentally lock
    *  ETH introduced since fn call is restricted to SplitMain
    *  @param token Token to send
-   *  @param amount Amount to send
+   *  @return amount Amount sent
    */
-  function sendERC20ToMain(ERC20 token, uint256 amount)
+  function sendERC20ToMain(ERC20 /**token */)
     external
     payable
     onlySplitMain()
+    returns(uint256 amount)
   {
     // approve the wstETH
     uint256 balance = stETH.balanceOf(address(this));
     stETH.approve(address(wstETH), balance);
-    IwSTETH(address(wstETH)).wrap(balance);
+    amount = IwSTETH(address(wstETH)).wrap(balance);
     token.safeTransfer(address(splitMain), amount);
   }
 }
