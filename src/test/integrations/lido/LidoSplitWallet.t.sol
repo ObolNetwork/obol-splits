@@ -24,12 +24,12 @@ contract LidoIntegration is Test {
     function testSendERC20ToMain() external {
         deal(STETH_MAINNET_ADDRESS, lidoSplitWallet, 1 ether);
 
-        lidoSplitWallet.sendERC20ToMain(ERC20(wstETH), 0.5 ether);
+        uint256 amount = lidoSplitWallet.sendERC20ToMain(ERC20(wstETH));
 
         // check the balance of this address
         assertEq(
-            ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(address(this)) > 0,
-            true
+            ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(address(this)),
+            amount
         );
     }
 
@@ -37,9 +37,9 @@ contract LidoIntegration is Test {
     function testSendETHToMain() external {
         vm.deal(lidoSplitWallet, 1 ether);
 
-        lidoSplitWallet.sendETHToMain(ERC20(wstETH), 0.5 ether);
+        uint256 amount = lidoSplitWallet.sendETHToMain();
 
         // check the balance of this address
-        assertEq(address(this).balance, 0.5 ether);
+        assertEq(address(this).balance, amount);
     }
 }

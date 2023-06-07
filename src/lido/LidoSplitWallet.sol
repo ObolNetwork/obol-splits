@@ -90,7 +90,7 @@ contract LidoSplitWallet {
    *  @param token Token to send
    *  @return amount Amount sent
    */
-  function sendERC20ToMain(ERC20 /**token */)
+  function sendERC20ToMain(ERC20 /**token*/)
     external
     payable
     onlySplitMain()
@@ -100,6 +100,6 @@ contract LidoSplitWallet {
     uint256 balance = stETH.balanceOf(address(this));
     stETH.approve(address(wstETH), balance);
     amount = IwSTETH(address(wstETH)).wrap(balance);
-    token.safeTransfer(address(splitMain), amount);
+    ERC20(wstETH).safeTransfer(address(splitMain), amount);
   }
 }
