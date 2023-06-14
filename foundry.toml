@@ -5,7 +5,8 @@ libs = ['lib']
 remappings = [
     'ds-test/=lib/ds-test/src/',
     'solmate/=lib/solmate/src/',
-    'splits-tests/=lib/splits-utils/test/'
+    'splits-tests/=lib/splits-utils/test/',
+    '0xSplits/=lib/splits-contracts/contracts'
 ]
 solc_version = '0.8.17'
 
