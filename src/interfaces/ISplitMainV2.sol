@@ -19,11 +19,13 @@ interface ISplitMainV2 {
   /// @param controller Controlling address (0x0 if immutable)
   /// @return split Address of newly created split
   function createSplit(
+    address splitWalletImplementation,
     address[] calldata accounts,
     uint32[] calldata percentAllocations,
     uint32 distributorFee,
-    address controller
-  ) external returns (address);
+    address controller,
+    address distributor
+  ) external returns(address);
 
   /// @notice Predicts the address for an immutable split created with recipients `accounts` with
   /// ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
@@ -32,6 +34,7 @@ interface ISplitMainV2 {
   /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
   /// @return split Predicted address of such an immutable split
   function predictImmutableSplitAddress(
+    address splitWalletImplementation,
     address[] calldata accounts,
     uint32[] calldata percentAllocations,
     uint32 distributorFee

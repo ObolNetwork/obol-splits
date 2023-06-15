@@ -5,6 +5,7 @@ import {SplitMain} from "0xSplits/SplitMain.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from 'solmate/utils/SafeTransferLib.sol';
+import {LibClone} from "solady/utils/LibClone.sol";
 
 /**
  * ERRORS
@@ -54,6 +55,7 @@ error InvalidNewController(address newController);
 contract SplitMainV2 is ISplitMain {
   using SafeTransferLib for address;
   using SafeTransferLib for ERC20;
+  using LibClone for address;
 
   /**
    * STRUCTS
@@ -198,7 +200,7 @@ contract SplitMainV2 is ISplitMain {
    *  @return split Address of newly created split
    */
   function createSplit(
-    address split,
+    address splitWalletImplementation,
     address[] calldata accounts,
     uint32[] calldata percentAllocations,
     uint32 distributorFee,
@@ -208,15 +210,20 @@ contract SplitMainV2 is ISplitMain {
     external
     override
     validSplit(accounts, percentAllocations, distributorFee)
-    
+    returns(address split) 
   {
     bytes32 splitHash = _hashSplit(
       accounts,
       percentAllocations,
       distributorFee
     );
-    if (controller != address(0)) {
+    if (controller == address(0)) {
+      // create immutable split
+      split = splitWalletImplementation.cloneDeterministic(splitHash);
       splits[split].controller = controller;
+    } else {
+      // create mutable split
+      split = splitWalletImplementation.clone();
     }
     if (distributor != address(0)) {
       splits[split].distributor = distributor;

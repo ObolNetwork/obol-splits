@@ -4,11 +4,10 @@ import {Ownable} from "solady/auth/Ownable.sol";
 import {ISplitMainV2} from "../interfaces/ISplitMainV2.sol";
 
 contract SplitFactory is Ownable {
-
     error IdExists(bytes32 id);
 
     /// @dev splitmain
-    ISplitMain public immutable splitMain;
+    ISplitMainV2 public immutable splitMain;
     
     /// @dev split id to split implmentation address
     mapping (bytes32 => address) internal splitWalletImplementations;
@@ -16,8 +15,8 @@ contract SplitFactory is Ownable {
 
     event NewSplitWallet(bytes32 id, address implementation);
 
-    constructor(address splitMain, address owner) {
-        splitMain = splitMain;
+    constructor(address splitMain_, address owner) {
+        splitMain = ISplitMainV2(splitMain_);
         _initializeOwner(owner);
     }
 
@@ -25,10 +24,10 @@ contract SplitFactory is Ownable {
         bytes32 id,
         address implementation
     ) external onlyOwner {
-        if (splitWallet[id] != address(0)) {
+        if (splitWalletImplementations[id] != address(0)) {
             revert IdExists(id);
         }
-        splitWallet[id] = implementation;
+        splitWalletImplementations[id] = implementation;
         emit NewSplitWallet(id, implementation);
     }
 
@@ -41,16 +40,8 @@ contract SplitFactory is Ownable {
         address controller
     ) external returns (address split) {
         address splitWalletImplementation = splitWalletImplementations[splitId];
-        if (controller == address(0)) {
-            // create immutable split
-            split = Clones.cloneDeterministic(splitWalletImplementation, splitHash);
-        } else {
-            // create mutable split
-            split = Clones.clone(splitWalletImplementation);
-        }
-        
-        splitMain.createSplit(
-            split,
+        split = splitMain.createSplit(
+            splitWalletImplementation,
             accounts,
             percentAllocations,
             distributorFee,
@@ -73,7 +64,6 @@ contract SplitFactory is Ownable {
     )
         external
         view
-        override
         returns (address split)
     {
         address splitWalletImplementation = splitWalletImplementations[splitId];
