@@ -3,8 +3,8 @@ pragma solidity =0.8.17;
 
 import {SplitMain} from "0xSplits/SplitMain.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
-import {ERC20} from '@rari-capital/solmate/src/tokens/ERC20.sol';
-import {SafeTransferLib} from '@rari-capital/solmate/src/utils/SafeTransferLib.sol';
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from 'solmate/utils/SafeTransferLib.sol';
 
 /**
  * ERRORS
@@ -51,7 +51,7 @@ error InvalidNewController(address newController);
  * For these proxies, we extended EIP-1167 Minimal Proxy Contract to avoid `DELEGATECALL` inside `receive()` to accept
  * hard gas-capped `sends` & `transfers`.
  */
-contract SplitMain is ISplitMain {
+contract SplitMainV2 is ISplitMain {
   using SafeTransferLib for address;
   using SafeTransferLib for ERC20;
 
@@ -194,6 +194,7 @@ contract SplitMain is ISplitMain {
    *  @param percentAllocations Percent allocations associated with each address
    *  @param distributorFee Keeper fee paid by split to cover gas costs of distribution
    *  @param controller Controlling address (0x0 if immutable)
+   *  @param distributor priviledge distributor
    *  @return split Address of newly created split
    */
   function createSplit(
@@ -201,12 +202,13 @@ contract SplitMain is ISplitMain {
     address[] calldata accounts,
     uint32[] calldata percentAllocations,
     uint32 distributorFee,
-    address controller
+    address controller,
+    address distributor
   )
     external
     override
     validSplit(accounts, percentAllocations, distributorFee)
-    returns (address split)
+    
   {
     bytes32 splitHash = _hashSplit(
       accounts,
@@ -216,8 +218,12 @@ contract SplitMain is ISplitMain {
     if (controller != address(0)) {
       splits[split].controller = controller;
     }
+    if (distributor != address(0)) {
+      splits[split].distributor = distributor;
+    }
     // store split's hash in storage for future verification
     splits[split].hash = splitHash;
+
     emit CreateSplit(split);
   }
 
@@ -228,6 +234,7 @@ contract SplitMain is ISplitMain {
    *  @return split Predicted address of such an immutable split
    */
   function predictImmutableSplitAddress(
+    address splitWalletImplementation,
     address[] calldata accounts,
     uint32[] calldata percentAllocations,
     uint32 distributorFee
@@ -243,7 +250,7 @@ contract SplitMain is ISplitMain {
       percentAllocations,
       distributorFee
     );
-    split = Clones.predictDeterministicAddress(walletImplementation, splitHash);
+    split = Clones.predictDeterministicAddress(splitWalletImplementation, splitHash);
   }
 
   /** @notice Updates an existing split with recipients `accounts` with ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
