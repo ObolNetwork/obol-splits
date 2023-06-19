@@ -45,10 +45,9 @@ contract LWFactoryTest is Test, AddressBook {
     SplitConfiguration memory splitConfig = SplitConfiguration(accounts, percentAllocations, 0, address(0x0));
 
     address payable principal = payable(makeAddr("accounts2"));
-    uint256 numberOfValidators = 10;
 
-    (address[] memory withdrawAddresses, address splitRecipient) =
-      lwFactory.createETHRewardSplit(splitConfig, principal, numberOfValidators);
+    (address withdrawAddress, address splitRecipient) =
+      lwFactory.createETHRewardSplit(splitConfig, principal);
 
     // confirm expected splitrecipient address
     address expectedSplitRecipient =
@@ -62,11 +61,10 @@ contract LWFactoryTest is Test, AddressBook {
     uint256[] memory expectedThresholds = new uint256[](1);
     expectedThresholds[0] = 32 ether;
 
-    for (uint256 i = 0; i < withdrawAddresses.length; i++) {
-      (address[] memory recipients, uint256[] memory thresholds) = IWaterfallModule(withdrawAddresses[i]).getTranches();
+    (address[] memory recipients, uint256[] memory thresholds) = IWaterfallModule(withdrawAddress).getTranches();
 
-      assertEq(recipients, expectedRecipients, "invalid recipients");
-      assertEq(thresholds, expectedThresholds, "invalid thresholds");
-    }
+    assertEq(recipients, expectedRecipients, "invalid recipients");
+    assertEq(thresholds, expectedThresholds, "invalid thresholds");
+    
   }
 }

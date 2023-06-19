@@ -49,14 +49,12 @@ contract LWFactory {
   /// @dev Create reward split for ETH rewards
   /// @param _split Split configuration data
   /// @param _principal address to receive principal
-  /// @param _numberOfValidators number of validators being created
-  /// @return withdrawalAddresses array of withdrawal addresses
+  /// @return withdrawalAddress withdrawal address
   /// @return rewardSplitContract reward split contract
   function createETHRewardSplit(
     SplitConfiguration calldata _split,
-    address payable _principal,
-    uint256 _numberOfValidators
-  ) external returns (address[] memory withdrawalAddresses, address rewardSplitContract) {
+    address payable _principal
+  ) external returns (address withdrawalAddress, address rewardSplitContract) {
     require(_split.accounts[0] == address(lw1155), "invalid_address");
 
     rewardSplitContract =
@@ -69,19 +67,12 @@ contract LWFactory {
     uint256[] memory thresholds = new uint256[](1);
     thresholds[0] = ETH_STAKE;
 
-    withdrawalAddresses = new address[](_numberOfValidators);
+    withdrawalAddress = waterfallFactoryModule.createWaterfallModule(
+      WATERFALL_ETH_TOKEN_ADDRESS, NON_WATERFALL_TOKEN_RECIPIENT, waterfallRecipients, thresholds
+    );
 
-    for (uint256 i = 0; i < _numberOfValidators;) {
-      withdrawalAddresses[i] = waterfallFactoryModule.createWaterfallModule(
-        WATERFALL_ETH_TOKEN_ADDRESS, NON_WATERFALL_TOKEN_RECIPIENT, waterfallRecipients, thresholds
-      );
-
-      // mint tokens to principal account
-      lw1155.mint(_principal, rewardSplitContract, withdrawalAddresses[i], _split);
-
-      unchecked {
-        i++;
-      }
-    }
+    // mint tokens to principal account
+    lw1155.mint(_principal, rewardSplitContract, withdrawalAddress, _split);
+    
   }
 }
