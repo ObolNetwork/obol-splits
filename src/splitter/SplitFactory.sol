@@ -12,7 +12,9 @@ contract SplitFactory is Ownable {
     /// @dev split id to split implmentation address
     mapping (bytes32 => address) internal splitWalletImplementations;
     
-
+    /// @dev Emitted on create new split wallet
+    /// @param id split wallet id
+    /// @param implementation split implementation address
     event NewSplitWallet(bytes32 id, address implementation);
 
     constructor(address splitMain_, address owner) {
@@ -20,6 +22,9 @@ contract SplitFactory is Ownable {
         _initializeOwner(owner);
     }
 
+    /// @dev addSplitWallet 
+    /// @param id split id
+    /// @param implementation split implemenation
     function addSplitWallet(
         bytes32 id,
         address implementation
@@ -31,6 +36,7 @@ contract SplitFactory is Ownable {
         emit NewSplitWallet(id, implementation);
     }
 
+    /// @dev createSplit
     function createSplit(
         bytes32 splitId,
         address[] calldata accounts,
@@ -50,12 +56,11 @@ contract SplitFactory is Ownable {
         );
     }
 
-    /** @notice Predicts the address for an immutable split created with recipients `accounts` with ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
-    *  @param accounts Ordered, unique list of addresses with ownership in the split
-    *  @param percentAllocations Percent allocations associated with each address
-    *  @param distributorFee Keeper fee paid by split to cover gas costs of distribution
-    *  @return split Predicted address of such an immutable split
-    */
+    /// @notice Predicts the address for an immutable split created with recipients `accounts` with ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
+    /// @param accounts Ordered, unique list of addresses with ownership in the split
+    /// @param percentAllocations Percent allocations associated with each address
+    /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+    /// @return split Predicted address of such an immutable split
     function predictImmutableSplitAddress(
         bytes32 splitId,
         address[] calldata accounts,

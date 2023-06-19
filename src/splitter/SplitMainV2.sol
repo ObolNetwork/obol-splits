@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import {SplitMain} from "0xSplits/SplitMain.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from 'solmate/utils/SafeTransferLib.sol';
 import {LibClone} from "solady/utils/LibClone.sol";
+import {ISplitMainV2} from "../interfaces/ISplitMainV2.sol";
+import {SplitWallet} from "./SplitWallet.sol";
 
 /**
  * ERRORS
@@ -45,14 +46,14 @@ error InvalidNewController(address newController);
 
 /**
  * @title SplitMain
- * @author 0xSplits <will@0xSplits.xyz>
+ * @author Obol <security@0xSplits.xyz>
  * @notice A composable and gas-efficient protocol for deploying splitter contracts.
  * @dev Split recipients, ownerships, and keeper fees are stored onchain as calldata & re-passed as args / validated
  * via hashing when needed. Each split gets its own address & proxy for maximum composability with other contracts onchain.
  * For these proxies, we extended EIP-1167 Minimal Proxy Contract to avoid `DELEGATECALL` inside `receive()` to accept
  * hard gas-capped `sends` & `transfers`.
  */
-contract SplitMainV2 is ISplitMain {
+contract SplitMainV2 is ISplitMainV2 {
   using SafeTransferLib for address;
   using SafeTransferLib for ERC20;
   using LibClone for address;
@@ -164,8 +165,8 @@ contract SplitMainV2 is ISplitMain {
 
   modifier checkIfRequiresDistributor(address split) {
       address distributor = splits[split].distributor;
-      if (distributor != address(0) && distributor!= msg.sender ) {
-        revert UnAuthorized(msg.sender);
+      if (distributor != address(0) && distributor != msg.sender ) {
+        revert Unauthorized(msg.sender);
       }
       _;
   }
@@ -257,7 +258,7 @@ contract SplitMainV2 is ISplitMain {
       percentAllocations,
       distributorFee
     );
-    split = Clones.predictDeterministicAddress(splitWalletImplementation, splitHash);
+    split = splitWalletImplementation.predictDeterministicAddress(splitHash, address(this));
   }
 
   /** @notice Updates an existing split with recipients `accounts` with ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
@@ -627,7 +628,7 @@ contract SplitMainV2 is ISplitMain {
     uint32[] memory percentAllocations,
     uint32 distributorFee,
     address distributorAddress
-  ) internal checkIfRequiresAuth(split) {
+  ) internal checkIfRequiresDistributor(split) {
     uint256 mainBalance = ethBalances[split];
     // flush proxy ETH balance to SplitMain
     // split proxy should be guaranteed to exist at this address after validating splitHash
@@ -635,7 +636,7 @@ contract SplitMainV2 is ISplitMain {
     // to drain ETH from SplitMain)
     // could technically check if (change in proxy balance == change in SplitMain balance)
     // before/after external call, but seems like extra gas for no practical benefit
-    uint256 proxyBalance = SplitWallet(split).sendETHToMain(proxyBalance);
+    uint256 proxyBalance = SplitWallet(split).sendETHToMain();
 
     // if mainBalance is positive, leave 1 in SplitMain for gas efficiency
     uint256 amountToSplit;
@@ -699,7 +700,7 @@ contract SplitMainV2 is ISplitMain {
     uint32[] memory percentAllocations,
     uint32 distributorFee,
     address distributorAddress
-  ) internal checkIfRequiresAuth(split) {
+  ) internal checkIfRequiresDistributor(split) {
     uint256 amountToSplit;
     uint256 mainBalance = erc20Balances[token][split];
     // split proxy should be guaranteed to exist at this address after validating splitHash
@@ -707,7 +708,7 @@ contract SplitMainV2 is ISplitMain {
     // sendERC20ToMain to drain ERC20 from SplitMain)
     // doesn't support rebasing or fee-on-transfer tokens
     // flush extra proxy ERC20 balance to SplitMain
-    uint256 proxyBalance = SplitWallet(split).sendERC20ToMain(token, proxyBalance);
+    uint256 proxyBalance = SplitWallet(split).sendERC20ToMain(token);
     unchecked {
       // if mainBalance &/ proxyBalance are positive, leave 1 for gas efficiency
       // underflow should be impossible
