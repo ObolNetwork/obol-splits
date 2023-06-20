@@ -82,6 +82,8 @@ contract SplitMainV2 is ISplitMainV2 {
   uint256 public constant PERCENTAGE_SCALE = 1e6;
   /// @notice maximum distributor fee; 1e5 = 10% * PERCENTAGE_SCALE
   uint256 internal constant MAX_DISTRIBUTOR_FEE = 1e5;
+  /// @notice split factory address
+  address public immutable splitFactory;
 
   /**
    * STORAGE - VARIABLES - PRIVATE & INTERNAL
@@ -112,6 +114,16 @@ contract SplitMainV2 is ISplitMainV2 {
   modifier onlySplitNewPotentialController(address split) {
     if (msg.sender != splits[split].newPotentialController)
       revert Unauthorized(msg.sender);
+    _;
+  }
+
+  /**
+    * @notice Reverts if the sender isn't splitFactory
+   */
+  modifier onlySplitFactory() {
+    if (msg.sender != splitFactory) {
+      revert Unauthorized(msg.sender);
+    }
     _;
   }
 
@@ -164,11 +176,11 @@ contract SplitMainV2 is ISplitMainV2 {
   }
 
   modifier checkIfRequiresDistributor(address split) {
-      address distributor = splits[split].distributor;
-      if (distributor != address(0) && distributor != msg.sender ) {
-        revert Unauthorized(msg.sender);
-      }
-      _;
+    address distributor = splits[split].distributor;
+    if (distributor != address(0) && distributor != msg.sender ) {
+      revert Unauthorized(msg.sender);
+    }
+    _;
   }
   
 
@@ -176,7 +188,9 @@ contract SplitMainV2 is ISplitMainV2 {
    * CONSTRUCTOR
    */
 
-  constructor() {}
+  constructor() {
+    splitFactory = msg.sender;
+  }
 
   /**
    * FUNCTIONS
@@ -211,6 +225,7 @@ contract SplitMainV2 is ISplitMainV2 {
     external
     override
     validSplit(accounts, percentAllocations, distributorFee)
+    onlySplitFactory
     returns(address split) 
   {
     bytes32 splitHash = _hashSplit(

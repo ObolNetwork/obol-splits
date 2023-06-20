@@ -11,7 +11,7 @@ contract SplitFactoryScript is Script {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
     vm.startBroadcast(privKey);
 
-    new SplitFactory{salt: keccak256("obol.splitFactory.v1")}(splitMainV2, owner);
+    new SplitFactory{salt: keccak256("obol.splitFactory.v1")}(owner);
     
     vm.stopBroadcast();
   }

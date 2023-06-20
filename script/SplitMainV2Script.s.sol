@@ -4,6 +4,7 @@ pragma solidity =0.8.17;
 import "forge-std/Script.sol";
 import {SplitMainV2} from "src/splitter/SplitMainV2.sol";
 
+/// @notice this is already deploy via splitfactory
 contract SplitMainV2Script is Script {
   function run()
     external

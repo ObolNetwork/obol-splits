@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 import {Ownable} from "solady/auth/Ownable.sol";
-import {ISplitMainV2} from "../interfaces/ISplitMainV2.sol";
+import {SplitMainV2} from "./SplitMainV2.sol";
 
+
+// @title SplitFactory
+/// @author Obol
+/// @notice SplitFactory to create splits
 contract SplitFactory is Ownable {
     error IdExists(bytes32 id);
+    error InvalidSplitWalletId(bytes32 id);
 
-    /// @dev splitmain
-    ISplitMainV2 public immutable splitMain;
+    /// @dev splitmain v2
+    SplitMainV2 public immutable splitMain;
     
-    /// @dev split id to split implmentation address
+    /// @dev split wallet id to split implmentation address
     mapping (bytes32 => address) internal splitWalletImplementations;
     
     /// @dev Emitted on create new split wallet
@@ -17,8 +22,8 @@ contract SplitFactory is Ownable {
     /// @param implementation split implementation address
     event NewSplitWallet(bytes32 id, address implementation);
 
-    constructor(address splitMain_, address owner) {
-        splitMain = ISplitMainV2(splitMain_);
+    constructor(address owner) {
+        splitMain = new SplitMainV2();
         _initializeOwner(owner);
     }
 
@@ -38,14 +43,17 @@ contract SplitFactory is Ownable {
 
     /// @dev createSplit
     function createSplit(
-        bytes32 splitId,
+        bytes32 splitWalletId,
         address[] calldata accounts,
         uint32[] calldata percentAllocations,
         uint32 distributorFee,
         address distributor,
         address controller
     ) external returns (address split) {
-        address splitWalletImplementation = splitWalletImplementations[splitId];
+        address splitWalletImplementation = splitWalletImplementations[splitWalletId];
+        if (splitWalletImplementation == address(0)) {
+            revert InvalidSplitWalletId(splitWalletId);
+        }
         split = splitMain.createSplit(
             splitWalletImplementation,
             accounts,
@@ -62,7 +70,7 @@ contract SplitFactory is Ownable {
     /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
     /// @return split Predicted address of such an immutable split
     function predictImmutableSplitAddress(
-        bytes32 splitId,
+        bytes32 splitWalletId,
         address[] calldata accounts,
         uint32[] calldata percentAllocations,
         uint32 distributorFee
@@ -71,7 +79,7 @@ contract SplitFactory is Ownable {
         view
         returns (address split)
     {
-        address splitWalletImplementation = splitWalletImplementations[splitId];
+        address splitWalletImplementation = splitWalletImplementations[splitWalletId];
         split = splitMain.predictImmutableSplitAddress(
             splitWalletImplementation,
             accounts,
