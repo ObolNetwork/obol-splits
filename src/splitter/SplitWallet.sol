@@ -57,8 +57,8 @@ contract SplitWallet {
    * CONSTRUCTOR
    */
 
-  constructor() {
-    splitMain = ISplitMainV2(msg.sender);
+  constructor(address splitMainV2) {
+    splitMain = ISplitMainV2(splitMainV2);
   }
 
   /**
