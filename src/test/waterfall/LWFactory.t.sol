@@ -2,14 +2,19 @@
 pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
+import {SplitFactory} from "src/splitter/SplitFactory.sol";
+import {SplitWallet} from "src/splitter/SplitWallet.sol";
 import {AddressBook} from "./LW1155.t.sol";
 import {LWFactory} from "../../waterfall/LWFactory.sol";
 import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
-import {ISplitMain, SplitConfiguration} from "../../interfaces/ISplitMain.sol";
+import {SplitConfiguration} from "../../interfaces/ISplitMainV2.sol";
 import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 
 contract LWFactoryTest is Test, AddressBook {
   LWFactory lwFactory;
+  SplitFactory splitFactory;
+  SplitWallet splitWallet;
+  bytes32 splitWalletId;
 
   function setUp() public {
     uint256 goerliBlock = 8_529_931;
@@ -22,15 +27,18 @@ contract LWFactoryTest is Test, AddressBook {
     vm.mockCall(
       ensReverseRegistrar, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
     );
-
+    splitFactory = new SplitFactory(address(this));
+    splitWallet = new SplitWallet(address(splitFactory.splitMain()));
+    splitWalletId = keccak256("demofactroy");
+    splitFactory.addSplitWallet(splitWalletId, address(splitWallet));
     lwFactory = new LWFactory(
-            WATERFALL_FACTORY_MODULE_GOERLI,
-            SPLIT_MAIN_GOERLI,
-            "demo.obol.eth",
-            ensReverseRegistrar,
-            address(this),
-            address(this)
-        );
+      WATERFALL_FACTORY_MODULE_GOERLI,
+      address(splitFactory),
+      "demo.obol.eth",
+      ensReverseRegistrar,
+      address(this),
+      address(this)
+    );
   }
 
   function testCreateETHRewardSplit() external {
@@ -42,16 +50,18 @@ contract LWFactoryTest is Test, AddressBook {
     percentAllocations[0] = 400_000;
     percentAllocations[1] = 600_000;
 
-    SplitConfiguration memory splitConfig = SplitConfiguration(accounts, percentAllocations, 0, address(0x0));
+    SplitConfiguration memory splitConfig = SplitConfiguration(accounts, percentAllocations, 0, address(0x0), address(0));
 
     address payable principal = payable(makeAddr("accounts2"));
 
-    (address withdrawAddress, address splitRecipient) =
-      lwFactory.createETHRewardSplit(splitConfig, principal);
+    (address withdrawAddress, address splitRecipient) = lwFactory.createETHRewardSplit(
+      splitWalletId,
+      splitConfig,
+      principal
+    );
 
     // confirm expected splitrecipient address
-    address expectedSplitRecipient =
-      ISplitMain(SPLIT_MAIN_GOERLI).predictImmutableSplitAddress(accounts, percentAllocations, 0);
+    address expectedSplitRecipient = splitFactory.predictImmutableSplitAddress(splitWalletId, accounts, percentAllocations, 0);
     assertEq(splitRecipient, expectedSplitRecipient, "invalid split configuration");
 
     address[] memory expectedRecipients = new address[](2);
@@ -65,6 +75,5 @@ contract LWFactoryTest is Test, AddressBook {
 
     assertEq(recipients, expectedRecipients, "invalid recipients");
     assertEq(thresholds, expectedThresholds, "invalid thresholds");
-    
   }
 }

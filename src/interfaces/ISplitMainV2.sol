@@ -7,6 +7,7 @@ struct SplitConfiguration {
   address[] accounts;
   uint32[] percentAllocations;
   uint32 distributorFee;
+  address distributor;
   address controller;
 }
 
@@ -25,7 +26,7 @@ interface ISplitMainV2 {
     uint32 distributorFee,
     address controller,
     address distributor
-  ) external returns(address);
+  ) external returns (address);
 
   /// @notice Predicts the address for an immutable split created with recipients `accounts` with
   /// ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
@@ -103,80 +104,66 @@ interface ISplitMainV2 {
   /// @param tokens Addresses of ERC20s to withdraw
   function withdraw(address account, uint256 withdrawETH, ERC20[] calldata tokens) external;
 
-
   /**
    * EVENTS
    */
 
-  /** @notice emitted after each successful split creation
+  /**
+   * @notice emitted after each successful split creation
    *  @param split Address of the created split
    */
   event CreateSplit(address indexed split);
 
-  /** @notice emitted after each successful split update
+  /**
+   * @notice emitted after each successful split update
    *  @param split Address of the updated split
    */
   event UpdateSplit(address indexed split);
 
-  /** @notice emitted after each initiated split control transfer
+  /**
+   * @notice emitted after each initiated split control transfer
    *  @param split Address of the split control transfer was initiated for
    *  @param newPotentialController Address of the split's new potential controller
    */
-  event InitiateControlTransfer(
-    address indexed split,
-    address indexed newPotentialController
-  );
+  event InitiateControlTransfer(address indexed split, address indexed newPotentialController);
 
-  /** @notice emitted after each canceled split control transfer
+  /**
+   * @notice emitted after each canceled split control transfer
    *  @param split Address of the split control transfer was canceled for
    */
   event CancelControlTransfer(address indexed split);
 
-  /** @notice emitted after each successful split control transfer
+  /**
+   * @notice emitted after each successful split control transfer
    *  @param split Address of the split control was transferred for
    *  @param previousController Address of the split's previous controller
    *  @param newController Address of the split's new controller
    */
-  event ControlTransfer(
-    address indexed split,
-    address indexed previousController,
-    address indexed newController
-  );
+  event ControlTransfer(address indexed split, address indexed previousController, address indexed newController);
 
-  /** @notice emitted after each successful ETH balance split
+  /**
+   * @notice emitted after each successful ETH balance split
    *  @param split Address of the split that distributed its balance
    *  @param amount Amount of ETH distributed
    *  @param distributorAddress Address to credit distributor fee to
    */
-  event DistributeETH(
-    address indexed split,
-    uint256 amount,
-    address indexed distributorAddress
-  );
+  event DistributeETH(address indexed split, uint256 amount, address indexed distributorAddress);
 
-  /** @notice emitted after each successful ERC20 balance split
+  /**
+   * @notice emitted after each successful ERC20 balance split
    *  @param split Address of the split that distributed its balance
    *  @param token Address of ERC20 distributed
    *  @param amount Amount of ERC20 distributed
    *  @param distributorAddress Address to credit distributor fee to
    */
-  event DistributeERC20(
-    address indexed split,
-    ERC20 indexed token,
-    uint256 amount,
-    address indexed distributorAddress
-  );
+  event DistributeERC20(address indexed split, ERC20 indexed token, uint256 amount, address indexed distributorAddress);
 
-  /** @notice emitted after each successful withdrawal
+  /**
+   * @notice emitted after each successful withdrawal
    *  @param account Address that funds were withdrawn to
    *  @param ethAmount Amount of ETH withdrawn
    *  @param tokens Addresses of ERC20s withdrawn
    *  @param tokenAmounts Amounts of corresponding ERC20s withdrawn
    */
-  event Withdrawal(
-    address indexed account,
-    uint256 ethAmount,
-    ERC20[] tokens,
-    uint256[] tokenAmounts
-  );
+  event Withdrawal(address indexed account, uint256 ethAmount, ERC20[] tokens, uint256[] tokenAmounts);
 }

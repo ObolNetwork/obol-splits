@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.17;
 
-import {ISplitMainV2} from '../interfaces/ISplitMainV2.sol';
+import {ISplitMainV2} from "../interfaces/ISplitMainV2.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {SafeTransferLib} from 'solmate/utils/SafeTransferLib.sol';
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 /**
  * ERRORS
@@ -26,7 +26,8 @@ contract SplitWallet {
    * EVENTS
    */
 
-  /** @notice emitted after each successful ETH transfer to proxy
+  /**
+   * @notice emitted after each successful ETH transfer to proxy
    *  @param split Address of the split that received ETH
    *  @param amount Amount of ETH received
    */
@@ -65,26 +66,23 @@ contract SplitWallet {
    * FUNCTIONS - PUBLIC & EXTERNAL
    */
 
-  /** @notice Sends amount `amount` of ETH in proxy to SplitMain
+  /**
+   * @notice Sends amount `amount` of ETH in proxy to SplitMain
    *  @dev payable reduces gas cost; no vulnerability to accidentally lock
    *  ETH introduced since fn call is restricted to SplitMain
    */
-  function sendETHToMain() external payable onlySplitMain() returns (uint256 amount){
+  function sendETHToMain() external payable onlySplitMain returns (uint256 amount) {
     amount = address(this).balance;
     address(splitMain).safeTransferETH(amount);
   }
 
-  /** @notice Sends amount `amount` of ERC20 `token` in proxy to SplitMain
+  /**
+   * @notice Sends amount `amount` of ERC20 `token` in proxy to SplitMain
    *  @dev payable reduces gas cost; no vulnerability to accidentally lock
    *  ETH introduced since fn call is restricted to SplitMain
    *  @param token Token to send
    */
-  function sendERC20ToMain(ERC20 token)
-    external
-    payable
-    onlySplitMain()
-    returns (uint256 amount)
-  {
+  function sendERC20ToMain(ERC20 token) external payable onlySplitMain returns (uint256 amount) {
     amount = token.balanceOf(address(this));
     token.safeTransfer(address(splitMain), amount);
   }

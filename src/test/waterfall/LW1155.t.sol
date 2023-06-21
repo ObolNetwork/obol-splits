@@ -3,20 +3,21 @@ pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
 import {ERC1155} from "solmate/tokens/ERC1155.sol";
-import "src/waterfall/token/LW1155.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {LW1155} from "src/waterfall/token/LW1155.sol";
+import {SplitWallet} from "src/splitter/SplitWallet.sol";
 import {utils} from "../../lib/Utils.sol";
-import {ISplitMain, SplitConfiguration} from "../../interfaces/ISplitMain.sol";
+import {ISplitMainV2, SplitConfiguration} from "../../interfaces/ISplitMainV2.sol";
+import {SplitMainV2} from "src/splitter/SplitMainV2.sol";
 import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 import {IWaterfallFactoryModule} from "../../interfaces/IWaterfallFactoryModule.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
-
 
 contract AddressBook {
   address public ensReverseRegistrar = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
   uint256 internal constant ETH_STAKE = 32 ether;
   address internal WATERFALL_FACTORY_MODULE_GOERLI = 0xd647B9bE093Ec237be72bB17f54b0C5Ada886A25;
-  address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
+  // address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
 }
 
 contract BaseTest is AddressBook, Test {
@@ -28,6 +29,9 @@ contract BaseTest is AddressBook, Test {
   address rewardSplit;
   address waterfallModule;
   address recoveryWallet;
+  SplitMainV2 splitMainV2;
+  SplitWallet splitWallet;
+
   SplitConfiguration configuration;
   MockERC20 mockERC20;
 
@@ -44,7 +48,10 @@ contract BaseTest is AddressBook, Test {
     user1 = makeAddr("1");
     user2 = makeAddr("2");
     recoveryWallet = makeAddr("3");
-    lw1155 = new LW1155(ISplitMain(SPLIT_MAIN_GOERLI), recoveryWallet);
+
+    splitMainV2 = new SplitMainV2();
+    splitWallet = new SplitWallet(address(splitMainV2));
+    lw1155 = new LW1155(ISplitMainV2(address(splitMainV2)), recoveryWallet);
 
     mockERC20 = new MockERC20("demo", "DMT", 18);
 
@@ -53,12 +60,12 @@ contract BaseTest is AddressBook, Test {
     percentAllocations[1] = 500_000;
 
     address[] memory accounts = new address[](2);
-    accounts[0] = address(lw1155);
-    accounts[1] = user2;
+    accounts[0] = user1;
+    accounts[1] = address(lw1155);
 
-    configuration = SplitConfiguration(accounts, percentAllocations, 0, address(0));
+    configuration = SplitConfiguration(accounts, percentAllocations, 0, address(0), address(0));
 
-    rewardSplit = ISplitMain(SPLIT_MAIN_GOERLI).createSplit(accounts, percentAllocations, 0, address(0));
+    rewardSplit = splitMainV2.createSplit(address(splitWallet), accounts, percentAllocations, 0, address(0), address(0));
 
     address[] memory waterfallRecipients = new address[](2);
     waterfallRecipients[0] = address(lw1155);
@@ -88,7 +95,9 @@ contract LW1155UriTest is BaseTest {
 
 contract LW1155NameTest is BaseTest {
   function testCanFetchName() public {
-    assertEq(lw1155.name(), string.concat("Obol Liquid Waterfall + Split ", utils.shortAddressToString(address(lw1155))));
+    assertEq(
+      lw1155.name(), string.concat("Obol Liquid Waterfall + Split ", utils.shortAddressToString(address(lw1155)))
+    );
   }
 }
 
@@ -116,8 +125,11 @@ contract LW1155MintTest is BaseTest {
     lw1155.mint(user1, rewardSplit, waterfallModule, configuration);
 
     // assert claim information
-    (ISplitMain receivedRewardSplit, IWaterfallModule receivedWaterfallModule, SplitConfiguration memory receivedConfig)
-    = lw1155.claimData(id);
+    (
+      ISplitMainV2 receivedRewardSplit,
+      IWaterfallModule receivedWaterfallModule,
+      SplitConfiguration memory receivedConfig
+    ) = lw1155.claimData(id);
     assertEq(address(receivedRewardSplit), rewardSplit);
     assertEq(address(receivedWaterfallModule), waterfallModule);
     assertEq(configuration.accounts, receivedConfig.accounts);
@@ -185,7 +197,6 @@ contract LW1155TransferTest is BaseTest {
 }
 
 contract LW1155RecoverTest is BaseTest {
-
   function testReoveryWalletAddress() external {
     assertEq(lw1155.recoveryWallet(), recoveryWallet);
   }
@@ -203,14 +214,14 @@ contract LW1155RecoverTest is BaseTest {
   }
 
   function testRecoverToken() public {
-    deal(address(mockERC20), address(lw1155), 10000);
+    deal(address(mockERC20), address(lw1155), 10_000);
 
     lw1155.recover(ERC20(address(mockERC20)), 5000);
-    
+
     assertEq(mockERC20.balanceOf(recoveryWallet), 5000);
 
     lw1155.recover(ERC20(address(mockERC20)), 5000);
 
-    assertEq(mockERC20.balanceOf(recoveryWallet), 10000);
+    assertEq(mockERC20.balanceOf(recoveryWallet), 10_000);
   }
 }

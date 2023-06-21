@@ -9,7 +9,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {TokenUtils} from "splits-utils/TokenUtils.sol";
 import {utils} from "../../lib/Utils.sol";
 import {Renderer} from "../../lib/Renderer.sol";
-import {ISplitMain, SplitConfiguration} from "../../interfaces/ISplitMain.sol";
+import {ISplitMainV2, SplitConfiguration} from "../../interfaces/ISplitMainV2.sol";
 import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 
 // @title LW1155
@@ -17,7 +17,6 @@ import {IWaterfallModule} from "../../interfaces/IWaterfallModule.sol";
 /// @notice A minimal liquid waterfall and splits implementation
 /// Ownership is represented by 1155s (each = 100% of waterfall tranche + split)
 contract LW1155 is ERC1155, Ownable {
-
   /// @dev invalid owner
   error InvalidOwner();
   /// @dev zero address
@@ -42,7 +41,7 @@ contract LW1155 is ERC1155, Ownable {
   /// structs
   /// -----------------------------------------------------------------------
   struct Claim {
-    ISplitMain split;
+    ISplitMainV2 split;
     IWaterfallModule waterfall;
     SplitConfiguration configuration;
   }
@@ -53,7 +52,7 @@ contract LW1155 is ERC1155, Ownable {
   /// @dev ETH address representation
   address internal constant ETH_TOKEN_ADDRESS = address(0x0);
   /// @dev splitMain factory
-  ISplitMain public immutable splitMain;
+  ISplitMainV2 public immutable splitMain;
   /// @dev obol treasury
   address public immutable recoveryWallet;
 
@@ -64,11 +63,9 @@ contract LW1155 is ERC1155, Ownable {
   /// @dev nft claim information
   mapping(uint256 => Claim) public claimData;
 
-  constructor(ISplitMain _splitMain, address _recoveryWallet) {
-    if (_recoveryWallet == address(0)) {
-      revert InvalidAddress();
-    }
-    
+  constructor(ISplitMainV2 _splitMain, address _recoveryWallet) {
+    if (_recoveryWallet == address(0)) revert InvalidAddress();
+
     splitMain = _splitMain;
     recoveryWallet = _recoveryWallet;
     _initializeOwner(msg.sender);
@@ -83,11 +80,9 @@ contract LW1155 is ERC1155, Ownable {
   {
     // waterfall is unique per validator
     uint256 id = uint256(keccak256(abi.encodePacked(_recipient, _waterfall)));
-    Claim memory claiminfo = Claim(ISplitMain(_split), IWaterfallModule(_waterfall), _configuration);
+    Claim memory claiminfo = Claim(ISplitMainV2(_split), IWaterfallModule(_waterfall), _configuration);
 
-    if (address(claimData[id].split) != address(0)) {
-      revert ClaimExists();
-    }
+    if (address(claimData[id].split) != address(0)) revert ClaimExists();
 
     claimData[id] = claiminfo;
     _mint({to: _recipient, id: id, amount: 1, data: ""});
@@ -130,14 +125,12 @@ contract LW1155 is ERC1155, Ownable {
       }
     }
   }
-  
+
   /// Transfers a given `_amount` of an ERC20-token where address(0) is ETH
   /// @param _token an ERC20-compatible token
   /// @param _amount token amount
   function recover(ERC20 _token, uint256 _amount) external {
-    if (_amount == 0) {
-      revert ZeroAmount();
-    }
+    if (_amount == 0) revert ZeroAmount();
 
     emit Recovered(msg.sender, address(_token), _amount);
 

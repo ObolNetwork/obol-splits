@@ -5,9 +5,13 @@ import "forge-std/Script.sol";
 import {LWFactory} from "src/waterfall/LWFactory.sol";
 
 contract LWFactoryScript is Script {
-  function run(address waterfallFactoryModule, address splitMain, address ensReverseRegistrar, address ensOnwer, address recoveryWallet)
-    external
-  {
+  function run(
+    address waterfallFactoryModule,
+    address splitMain,
+    address ensReverseRegistrar,
+    address ensOnwer,
+    address recoveryWallet
+  ) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
     vm.startBroadcast(privKey);
 
