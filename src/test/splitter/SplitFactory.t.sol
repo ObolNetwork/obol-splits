@@ -15,6 +15,7 @@ contract SplitFactoryTest is Test {
 
   function setUp() public {
     splitFactory = new SplitFactory(address(this));
+    // fetch splitMain from splitFactory
     splitMainV2 = SplitMainV2(payable(address(splitFactory.splitMain())));
     splitWallet = new SplitWallet(address(splitMainV2));
   }
