@@ -193,23 +193,22 @@ contract SplitMainV2 is ISplitMainV2 {
    */
   receive() external payable {}
 
-  /**
-   * @notice Creates a new split with recipients `accounts` with ownerships `percentAllocations`, a keeper fee for
-   * splitting of `distributorFee` and the controlling address `controller`
-   *  @param accounts Ordered, unique list of addresses with ownership in the split
-   *  @param percentAllocations Percent allocations associated with each address
-   *  @param distributorFee Keeper fee paid by split to cover gas costs of distribution
-   *  @param controller Controlling address (0x0 if immutable)
-   *  @param distributor priviledge distributor
-   *  @return split Address of newly created split
-   */
+  
+  /// @notice Creates a new split with recipients `accounts` with ownerships `percentAllocations`, a keeper fee for
+  /// splitting of `distributorFee` and the controlling address `controller`
+  /// @param accounts Ordered, unique list of addresses with ownership in the split
+  /// @param percentAllocations Percent allocations associated with each address
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  /// @param controller Controlling address (0x0 if immutable)
+  /// @param distributor priviledge distributor
+  /// @return split Address of newly created split
   function createSplit(
     address splitWalletImplementation,
     address[] calldata accounts,
     uint32[] calldata percentAllocations,
-    uint32 distributorFee,
     address controller,
-    address distributor
+    address distributor,
+    uint32 distributorFee
   ) external override validSplit(accounts, percentAllocations, distributorFee) onlySplitFactory returns (address split) {
     bytes32 splitHash = _hashSplit(accounts, percentAllocations, distributorFee);
     if (controller == address(0)) {
@@ -442,6 +441,15 @@ contract SplitMainV2 is ISplitMainV2 {
    */
   function getController(address split) external view returns (address) {
     return splits[split].controller;
+  }
+
+  /**
+   * @notice Returns the current distributor of split `split`
+   *  @param split Split to return distributor for
+   *  @return Split's distributor
+   */
+  function getDistributor(address split) external view returns (address) {
+    return splits[split].distributor;
   }
 
   /**

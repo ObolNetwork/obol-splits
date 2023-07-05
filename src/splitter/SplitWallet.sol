@@ -66,22 +66,19 @@ contract SplitWallet {
    * FUNCTIONS - PUBLIC & EXTERNAL
    */
 
-  /**
-   * @notice Sends amount `amount` of ETH in proxy to SplitMain
-   *  @dev payable reduces gas cost; no vulnerability to accidentally lock
-   *  ETH introduced since fn call is restricted to SplitMain
-   */
+  /// @notice Sends amount `amount` of ETH in proxy to SplitMain
+  /// @dev payable reduces gas cost; no vulnerability to accidentally lock
+  /// ETH introduced since fn call is restricted to SplitMain
   function sendETHToMain() external payable onlySplitMain returns (uint256 amount) {
     amount = address(this).balance;
     address(splitMain).safeTransferETH(amount);
   }
 
-  /**
-   * @notice Sends amount `amount` of ERC20 `token` in proxy to SplitMain
-   *  @dev payable reduces gas cost; no vulnerability to accidentally lock
-   *  ETH introduced since fn call is restricted to SplitMain
-   *  @param token Token to send
-   */
+  
+  /// @notice Sends amount `amount` of ERC20 `token` in proxy to SplitMain
+  /// @dev payable reduces gas cost; no vulnerability to accidentally lock
+  /// ETH introduced since fn call is restricted to SplitMain
+  /// @param token Token to send
   function sendERC20ToMain(ERC20 token) external payable onlySplitMain returns (uint256 amount) {
     amount = token.balanceOf(address(this));
     token.safeTransfer(address(splitMain), amount);

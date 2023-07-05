@@ -6,13 +6,15 @@ import {SplitMainV2} from "./SplitMainV2.sol";
 import {ISplitFactory} from "../interfaces/ISplitFactory.sol";
 import {ISplitMainV2} from "../interfaces/ISplitMainV2.sol";
 
+
+error IdExists(bytes32 id);
+error InvalidConfig(bytes32 id, address implementation);
+error InvalidSplitWalletId(bytes32 id);
+
 // @title SplitFactory
 /// @author Obol
 /// @notice SplitFactory to create splits
 contract SplitFactory is Ownable, ISplitFactory {
-  error IdExists(bytes32 id);
-  error InvalidSplitWalletId(bytes32 id);
-
   /// @dev splitmain v2
   ISplitMainV2 public immutable splitMain;
 
@@ -22,7 +24,7 @@ contract SplitFactory is Ownable, ISplitFactory {
   /// @dev Emitted on create new split wallet
   /// @param id split wallet id
   /// @param implementation split implementation address
-  event NewSplitWallet(bytes32 id, address implementation);
+  event NewSplitWallet(bytes32 indexed id, address implementation);
 
   constructor(address owner) {
     splitMain = new SplitMainV2();
@@ -33,6 +35,7 @@ contract SplitFactory is Ownable, ISplitFactory {
   /// @param id split id
   /// @param implementation split implemenation
   function addSplitWallet(bytes32 id, address implementation) external onlyOwner {
+    if (implementation == address(0) || id == bytes32(0)) revert InvalidConfig(id, implementation);
     if (splitWalletImplementations[id] != address(0)) revert IdExists(id);
     splitWalletImplementations[id] = implementation;
     emit NewSplitWallet(id, implementation);
@@ -50,7 +53,7 @@ contract SplitFactory is Ownable, ISplitFactory {
     address splitWalletImplementation = splitWalletImplementations[splitWalletId];
     if (splitWalletImplementation == address(0)) revert InvalidSplitWalletId(splitWalletId);
     split = splitMain.createSplit(
-      splitWalletImplementation, accounts, percentAllocations, distributorFee, controller, distributor
+      splitWalletImplementation, accounts, percentAllocations, controller, distributor, distributorFee
     );
   }
 
