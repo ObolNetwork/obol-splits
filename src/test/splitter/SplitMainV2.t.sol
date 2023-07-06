@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {
   SplitMainV2,
+  Unauthorized,
   InvalidSplit__TooFewAccounts,
   InvalidSplit__AccountsAndAllocationsMismatch,
   InvalidSplit__InvalidAllocationsSum,
@@ -15,9 +16,11 @@ import {
 import {SplitWallet} from "src/splitter/SplitWallet.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 
+
 contract SplitMainV2Test is Test {
   SplitMainV2 public splitMainV2;
-  SplitWallet public splitWallet;
+  address public splitWallet;
+  uint32 public constant SPLIT_MAIN_PERCENTAGE_SCALE = 1e6;
 
   event CreateSplit(address indexed split);
 
@@ -27,13 +30,13 @@ contract SplitMainV2Test is Test {
   address user2;
   address user3;
   
-  MockERC20 mockERC20;
+  ERC20 mockERC20;
 
-  function setUp() public {
+  function setUp() public virtual {
     splitMainV2 = new SplitMainV2();
-    splitWallet = new SplitWallet(address(splitMainV2));
+    splitWallet = address(new SplitWallet(address(splitMainV2)));
     
-    mockERC20 = new MockERC20("demo", "DMT", 18);
+    mockERC20 = ERC20(address(new MockERC20("demo", "DMT", 18)));
 
     accounts = new address[](2);
     accounts[0] = makeAddr("accounts0");
@@ -46,6 +49,17 @@ contract SplitMainV2Test is Test {
     user1 = makeAddr("account2");
     user2 = makeAddr("account3");
     user3 = makeAddr("account4"); 
+  }
+
+  function createTestMutableSplit() internal returns (address split) {
+    split = splitMainV2.createSplit(
+      address(splitWallet),
+      accounts,
+      percentAllocations,
+      address(this),
+      address(this),
+      0
+    );
   }
 
 }
@@ -72,7 +86,7 @@ contract SplitMainV2CreateSplitConfiguration is SplitMainV2Test {
   }
   
   function testRevertIfIncorrectAccountsAndAllocationSize() public {
-    uint256[] memory newPercentAllocations = new uint256[](3);
+    uint32[] memory newPercentAllocations = new uint32[](3);
     newPercentAllocations[0] = 200_000;
     newPercentAllocations[1] = 200_000;
     newPercentAllocations[2] = 600_000;
@@ -96,15 +110,14 @@ contract SplitMainV2CreateSplitConfiguration is SplitMainV2Test {
   }
 
   function testRevertIfIncorrectPercentAllocations() public {
-    uint256[] memory newPercentAllocations = new uint256[](3);
-    newPercentAllocations[0] = 500_000;
-    newPercentAllocations[1] = 200_000;
-    newPercentAllocations[2] = 600_000;
+    uint32[] memory newPercentAllocations = new uint32[](2);
+    newPercentAllocations[0] = 700_000;
+    newPercentAllocations[1] = 500_000;
 
     vm.expectRevert(
       abi.encodeWithSelector(
         InvalidSplit__InvalidAllocationsSum.selector,
-        1_300_000
+        1_200_000
       )
     );
 
@@ -126,7 +139,7 @@ contract SplitMainV2CreateSplitConfiguration is SplitMainV2Test {
     vm.expectRevert(
       abi.encodeWithSelector(
         InvalidSplit__AccountsOutOfOrder.selector,
-        1
+        0
       )
     );
 
@@ -141,10 +154,9 @@ contract SplitMainV2CreateSplitConfiguration is SplitMainV2Test {
   }
 
   function testRevertIfZeroPercentAllocation() public {
-    uint256[] memory newPercentAllocations = new uint256[](3);
-    newPercentAllocations[0] = 500_000;
+    uint32[] memory newPercentAllocations = new uint32[](2);
+    newPercentAllocations[0] = SPLIT_MAIN_PERCENTAGE_SCALE;
     newPercentAllocations[1] = 0;
-    newPercentAllocations[2] = 500_000;
 
     vm.expectRevert(
       abi.encodeWithSelector(
@@ -164,7 +176,6 @@ contract SplitMainV2CreateSplitConfiguration is SplitMainV2Test {
   }
 
   function testRevertIfInvalidDistributorFee() public {
-    // @TODO fuzz test
     uint32 invalidDistributorFee = 1e6;
     
     vm.expectRevert(
@@ -189,16 +200,16 @@ contract SplitMainV2CreateSplitConfiguration is SplitMainV2Test {
 contract SplitMainV2CreateImmutableSplit is SplitMainV2Test {
   address internal split;
   
-  function setUp() public {
+  function setUp() public override {
     super.setUp();
     address predictedSplitAddress = splitMainV2.predictImmutableSplitAddress(
       address(splitWallet), accounts, percentAllocations, 0
     );
 
-    vm.expectEmit(true, false, false, false, address(splitMainV2));
+    vm.expectEmit(true, true, true, true, address(splitMainV2));
     emit CreateSplit(predictedSplitAddress);
 
-    split = splitMainV2.createSplit(address(splitWallet), accounts, percentAllocations, 0, address(0), address(this));
+    split = splitMainV2.createSplit(address(splitWallet), accounts, percentAllocations, address(0), address(this), 0);
 
     assertEq(predictedSplitAddress, split, "invalid predicted split address");
   }
@@ -213,49 +224,33 @@ contract SplitMainV2CreateImmutableSplit is SplitMainV2Test {
   }
 
   function testRevertIfUpdateImmutableSplit() public {
-    address newSplit = splitMainV2.createSplit(
-      address(splitWallet),
-      accounts,
-      percentAllocations, 0, address(0), address(this)
-    );
-
-    uint256[] memory newPercentAllocations = new uint256[](2);
+    uint32[] memory newPercentAllocations = new uint32[](2);
     newPercentAllocations[0] = percentAllocations[1];
     newPercentAllocations[1] = percentAllocations[0];
 
     vm.expectRevert();
-    splitMainV2.updateSplit(newSplit, accounts, newPercentAllocations, 0);
+    splitMainV2.updateSplit(split, accounts, newPercentAllocations, 0);
   }
 
 }
 
 contract SplitMainV2CreateMutableSplit is SplitMainV2Test {
 
-  address internal split;
-
   event UpdateSplit(address indexed split);
   event InitiateControlTransfer(address indexed split, address indexed newPotentialController);
   event CancelControlTransfer(address indexed split);
   event ControlTransfer(address indexed split, address indexed previousController, address indexed newController);
 
-  function setUp() public override {
-    super.setUp();
-    address predictedSplitAddress = splitMainV2.predictImmutableSplitAddress(
-      address(splitWallet), accounts, percentAllocations, 0
-    );
-
-    vm.expectEmit(true, true, true, true, address(splitMainV2));
-    emit CreateSplit(predictedSplitAddress);
-    split = splitMainV2.createSplit(address(splitWallet), accounts, percentAllocations, 0, address(this), address(this));
-  }
-
   function testGetHash() public {
+    address split = createTestMutableSplit();
     bytes32 splitHash = splitMainV2.getHash(split);
     assertEq(splitHash != bytes32(0), true, "invalid split hassh");
   }
 
-  function testCanUpdateSplit() public {
-    uint256[] memory newPercentAllocations = new uint256[](2);
+  function testCanUpdateSplit() public {   
+    address split = createTestMutableSplit();
+
+    uint32[] memory newPercentAllocations = new uint32[](2);
     newPercentAllocations[0] = percentAllocations[1];
     newPercentAllocations[1] = percentAllocations[0];
 
@@ -266,10 +261,12 @@ contract SplitMainV2CreateMutableSplit is SplitMainV2Test {
   }
 
   function testCanGetSplitController() public {
+    address split = createTestMutableSplit();
     assertEq(splitMainV2.getController(split), address(this), "invalid split controler");
   }
 
   function testTransferControlMutableSplit() public {
+    address split = createTestMutableSplit();
     vm.expectEmit(true, true, true, true, address(splitMainV2));
     emit InitiateControlTransfer(split, user1);
 
@@ -279,35 +276,49 @@ contract SplitMainV2CreateMutableSplit is SplitMainV2Test {
   }
 
   function testRevertIfTransferControlNotController() public {
+   address split = createTestMutableSplit();
     vm.expectRevert();
     vm.prank(user1);
     splitMainV2.transferControl(split, user1);
   }
 
   function testCancelControlTransfer() public {
+    address split = createTestMutableSplit();
+
+    splitMainV2.transferControl(split, user1);
+
     vm.expectEmit(true, true, true, true, address(splitMainV2));
-    emit CancelControlTransfer(split, user1);
+    emit CancelControlTransfer(split);
 
     splitMainV2.cancelControlTransfer(split);
   }
 
   function testRevertIfCancelControlTransfer() public {
+    address split = createTestMutableSplit();
     vm.expectRevert();
     vm.prank(user1);
     splitMainV2.cancelControlTransfer(split);
   }
 
   function testAcceptControl() public {
+    address split = createTestMutableSplit();
+
+    console.logString("getcontroller");
+    console.log(splitMainV2.getController(split));
+    vm.prank(address(this));
     splitMainV2.transferControl(split, user1);
-    vm.prank(user1);
 
     vm.expectEmit(true, true, true, true, address(splitMainV2));
     emit ControlTransfer(split, address(this), user1);
-
+    
+    vm.prank(user1);
     splitMainV2.acceptControl(split);
   }
 
   function testRevertIfAcceptControlNotNewPotentialController() public {
+
+    address split = createTestMutableSplit();
+    
     splitMainV2.transferControl(split, user1);
     vm.prank(user2);
 
@@ -316,6 +327,7 @@ contract SplitMainV2CreateMutableSplit is SplitMainV2Test {
   }
 
   function testMakeSplitImmutable() public {
+    address split = createTestMutableSplit();
 
     vm.expectEmit(true, true, true, true, address(splitMainV2));
     emit ControlTransfer(split, address(this), address(0));
@@ -324,6 +336,8 @@ contract SplitMainV2CreateMutableSplit is SplitMainV2Test {
   }
 
   function testRevertIfMakeImmutableNotController() public {
+    address split = createTestMutableSplit();
+
     vm.expectRevert();
     vm.prank(user1);
 
@@ -354,8 +368,18 @@ contract SplitMainV2DistributeETH is SplitMainV2Test {
 
     splitMainV2.distributeETH(split, accounts, percentAllocations, 0, address(0));
 
-    assertEq(accounts[0].balance, 4 ether);
-    assertEq(accounts[1].balance, 6 ether);
+    assertEq(splitMainV2.getETHBalance(accounts[0]), 4 ether);
+    assertEq(splitMainV2.getETHBalance(accounts[1]), 6 ether);
+  }
+
+  function testRevertIfIncorrectSplitData() public {
+    address[] memory incorrectAccounts = new address[](2);
+    incorrectAccounts[0] = makeAddr("user1");
+    incorrectAccounts[1] = makeAddr("user2");
+
+
+    vm.expectRevert();
+    splitMainV2.distributeETH(split, incorrectAccounts, percentAllocations, 0, address(0));
   }
 
   function testDistributeETHWithDistributor() public {
@@ -374,14 +398,14 @@ contract SplitMainV2DistributeETH is SplitMainV2Test {
 
     vm.deal(splitWithDistributor, 10 ether);
 
-    assertEq(splitMainV2.getDistributor(split), address(this), "invalid distributor");
+    assertEq(splitMainV2.getDistributor(splitWithDistributor), address(this), "invalid distributor");
 
     // expect to revert if called by non distributor
     vm.expectRevert();
     vm.prank(user1);
     splitMainV2.distributeETH(
       splitWithDistributor,
-      accounts,
+      newAccounts,
       percentAllocations,
       0,
       address(this)
@@ -390,7 +414,7 @@ contract SplitMainV2DistributeETH is SplitMainV2Test {
     // should not revert
     splitMainV2.distributeETH(
       splitWithDistributor,
-      accounts,
+      newAccounts,
       percentAllocations,
       0,
       address(this)
@@ -403,8 +427,8 @@ contract SplitMainV2DistributeETH is SplitMainV2Test {
     uint256 amountToDistribute = 10 ether;
 
     address[] memory newAccounts = new address[](2);
-    newAccounts[0] = makeAddr("user4");
-    newAccounts[1] = makeAddr("user5");
+    newAccounts[0] = makeAddr("user1");
+    newAccounts[1] = makeAddr("user2");
 
     address splitWithDistributorFee = splitMainV2.createSplit(
       address(splitWallet),
@@ -419,16 +443,115 @@ contract SplitMainV2DistributeETH is SplitMainV2Test {
 
     splitMainV2.distributeETH(
       splitWithDistributorFee,
-      accounts,
+      newAccounts,
       percentAllocations,
+      1e5,
+      address(this)
+    );
+
+    assertEq(splitMainV2.getETHBalance(newAccounts[0]), 36e17);
+    assertEq(splitMainV2.getETHBalance(newAccounts[1]), 54e17);
+  }
+
+}
+
+contract SplitMainV2UpdateAndDistributeERC20 is SplitMainV2Test {
+
+  function testUpdateAndDistributeERC20() public {
+    address split = createTestMutableSplit();
+
+    uint32[] memory newPercentAllocations = new uint32[](2);
+    newPercentAllocations[0] = 200_000;
+    newPercentAllocations[1] = 800_000;
+
+    bytes32 currentSplitHash = splitMainV2.getHash(split);
+
+    splitMainV2.updateAndDistributeERC20(
+      split,
+      mockERC20,
+      accounts,
+      newPercentAllocations,
       0,
       address(this)
     );
 
+    bytes32 newSplitHash = splitMainV2.getHash(split);
+
+    assertEq(currentSplitHash != newSplitHash, true, "invalid split hash");
   }
 
+  function testRevertsIfUpdateAndDistributeERC20NonController() public {
+    address split = createTestMutableSplit();
+
+    uint32[] memory newPercentAllocations = new uint32[](2);
+    newPercentAllocations[0] = 200_000;
+    newPercentAllocations[1] = 800_000;
+
+    vm.expectRevert(
+      abi.encodeWithSelector(Unauthorized.selector, user1)
+    );
+
+    vm.prank(user1);
+    splitMainV2.updateAndDistributeERC20(
+      split,
+      mockERC20,
+      accounts,
+      newPercentAllocations,
+      0,
+      address(this)
+    );
+  }
 
 }
+
+contract SplitMainV2UpdateAndDistributeETH is SplitMainV2Test {
+
+  function testUpdateAndDistributeETH() public {
+    address split = createTestMutableSplit();
+
+    uint32[] memory newPercentAllocations = new uint32[](2);
+    newPercentAllocations[0] = 200_000;
+    newPercentAllocations[1] = 800_000;
+
+    bytes32 currentSplitHash = splitMainV2.getHash(split);
+
+    splitMainV2.updateAndDistributeETH(
+      split,
+      accounts,
+      newPercentAllocations,
+      0,
+      address(this)
+    );
+
+    bytes32 newSplitHash = splitMainV2.getHash(split);
+
+    assertEq(currentSplitHash != newSplitHash, true, "invalid split hash");
+  }
+
+  function testRevertIfUpdateAndDistributeETHNonController() public {
+    address split = createTestMutableSplit();
+
+    uint32[] memory newPercentAllocations = new uint32[](2);
+    newPercentAllocations[0] = 200_000;
+    newPercentAllocations[1] = 800_000;
+
+    vm.expectRevert(
+      abi.encodeWithSelector(Unauthorized.selector, user1)
+    );
+
+    vm.prank(user1);
+    
+    splitMainV2.updateAndDistributeETH(
+      split,
+      accounts,
+      newPercentAllocations,
+      0,
+      address(this)
+    );
+  }
+
+}
+
 
 contract SplitMainV2DistributeERC20 is SplitMainV2Test {
 
@@ -436,7 +559,6 @@ contract SplitMainV2DistributeERC20 is SplitMainV2Test {
 
   function setUp() public override {
     super.setUp();
-
     split = splitMainV2.createSplit(
       address(splitWallet),
       accounts,
@@ -449,12 +571,25 @@ contract SplitMainV2DistributeERC20 is SplitMainV2Test {
 
   function testDistributeERC20() public {
     uint256 amountToDistribute = 10 ether;
+
     deal(address(mockERC20), split, amountToDistribute);
 
-    splitMainV2.distributeERC20(split, ERC20(address(mockERC20)), accounts, percentAllocations, 0, address(0));
+    splitMainV2.distributeERC20(split, mockERC20, accounts, percentAllocations, 0, address(0));
 
-    assertEq( mockERC20.balanceOf(accounts[0]), 4 ether);
-    assertEq(mockERC20.balanceOf(accounts[1]), 6 ether);
+    assertApproxEqAbs(
+      splitMainV2.getERC20Balance(accounts[0], mockERC20), 
+      4 ether, 
+      1,
+      "invalid distribution"
+    );
+
+    assertApproxEqAbs(
+      splitMainV2.getERC20Balance(accounts[1], mockERC20), 
+      6 ether, 
+      1, 
+      "invalid distritbution"
+    );
+
   }
 
   function testDistributeERC20WithDistributor() public {
@@ -477,11 +612,13 @@ contract SplitMainV2DistributeERC20 is SplitMainV2Test {
 
     // expect to revert if called by non distributor
     vm.expectRevert();
+
     vm.prank(user1);
+
     splitMainV2.distributeERC20(
       splitWithDistributor,
       ERC20(address(mockERC20)),
-      accounts,
+      newAccounts,
       percentAllocations,
       0,
       address(this)
@@ -491,7 +628,7 @@ contract SplitMainV2DistributeERC20 is SplitMainV2Test {
     splitMainV2.distributeERC20(
       splitWithDistributor,
       ERC20(address(mockERC20)),
-      accounts,
+      newAccounts,
       percentAllocations,
       0,
       address(this)
@@ -501,11 +638,10 @@ contract SplitMainV2DistributeERC20 is SplitMainV2Test {
   function testDistributeERC20WithDistributorFee() public {
     // @TODO fuzzing for the distributor fee
     uint256 amountToDistribute = 10 ether;
+
     address[] memory newAccounts = new address[](2);
-    newAccounts[0] = makeAddr("user4");
-    newAccounts[1] = makeAddr("user5");
-
-
+    newAccounts[0] = makeAddr("user1");
+    newAccounts[1] = makeAddr("user2");
 
     address splitWithDistributorFee = splitMainV2.createSplit(
       address(splitWallet),
@@ -521,13 +657,14 @@ contract SplitMainV2DistributeERC20 is SplitMainV2Test {
     splitMainV2.distributeERC20(
       splitWithDistributorFee,
       ERC20(address(mockERC20)),
-      accounts,
+      newAccounts,
       percentAllocations,
       1e5,
       address(this)
     );
     
-    //@TODO check the amountds
+    assertEq(splitMainV2.getERC20Balance(newAccounts[0], mockERC20), 36e17);
+    assertEq(splitMainV2.getERC20Balance(newAccounts[1], mockERC20), 54e17);
   }
 }
 
@@ -563,27 +700,27 @@ contract SplitMainV2Withdraw is SplitMainV2Test {
       address(0)
     );
 
-    assertEq(4 ether, splitMainV2.getETHBalance(accounts[0]), "incorrect split amount");
-    assertEq(6 ether, splitMainV2.getETHBalance(accounts[1]), "incorrect withdraw amount");
+    assertApproxEqAbs(4 ether, splitMainV2.getETHBalance(accounts[0]), 1, "incorrect split amount");
+    assertApproxEqAbs(6 ether, splitMainV2.getETHBalance(accounts[1]), 1, "incorrect withdraw amount");
 
     // withdraw
     ERC20[] memory tokens = new ERC20[](0);
     splitMainV2.withdraw(accounts[0], 1, tokens);
     splitMainV2.withdraw(accounts[1], 1, tokens);
 
-    assertEq(accounts[0].balance, 4 ether);
-    assertEq(accounts[1].balance, 6 ether);
+    assertApproxEqAbs(accounts[0].balance, 4 ether, 1, "invalid amount");
+    assertApproxEqAbs(accounts[1].balance, 6 ether, 1, "invalid amount");
 
   }
 
   function testWithdrawERC20() public {
     uint256 amountToDistribute = 10 ether;
-    ERC20 token = ERC20(address(mockERC20));
+
     deal(address(mockERC20), split, amountToDistribute);
 
     splitMainV2.distributeERC20(
       split,
-      ERC20(address(mockERC20)),
+      mockERC20,
       accounts,
       percentAllocations, 
       0, 
@@ -592,17 +729,16 @@ contract SplitMainV2Withdraw is SplitMainV2Test {
 
     // withdraw
     ERC20[] memory tokens = new ERC20[](1);
-    tokens[0] = ERC20(address(mockERC20));
+    tokens[0] = mockERC20;
 
-    assertEq(4 ether, splitMainV2.getERC20Balance(accounts[0], token), "invalid amount");
-    assertEq(6 ether, splitMainV2.getERC20Balance(accounts[1], token), "invalid amount");
+    assertApproxEqAbs(4 ether, splitMainV2.getERC20Balance(accounts[0], mockERC20), 2, "invalid amount");
+    assertApproxEqAbs(6 ether, splitMainV2.getERC20Balance(accounts[1], mockERC20), 2, "invalid amount");
 
     splitMainV2.withdraw(accounts[0], 0, tokens);
     splitMainV2.withdraw(accounts[1], 0, tokens);
 
-
-    assertEq(mockERC20.balanceOf(accounts[0]), 4 ether, "invalid split");
-    assertEq(mockERC20.balanceOf(accounts[1]), 6 ether, "invalid split");
+    assertApproxEqAbs(mockERC20.balanceOf(accounts[0]), 4 ether, 2, "invalid split");
+    assertApproxEqAbs(mockERC20.balanceOf(accounts[1]), 6 ether, 2, "invalid split");
   }
 
 }

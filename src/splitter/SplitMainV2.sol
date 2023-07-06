@@ -214,10 +214,10 @@ contract SplitMainV2 is ISplitMainV2 {
     if (controller == address(0)) {
       // create immutable split
       split = splitWalletImplementation.cloneDeterministic("", splitHash);
-      splits[split].controller = controller;
     } else {
       // create mutable split
       split = splitWalletImplementation.clone("");
+      splits[split].controller = controller;
     }
     if (distributor != address(0)) splits[split].distributor = distributor;
     // store split's hash in storage for future verification

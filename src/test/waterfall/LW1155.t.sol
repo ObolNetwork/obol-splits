@@ -65,7 +65,7 @@ contract BaseTest is AddressBook, Test {
 
     configuration = SplitConfiguration(accounts, percentAllocations, 0, address(0), address(0));
 
-    rewardSplit = splitMainV2.createSplit(address(splitWallet), accounts, percentAllocations, 0, address(0), address(0));
+    rewardSplit = splitMainV2.createSplit(address(splitWallet), accounts, percentAllocations, address(0), address(0), 0 );
 
     address[] memory waterfallRecipients = new address[](2);
     waterfallRecipients[0] = address(lw1155);
