@@ -4,8 +4,8 @@ pragma solidity >=0.8.10;
 import "ds-test/test.sol";
 import "solmate/tokens/ERC721.sol";
 
-import "./utils/mocks/MockWithdrawalRecipientNFT.sol";
-import "./utils/mocks/MockNFT.sol";
+import "../utils/mocks/MockWithdrawalRecipientNFT.sol";
+import "../utils/mocks/MockNFT.sol";
 
 contract WithdrawalRecipientNFTTest is DSTest {
   MockNFT nftContract;

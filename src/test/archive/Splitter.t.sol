@@ -3,8 +3,8 @@ pragma solidity >=0.8.17;
 
 import "ds-test/test.sol";
 
-import "./utils/mocks/MockSplitter.sol";
-import "./utils/mocks/MockSplitterDeployer.sol";
+import "../utils/mocks/MockSplitter.sol";
+import "../utils/mocks/MockSplitterDeployer.sol";
 
 contract SplitterTest is DSTest {
   MockSplitterDeployer mockSplitterDeployer;
