@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.17;
 
 import "ds-test/test.sol";
 import "solmate/tokens/ERC721.sol";
@@ -52,7 +52,7 @@ contract NFTDeposit is ERC721 {
   }
 
   function tokenURI(uint256 id) public view override returns (string memory) {
-    if (ownerOf[id] == address(0)) revert DoesNotExist();
+    // if (ownerOf[id] == address(0)) revert DoesNotExist();
 
     return string(abi.encodePacked(baseURI, id));
   }

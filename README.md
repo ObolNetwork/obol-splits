@@ -19,8 +19,24 @@ Follow the instructions here to install [foundry](https://github.com/gakonst/fou
 Then install the contract dependencies:
 
 ```sh
-forge install rari-capital/solmate dapphub/ds-test
+forge install
 ```
+
+### Obol protocol contracts
+
+- factory/ValidatorRewardSplitFactory.sol
+
+
+- splitter/SplitFactory
+
+- splitter/SplitMainV2.sol
+
+- splitter/SplitWallet.sol
+
+- waterfall/token/LW1155.sol
+
+- waterfall/LWFactory.sol
+
 
 ### Local Development
 

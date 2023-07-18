@@ -6,6 +6,7 @@ import {ISplitMain, SplitConfiguration} from "../interfaces/ISplitMain.sol";
 import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
 import {ValidatorRewardSplitFactory} from "../factory/ValidatorRewardSplitFactory.sol";
 import {IWaterfallFactoryModule} from "../interfaces/IWaterfallFactoryModule.sol";
+import {IWaterfallModule} from "../interfaces/IWaterfallModule.sol";
 
 contract ValidatorRewardSplitFactoryTest is Test {
   ValidatorRewardSplitFactory public factory;
@@ -15,8 +16,8 @@ contract ValidatorRewardSplitFactoryTest is Test {
   address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
 
   function setUp() public {
-    uint256 goerliBlock = 8529931;
-    
+    uint256 goerliBlock = 8_529_931;
+
     vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
     // for local tests, mock the ENS reverse registrar at its goerli address.
     vm.mockCall(
@@ -65,8 +66,7 @@ contract ValidatorRewardSplitFactoryTest is Test {
     expectedThresholds[0] = 32 ether;
 
     for (uint256 i = 0; i < withdrawAddresses.length; i++) {
-      (address[] memory recipients, uint256[] memory thresholds) =
-        IWaterfallFactoryModule(withdrawAddresses[i]).getTranches();
+      (address[] memory recipients, uint256[] memory thresholds) = IWaterfallModule(withdrawAddresses[i]).getTranches();
 
       assertEq(recipients, expectedRecipients, "invalid recipients");
       assertEq(thresholds, expectedThresholds, "invalid thresholds");

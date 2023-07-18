@@ -2,8 +2,8 @@
 pragma solidity >=0.8.10;
 
 import "ds-test/test.sol";
+import "../utils/mocks/MockWithdrawalRecipient.sol";
 
-import "./utils/mocks/MockWithdrawalRecipient.sol";
 
 contract WithdrawalRecipientOwnableTest is DSTest {
   MockWithdrawalRecipient mockWithdrawalRecipient;

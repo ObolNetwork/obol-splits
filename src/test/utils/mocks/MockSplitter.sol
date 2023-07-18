@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.17;
 
-import {ISplitMain} from "../../../Splitter.sol";
+import {ISplitMain} from "src/archive/Splitter.sol";
 
 contract MockSplitter is ISplitMain {
   struct SplitData {
