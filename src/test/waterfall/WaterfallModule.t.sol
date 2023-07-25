@@ -56,12 +56,16 @@ contract WaterfallModuleTest is Test {
     }
 
     function test_fuzz_waterfallDepositsToRecipients(
-        uint256 _recipientsSeed,
-        uint256 _thresholdsSeed,
-        uint8 _numDeposits,
-        uint64 _ethAmount,
-        uint96 _erc20Amount
+        uint256 _recipientsSeed, 
+        uint256 _thresholdsSeed, 
+        uint8 _numDeposits, 
+        uint256 _ethAmount, 
+        uint96 _erc20Amount 
     ) public {
+        _ethAmount = uint256(bound(_ethAmount, 1 ether, 34 ether));
+        console.logString("eth amount");
+        console.log(_ethAmount);
+
         (
             address[] memory _trancheRecipients,
             uint256[] memory _trancheThresholds
@@ -89,9 +93,9 @@ contract WaterfallModuleTest is Test {
 
         uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
 
-        assertEq(address(waterfallModuleETH).balance, 0 ether);
-        assertEq(waterfallModuleETH.distributedFunds(), _totalETHAmount);
-        assertEq(waterfallModuleETH.fundsPendingWithdrawal(), 0 ether);
+        assertEq(address(waterfallModuleETH).balance, 0 ether, "invalid balance");
+        assertEq(waterfallModuleETH.distributedFunds(), _totalETHAmount, "undistributed funds");
+        assertEq(waterfallModuleETH.fundsPendingWithdrawal(), 0 ether, "funds pending withdraw");
 
         if (BALANCE_CLASSIFICATION_THRESHOLD > _totalETHAmount) {
             // then all of the deposit should be classified as reward
@@ -140,52 +144,19 @@ contract WaterfallModuleTest is Test {
             }
         }
 
-        // if ()
+        /// test erc20
 
-        // assertEq(
-        //     _trancheRecipients[0].balance,
-        //     (_totalETHAmount >= _trancheThresholds[0])
-        //         ? _trancheThresholds[0]
-        //         : _totalETHAmount
-        // );
-        // for (uint256 i = 1; i < _trancheThresholds.length; i++) {
-        // if (_totalETHAmount >= _trancheThresholds[i]) {
-        //     assertEq(
-        //         _trancheRecipients[i].balance,
-        //         _trancheThresholds[i] - _trancheThresholds[i - 1]
-        //     );
-        // } else if (_totalETHAmount > _trancheThresholds[i - 1]) {
-        //     assertEq(
-        //         _trancheRecipients[i].balance,
-        //         _totalETHAmount - _trancheThresholds[i - 1]
-        //     );
-        // } else {
-        //     assertEq(_trancheRecipients[i].balance, 0);
-        // }
-        // // }
-        // assertEq(
-        //     _trancheRecipients[_trancheRecipients.length - 1].balance,
-        //     (
-        //         _totalETHAmount
-        //             > _trancheThresholds[_trancheRecipients.length - 2]
-        //     )
-        //         ? _totalETHAmount
-        //             - _trancheThresholds[_trancheRecipients.length - 2]
-        //         : 0
-        // );
+        for (uint256 i = 0; i < _numDeposits; i++) {
+            address(mERC20).safeTransfer(address(waterfallModuleERC20), _erc20Amount);
+            waterfallModuleERC20.waterfallFunds();
+        }
+        
+        uint256 _totalERC20Amount = uint256(_numDeposits) * uint256(_erc20Amount);
 
-        // /// test erc20
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20)), 0 ether, "invalid erc20 balance");
+        assertEq(waterfallModuleERC20.distributedFunds(), _totalERC20Amount, "incorrect distributed funds");
+        assertEq(waterfallModuleERC20.fundsPendingWithdrawal(), 0 ether, "invalid funds pending withdrawal");
 
-        // for (uint256 i = 0; i < _numDeposits; i++) {
-        //     address(mERC20).safeTransfer(address(wmERC20), _erc20Amount);
-        //     wmERC20.waterfallFunds();
-        // }
-        // uint256 _totalERC20Amount =
-        //     uint256(_numDeposits) * uint256(_erc20Amount);
-
-        // assertEq(mERC20.balanceOf(address(wmERC20)), 0 ether);
-        // assertEq(wmERC20.distributedFunds(), _totalERC20Amount);
-        // assertEq(wmERC20.fundsPendingWithdrawal(), 0 ether);
         // assertEq(
         //     mERC20.balanceOf(_trancheRecipients[0]),
         //     (_totalERC20Amount >= _trancheThresholds[0])
