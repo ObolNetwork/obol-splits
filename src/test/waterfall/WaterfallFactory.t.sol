@@ -156,11 +156,5 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             ETH_ADDRESS, nonWaterfallRecipient, recipients, type(uint128).max
         );
     }
-
-
-    // function 
-
-
-
-
+    
 }

@@ -16,20 +16,12 @@ contract WaterfallModuleFactory {
     /// Invalid number of recipients, must be 2
     error InvalidWaterfall__Recipients();
 
-    /// Invalid recipient & threshold lengths; recipients must have one more
-    /// entry than thresholds
-    error InvalidWaterfall__RecipientsAndThresholdsLengthMismatch();
-
     /// Thresholds must be positive
     error InvalidWaterfall__ZeroThreshold();
 
     /// Invalid threshold at `index`; must be < 2^96
     /// @param index Index of too-large threshold
     error InvalidWaterfall__ThresholdTooLarge(uint256 index);
-
-    /// Invalid threshold at `index` (thresholds must increase monotonically)
-    /// @param index Index of out-of-order threshold
-    error InvalidWaterfall__ThresholdsOutOfOrder(uint256 index);
 
     /// -----------------------------------------------------------------------
     /// libraries
