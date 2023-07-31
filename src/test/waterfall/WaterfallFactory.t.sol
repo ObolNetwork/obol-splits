@@ -156,5 +156,127 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             ETH_ADDRESS, nonWaterfallRecipient, recipients, type(uint128).max
         );
     }
-    
+
+
+    /// -----------------------------------------------------------------------
+    /// Fuzzing Tests
+    /// ----------------------------------------------------------------------
+
+    function testFuzzCan_createWaterfallModules(
+        address _nonWaterfallRecipient,
+        uint256 recipientsSeed,
+        uint256 thresholdSeed
+    ) public {
+        nonWaterfallRecipient = _nonWaterfallRecipient;
+
+        (recipients, threshold) = generateTranches(recipientsSeed, thresholdSeed);
+        
+        vm.expectEmit(false, true, true, true);
+        emit CreateWaterfallModule(
+            address(0xdead),
+            ETH_ADDRESS,
+            nonWaterfallRecipient,
+            recipients,
+            threshold
+        );
+        waterfallFactoryModule.createWaterfallModule(
+            ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
+        );
+
+        vm.expectEmit(false, true, true, true);
+        emit CreateWaterfallModule(
+            address(0xdead),
+            address(mERC20),
+            nonWaterfallRecipient,
+            recipients,
+            threshold
+        );
+        waterfallFactoryModule.createWaterfallModule(
+            address(mERC20), nonWaterfallRecipient, recipients, threshold
+        );
+    }
+
+
+    function testFuzzCannot_CreateWithInvalidFewRecipients(
+        uint8 _numRecipeints,
+        uint256 _receipientSeed
+    ) public {
+        vm.assume(_numRecipeints != 2);
+        recipients = generateTrancheRecipients(_numRecipeints, _receipientSeed);
+
+        vm.expectRevert(
+            WaterfallModuleFactory.InvalidWaterfall__Recipients.selector
+        );
+        waterfallFactoryModule.createWaterfallModule(
+            ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
+        );
+
+        vm.expectRevert(
+            WaterfallModuleFactory.InvalidWaterfall__Recipients.selector
+        );
+
+        waterfallFactoryModule.createWaterfallModule(
+            address(mERC20), nonWaterfallRecipient, recipients, threshold
+        );
+    }
+
+    function testFuzzCannot_CreateWithZeroThreshold(
+        uint256 _receipientSeed
+    ) public {
+        threshold = 0;
+        recipients = generateTrancheRecipients(2, _receipientSeed);
+
+        vm.expectRevert(
+            WaterfallModuleFactory.InvalidWaterfall__ZeroThreshold.selector
+        );
+        waterfallFactoryModule.createWaterfallModule(
+            ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
+        );
+
+        vm.expectRevert(
+            WaterfallModuleFactory.InvalidWaterfall__ZeroThreshold.selector
+        );
+
+        waterfallFactoryModule.createWaterfallModule(
+            address(mERC20), nonWaterfallRecipient, recipients, threshold
+        );
+    }
+
+    function testFuzzCannot_CreateWithLargeThreshold(
+        uint256 _receipientSeed,
+        uint256 _threshold
+    ) public {
+        vm.assume(_threshold > type(uint96).max);
+        
+        threshold = _threshold;
+        recipients = generateTrancheRecipients(2, _receipientSeed);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(WaterfallModuleFactory
+                .InvalidWaterfall__ThresholdTooLarge
+                .selector,
+                _threshold
+            )
+        );
+        
+        waterfallFactoryModule.createWaterfallModule(
+            ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
+        );
+
+
+        vm.expectRevert(
+            abi.encodeWithSelector(WaterfallModuleFactory
+                .InvalidWaterfall__ThresholdTooLarge
+                .selector,
+                _threshold
+            )
+        );
+        
+        waterfallFactoryModule.createWaterfallModule(
+            address(mERC20), nonWaterfallRecipient, recipients, threshold
+        );
+
+    }
+
+
 }
