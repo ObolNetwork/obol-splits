@@ -6,7 +6,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 /// @title WaterfallModule
-/// @author 0xSplits
+/// @author Obol
 /// @notice A maximally-composable waterfall contract allowing multiple
 /// recipients to receive preferential payments before residual funds flow to a
 /// final address.
@@ -82,7 +82,9 @@ contract WaterfallModule is Clone {
     uint256 internal constant ADDRESS_BITS = 160;
     uint256 internal constant ADDRESS_BITMASK = uint256(~0 >> THRESHOLD_BITS);
     uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
-    uint256 internal constant MAX_TRANCHE_SIZE = 2;
+    uint256 internal constant TRANCHE_SIZE = 2;
+    uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
+    uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
 
     /// -----------------------------------------------------------------------
     /// storage - cwia offsets
@@ -96,9 +98,9 @@ contract WaterfallModule is Clone {
     // 20 = token_offset (0) + token_size (address, 20 bytes)
     uint256 internal constant NON_WATERFALL_RECIPIENT_OFFSET = 20;
     // 40 = nonWaterfallRecipient_offset (20) + nonWaterfallRecipient_size (address, 20 bytes)
-    uint256 internal constant NUM_TRANCHES_OFFSET = 40;
+    // uint256 internal constant NUM_TRANCHES_OFFSET = 40;
     // 48 = numTranches_offset (40) + numTranches_size (uint64, 8 bytes)
-    uint256 internal constant TRANCHES_OFFSET = 48;
+    uint256 internal constant TRANCHES_OFFSET = 40;
 
     /// Address of ERC20 to waterfall (0x0 used for ETH)
     /// @dev equivalent to address public immutable token;
@@ -116,7 +118,7 @@ contract WaterfallModule is Clone {
     /// @dev equivalent to uint64 internal immutable numTranches;
     /// clones-with-immutable-args limits uint256[] array length to uint64
     function numTranches() internal pure returns (uint256) {
-        return uint256(_getArgUint64(NUM_TRANCHES_OFFSET));
+        return uint256(TRANCHE_SIZE);
     }
 
     /// Get waterfall tranche `i`
@@ -271,33 +273,20 @@ contract WaterfallModule is Clone {
 
     /// Return unpacked tranches
     /// @return recipients Addresses to waterfall payments to
-    /// @return thresholds Absolute payment thresholds for waterfall recipients
+    /// @return threshold Absolute payment threshold for principal
     function getTranches()
         public
         pure
-        returns (address[] memory recipients, uint256[] memory thresholds)
+        returns (address[] memory recipients, uint256 threshold)
     {
-        uint256 numRecipients = numTranches();
-        uint256 numThresholds;
-        unchecked {
-            // shouldn't underflow
-            numThresholds = numRecipients - 1;
-        }
-        recipients = new address[](numRecipients);
-        thresholds = new uint256[](numThresholds);
+        recipients = new address[](TRANCHE_SIZE);
 
-        uint256 i = 0;
-        uint256 tranche;
-        for (; i < numThresholds;) {
-            tranche = _getTranche(i);
-            recipients[i] = address(uint160(tranche));
-            thresholds[i] = tranche >> ADDRESS_BITS;
-            unchecked {
-                ++i;
-            }
-        }
+        uint256 tranche = _getTranche(PRINCIPAL_RECIPIENT_INDEX);
+        recipients[0] = address(uint160(tranche));
+        threshold = tranche >> ADDRESS_BITS;
+
         // recipients has one more entry than thresholds
-        recipients[i] = address(uint160(_getTranche(i)));
+        recipients[1] = address(uint160(_getTranche(REWARD_RECIPIENT_INDEX)));
     }
 
     /// Returns the balance for account `account`
@@ -324,7 +313,7 @@ contract WaterfallModule is Clone {
         // load storage into memory
         // fetch the token we want to distribute
         address _token = token();
-        uint256 _firstTrancheIndex;
+        // uint256 _principalIndex;
         // the amount of funds distributed so far
         uint256 _startingDistributedFunds = uint256(distributedFunds);
         uint256 _endingDistributedFunds;
@@ -346,7 +335,7 @@ contract WaterfallModule is Clone {
             _fundsToBeDistributed = _endingDistributedFunds - _startingDistributedFunds;
         }
 
-        (address[] memory recipients, uint256[] memory thresholds) =
+        (address[] memory recipients, uint256 threshold) =
             getTranches();
 
         // determine which tranche is getting paid based on funds to be distributed
@@ -354,26 +343,26 @@ contract WaterfallModule is Clone {
         // 1 = second tranche
 
         // construct the payout arrays
-        uint256 _payoutsLength = MAX_TRANCHE_SIZE;
+        uint256 _payoutsLength = numTranches();
         uint256[] memory _payouts = new uint256[](_payoutsLength);
 
         unchecked {
-            uint256 _secondTrancheIndex = 1;
-            // _claimedFirstTrancheFunds should always be <= thresholds[0]
-            uint256 firstTrancheRemaining = thresholds[0] - _claimedFirstTrancheFunds;
+            // uint256 _rewardIndex = 1;
+            // _claimedFirstTrancheFunds should always be <= threshold
+            uint256 firstTrancheRemaining = threshold - _claimedFirstTrancheFunds;
             
             if (_fundsToBeDistributed > BALANCE_CLASSIFICATION_THRESHOLD && firstTrancheRemaining > 0) {
                 if (_fundsToBeDistributed > firstTrancheRemaining) {
                     // this means there is reward part of the funds to be distributed
-                    _payouts[_firstTrancheIndex] = firstTrancheRemaining;
+                    _payouts[PRINCIPAL_RECIPIENT_INDEX] = firstTrancheRemaining;
                     // shouldn't underflow
-                    _payouts[_secondTrancheIndex] = _fundsToBeDistributed - firstTrancheRemaining;
+                    _payouts[REWARD_RECIPIENT_INDEX] = _fundsToBeDistributed - firstTrancheRemaining;
                 } else {
                     // this means there is no reward part of the funds to be distributed
-                    _payouts[_firstTrancheIndex] = _fundsToBeDistributed;
+                    _payouts[PRINCIPAL_RECIPIENT_INDEX] = _fundsToBeDistributed;
                 }
             } else {
-                _payouts[_secondTrancheIndex] = _fundsToBeDistributed;
+                _payouts[REWARD_RECIPIENT_INDEX] = _fundsToBeDistributed;
             }
         }
 
@@ -383,8 +372,8 @@ contract WaterfallModule is Clone {
             }
             // Write to storage
             distributedFunds = uint128(_endingDistributedFunds);
-            // the first tranche is 0
-            claimedFirstTrancheFunds += _payouts[_firstTrancheIndex];
+            // the principal value
+            claimedFirstTrancheFunds += _payouts[PRINCIPAL_RECIPIENT_INDEX];
         }
 
         /// interactions

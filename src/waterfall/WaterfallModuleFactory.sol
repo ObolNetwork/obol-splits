@@ -5,7 +5,7 @@ import {WaterfallModule} from "./WaterfallModule.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 
 /// @title WaterfallModuleFactory
-/// @author 0xSplits
+/// @author Obol
 /// @notice A factory contract for cheaply deploying WaterfallModules.
 /// @dev This contract uses token = address(0) to refer to ETH.
 contract WaterfallModuleFactory {
@@ -46,14 +46,14 @@ contract WaterfallModuleFactory {
     /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
     /// @param nonWaterfallRecipient Address to recover non-waterfall tokens to
     /// @param recipients Addresses to waterfall payments to
-    /// @param thresholds Absolute payment thresholds for waterfall recipients
+    /// @param threshold Absolute payment thresholds for waterfall recipients
     /// (last recipient has no threshold & receives all residual flows)
     event CreateWaterfallModule(
         address indexed waterfallModule,
         address token,
         address nonWaterfallRecipient,
         address[] recipients,
-        uint256[] thresholds
+        uint256 threshold
     );
 
     /// -----------------------------------------------------------------------
@@ -61,6 +61,7 @@ contract WaterfallModuleFactory {
     /// -----------------------------------------------------------------------
 
     uint256 internal constant ADDRESS_BITS = 160;
+    uint256 internal constant RECIPIENT_SIZE = 2;
 
     /// WaterfallModule implementation address
     WaterfallModule public immutable wmImpl;
@@ -85,80 +86,49 @@ contract WaterfallModuleFactory {
     /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
     /// @param nonWaterfallRecipient Address to recover non-waterfall tokens to
     /// @param recipients Addresses to waterfall payments to
-    /// @param thresholds Absolute payment thresholds for waterfall recipients
+    /// @param threshold Absolute payment thresholds for waterfall recipient
     /// (last recipient has no threshold & receives all residual flows)
     /// @return wm Address of new WaterfallModule clone
     function createWaterfallModule(
         address token,
         address nonWaterfallRecipient,
         address[] calldata recipients,
-        uint256[] calldata thresholds
+        uint256 threshold
     ) external returns (WaterfallModule wm) {
         /// checks
 
         // cache lengths for re-use
         uint256 recipientsLength = recipients.length;
-        uint256 thresholdsLength = thresholds.length;
 
-        // ensure recipients array has at 2 entries
-        if (recipientsLength != 2) {
+        // ensure recipients does not exceed 2 entries
+        if (recipientsLength != RECIPIENT_SIZE) {
             revert InvalidWaterfall__Recipients();
         }
-        // ensure recipients array is one longer than thresholds array
-        unchecked {
-            // shouldn't underflow since _recipientsLength == 2
-            if (thresholdsLength != recipientsLength - 1) {
-                revert InvalidWaterfall__RecipientsAndThresholdsLengthMismatch();
-            }
-        }
-        // ensure first threshold isn't zero
-        if (thresholds[0] == 0) {
+        // ensure threshold isn't zero
+        if (threshold == 0) {
             revert InvalidWaterfall__ZeroThreshold();
         }
-        // ensure first threshold isn't too large
-        if (thresholds[0] > type(uint96).max) {
-            revert InvalidWaterfall__ThresholdTooLarge(0);
-        }
-        // ensure packed thresholds increase monotonically
-        uint256 i = 1;
-        for (; i < thresholdsLength;) {
-            if (thresholds[i] > type(uint96).max) {
-                revert InvalidWaterfall__ThresholdTooLarge(i);
-            }
-            unchecked {
-                // shouldn't underflow since i >= 1
-                if (thresholds[i - 1] >= thresholds[i]) {
-                    revert InvalidWaterfall__ThresholdsOutOfOrder(i);
-                }
-                // shouldn't overflow
-                ++i;
-            }
+        // ensure threshold isn't too large
+        if (threshold > type(uint96).max) {
+            revert InvalidWaterfall__ThresholdTooLarge(threshold);
         }
 
         /// effects
 
-        // copy recipients & thresholds into storage
-        i = 0;
+        // copy recipients & threshold into storage
         uint256[] memory tranches = new uint256[](recipientsLength);
-        for (; i < thresholdsLength;) {
-            tranches[i] = (thresholds[i] << ADDRESS_BITS)
-                | uint256(uint160(recipients[i]));
-            unchecked {
-                // shouldn't overflow
-                ++i;
-            }
-        }
-        // recipients array is one longer than thresholds array; set last item after loop
-        tranches[i] = uint256(uint160(recipients[i]));
+        // tranches size == recipients array size
+        tranches[0] = (threshold << ADDRESS_BITS) | uint256(uint160(recipients[0]));
+        tranches[1] = uint256(uint160(recipients[1]));
 
-        // recipientsLength won't realistically be > 2^64; deployed contract
         // would exceed contract size limits
         bytes memory data = abi.encodePacked(
-            token, nonWaterfallRecipient, uint64(recipientsLength), tranches
+            token, nonWaterfallRecipient, tranches
         );
         wm = WaterfallModule(address(wmImpl).clone(data));
+        
         emit CreateWaterfallModule(
-            address(wm), token, nonWaterfallRecipient, recipients, thresholds
-            );
+            address(wm), token, nonWaterfallRecipient, recipients, threshold
+        );
     }
 }
