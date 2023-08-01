@@ -9,6 +9,8 @@ contract WaterfallTestHelper {
     
     uint256 internal constant ETH_STAKE = 32 ether;
 
+    uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
+
     /// -----------------------------------------------------------------------
     /// helper fns
     /// -----------------------------------------------------------------------
