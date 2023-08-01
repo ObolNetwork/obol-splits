@@ -351,7 +351,7 @@ contract WaterfallModule is Clone {
             // _claimedFirstTrancheFunds should always be <= threshold
             uint256 firstTrancheRemaining = threshold - _claimedFirstTrancheFunds;
             
-            if (_fundsToBeDistributed > BALANCE_CLASSIFICATION_THRESHOLD && firstTrancheRemaining > 0) {
+            if (_fundsToBeDistributed >= BALANCE_CLASSIFICATION_THRESHOLD && firstTrancheRemaining > 0) {
                 if (_fundsToBeDistributed > firstTrancheRemaining) {
                     // this means there is reward part of the funds to be distributed
                     _payouts[PRINCIPAL_RECIPIENT_INDEX] = firstTrancheRemaining;
