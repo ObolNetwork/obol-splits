@@ -8,7 +8,7 @@ import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {WaterfallTestHelper} from "./WaterfallTestHelper.t.sol";
 
-contract WaterfallModuleTest is Test {
+contract WaterfallModuleTest is WaterfallTestHelper, Test {
     using SafeTransferLib for address;
 
     event CreateWaterfallModule(
@@ -28,12 +28,6 @@ contract WaterfallModuleTest is Test {
     event RecoverNonWaterfallFunds(
         address nonWaterfallToken, address recipient, uint256 amount
     );
-
-    address internal constant ETH_ADDRESS = address(0);
-
-    uint256 internal constant MAX_TRANCHE_SIZE = 2;
-    uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
-    uint256 internal constant ETH_STAKE = 32 ether;
 
     WaterfallModule public waterfallModule;
     WaterfallModuleFactory public waterfallModuleFactory;
@@ -841,39 +835,4 @@ contract WaterfallModuleTest is Test {
         }
     }
 
-    /// -----------------------------------------------------------------------
-    /// helper fns
-    /// -----------------------------------------------------------------------
-
-    function generateTranches(uint256 rSeed, uint256 tSeed)
-        internal
-        pure
-        returns (address[] memory recipients, uint256 threshold)
-    {
-        recipients = generateTrancheRecipients(MAX_TRANCHE_SIZE, rSeed);
-        threshold = generateTrancheThreshold(tSeed);
-    }
-
-    function generateTrancheRecipients(uint256 numRecipients, uint256 _seed)
-        internal
-        pure
-        returns (address[] memory recipients)
-    {
-        recipients = new address[](numRecipients);
-        bytes32 seed = bytes32(_seed);
-        for (uint256 i = 0; i < numRecipients; i++) {
-            seed = keccak256(abi.encodePacked(seed));
-            recipients[i] = address(bytes20(seed));
-        }
-    }
-
-    function generateTrancheThreshold(uint256 _seed)
-        internal
-        pure
-        returns (uint256 threshold)
-    {
-        uint256 seed = _seed;
-        seed = uint256(keccak256(abi.encodePacked(seed)));
-        threshold = uint96(seed);
-    }
 }
