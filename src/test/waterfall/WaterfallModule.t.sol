@@ -662,7 +662,7 @@ contract WaterfallModuleTest is WaterfallTestHelper, Test {
         assertEq(waterfallModuleERC20_OR.distributedFunds(), 33.5 ether);
         assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 1 ether);
 
-        waterfallModuleERC20_OR.withdraw(trancheRecipients[1]));
+        waterfallModuleERC20_OR.withdraw(trancheRecipients[1]);
 
         assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0 ether);
         assertEq(mERC20.balanceOf(trancheRecipients[0]), 32 ether);
