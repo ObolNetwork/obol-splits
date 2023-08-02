@@ -675,7 +675,7 @@ contract WaterfallModuleTest is WaterfallTestHelper, Test {
         assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 0 ether);
     }
 
-    function testFuzz_waterfallDepositsToRecipients(
+    function testFuzzCan_waterfallDepositsToRecipients(
         uint256 _recipientsSeed, 
         uint256 _thresholdsSeed, 
         uint8 _numDeposits, 
@@ -825,15 +825,122 @@ contract WaterfallModuleTest is WaterfallTestHelper, Test {
         }
     }
 
-     function testCan_waterfallPullDepositsToRecipients(
-        uint8 _numTranches,
+    function testFuzzCan_waterfallPullDepositsToRecipients(
         uint256 _recipientsSeed,
         uint256 _thresholdsSeed,
         uint8 _numDeposits,
-        uint48 _ethAmount,
-        uint96 _erc20Amount
-    ) public { 
+        uint256 _ethAmount,
+        uint256 _erc20Amount
+    ) public {
+        _ethAmount = uint256(bound(_ethAmount, 0.01 ether, 40 ether));
+        _erc20Amount = uint256(bound(_erc20Amount, 0.01 ether, 40 ether));
+        vm.assume(_numDeposits > 0);
+
+        (
+            address[] memory _trancheRecipients,
+            uint256 _trancheThreshold
+        ) = generateTranches(_recipientsSeed, _thresholdsSeed);
+
+        waterfallModuleETH = waterfallModuleFactory.createWaterfallModule(
+            ETH_ADDRESS,
+            nonWaterfallRecipient,
+            _trancheRecipients,
+            _trancheThreshold
+        );
+        waterfallModuleERC20 = waterfallModuleFactory.createWaterfallModule(
+            address(mERC20),
+            nonWaterfallRecipient,
+            _trancheRecipients,
+            _trancheThreshold
+        );
+
+        /// test eth
+
+        for (uint256 i = 0; i < _numDeposits; i++) {
+            address(waterfallModuleETH).safeTransferETH(_ethAmount);
+            waterfallModuleETH.waterfallFundsPull();
+        }
+        uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
+
+        assertEq(address(waterfallModuleETH).balance, _totalETHAmount);
+        assertEq(waterfallModuleETH.distributedFunds(), _totalETHAmount);
+        assertEq(waterfallModuleETH.fundsPendingWithdrawal(), _totalETHAmount);
+
+        uint256 principal = waterfallModuleETH.getPullBalance(_trancheRecipients[0]);
+        assertEq(
+            waterfallModuleETH.getPullBalance(_trancheRecipients[0]),
+            (_ethAmount >= BALANCE_CLASSIFICATION_THRESHOLD)
+                ? _trancheThreshold > _totalETHAmount ? _totalETHAmount : _trancheThreshold
+                : 0
+            ,
+            "5/invalid recipient balance"
+        );
+
+        uint256 reward = waterfallModuleETH.getPullBalance(_trancheRecipients[1]);
+        assertEq(
+            waterfallModuleETH.getPullBalance(_trancheRecipients[1]),
+            (_ethAmount >= BALANCE_CLASSIFICATION_THRESHOLD)
+                ? _totalETHAmount > _trancheThreshold ? (_totalETHAmount - _trancheThreshold) : 0
+                : _totalETHAmount
+            ,
+            "6/invalid recipient balance"
+        );
+
         
+        waterfallModuleETH.withdraw(_trancheRecipients[0]);
+        waterfallModuleETH.withdraw(_trancheRecipients[1]);
+
+
+        assertEq(address(waterfallModuleETH).balance, 0);
+        assertEq(waterfallModuleETH.distributedFunds(), _totalETHAmount);
+        assertEq(waterfallModuleETH.fundsPendingWithdrawal(), 0);
+
+        assertEq(_trancheRecipients[0].balance, principal, "10/invalid principal balance");
+        assertEq(_trancheRecipients[1].balance, reward, "11/invalid reward balance");
+
+        /// test erc20
+
+        for (uint256 i = 0; i < _numDeposits; i++) {
+            address(mERC20).safeTransfer(address(waterfallModuleERC20), _erc20Amount);
+            waterfallModuleERC20.waterfallFundsPull();
+        }
+        uint256 _totalERC20Amount =
+            uint256(_numDeposits) * uint256(_erc20Amount);
+
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20)), _totalERC20Amount);
+        assertEq(waterfallModuleERC20.distributedFunds(), _totalERC20Amount);
+        assertEq(waterfallModuleERC20.fundsPendingWithdrawal(), _totalERC20Amount);
+
+        principal = waterfallModuleERC20.getPullBalance(_trancheRecipients[0]);
+        assertEq(
+            waterfallModuleERC20.getPullBalance(_trancheRecipients[0]),
+            (_erc20Amount >= BALANCE_CLASSIFICATION_THRESHOLD)
+                ? _trancheThreshold > _totalERC20Amount ? _totalERC20Amount : _trancheThreshold
+                : 0
+            ,
+            "16/invalid recipient balance"
+        );
+
+        reward = waterfallModuleERC20.getPullBalance(_trancheRecipients[1]);
+        assertEq(
+            waterfallModuleERC20.getPullBalance(_trancheRecipients[1]),
+            (_erc20Amount >= BALANCE_CLASSIFICATION_THRESHOLD)
+                ? _totalERC20Amount > _trancheThreshold ? (_totalERC20Amount - _trancheThreshold) : 0
+                : _totalERC20Amount
+            ,
+            "17/invalid recipient balance"
+        );
+
+        waterfallModuleERC20.withdraw(_trancheRecipients[0]);
+        waterfallModuleERC20.withdraw(_trancheRecipients[1]);
+
+
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20)), 0, "18/invalid balance");
+        assertEq(waterfallModuleERC20.distributedFunds(), _totalERC20Amount, "19/invalid balance");
+        assertEq(waterfallModuleERC20.fundsPendingWithdrawal(), 0, "20/invalid funds pending");
+
+        assertEq(mERC20.balanceOf(_trancheRecipients[0]), principal, "21/invalid principal balance");
+        assertEq(mERC20.balanceOf(_trancheRecipients[1]), reward, "22/invalid reward balance");
     }
 
 }
