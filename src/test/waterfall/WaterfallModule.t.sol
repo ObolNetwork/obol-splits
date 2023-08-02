@@ -602,87 +602,77 @@ contract WaterfallModuleTest is WaterfallTestHelper, Test {
         assertEq(waterfallModuleETH.distributedFunds(), 2.5 ether);
         assertEq(waterfallModuleETH.fundsPendingWithdrawal(), 0 ether);
 
-        // // test erc20
-        // address(mERC20).safeTransfer(address(waterfallModuleERC20_OR), 0.5 ether);
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0.5 ether);
+        // TEST ERC20
 
-        // waterfallModuleERC20_OR.waterfallFunds();
+        address(mERC20).safeTransfer(address(waterfallModuleERC20_OR), 0.5 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0.5 ether);
 
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0 ether);
-        // assertEq(mERC20.balanceOf(address(0)), 0.5 ether);
-        // assertEq(mERC20.balanceOf(address(1)), 0 ether);
+        waterfallModuleERC20_OR.waterfallFunds();
 
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(0)), 0 ether);
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(1)), 0 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0 ether, "1/invalid waterfall balance");
+        assertEq(mERC20.balanceOf(trancheRecipients[0]), 0 ether, "2/invalid tranche 1 recipient balance");
+        assertEq(mERC20.balanceOf(trancheRecipients[1]), 0.5 ether, "3/invalid tranche 2 recipient balance - 1");
 
-        // assertEq(waterfallModuleERC20_OR.distributedFunds(), 0.5 ether);
-        // assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 0 ether);
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[0]), 0 ether, "4/invalid pull balance");
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[1]), 0 ether, "5/invalid pull balance");
 
-        // address(mERC20).safeTransfer(address(waterfallModuleERC20_OR), 1 ether);
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether);
+        assertEq(waterfallModuleERC20_OR.distributedFunds(), 0.5 ether, "6/invalid distributed funds");
+        assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 0 ether, "7/invalid funds pending withdrawal");
 
-        // waterfallModuleERC20_OR.waterfallFundsPull();
+        address(mERC20).safeTransfer(address(waterfallModuleERC20_OR), 1 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether, "8/invalid waterfall balance");
 
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether);
-        // assertEq(mERC20.balanceOf(address(0)), 0.5 ether);
-        // assertEq(mERC20.balanceOf(address(1)), 0 ether);
+        waterfallModuleERC20_OR.waterfallFundsPull();
 
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(0)), 0.5 ether);
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(1)), 0.5 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether, "9/invalid waterfall balance");
+        assertEq(mERC20.balanceOf(trancheRecipients[0]), 0 ether, "10/invalid recipeint balance");
+        assertEq(mERC20.balanceOf(trancheRecipients[1]), 0.5 ether, "11/invalid recipient balance");
 
-        // assertEq(waterfallModuleERC20_OR.distributedFunds(), 1.5 ether);
-        // assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 1 ether);
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[0]), 0, "12/invalid recipient pull balance");
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[1]), 1 ether, "13/invalid recipient pull balance");
 
-        // waterfallModuleERC20_OR.waterfallFundsPull();
+        assertEq(waterfallModuleERC20_OR.distributedFunds(), 1.5 ether, "14/invalid distributed funds balance");
+        assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 1 ether, "15/invalid funds pending balance");
 
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether);
-        // assertEq(mERC20.balanceOf(address(0)), 0.5 ether);
-        // assertEq(mERC20.balanceOf(address(1)), 0 ether);
+        waterfallModuleERC20_OR.waterfallFundsPull();
 
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(0)), 0.5 ether);
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(1)), 0.5 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether, "16/invalid waterfall balance");
+        assertEq(mERC20.balanceOf(trancheRecipients[0]), 0 ether, "17/invalid recipient balance");
+        assertEq(mERC20.balanceOf(trancheRecipients[1]), 0.5 ether, "18/invalid recipient balance");
 
-        // assertEq(waterfallModuleERC20_OR.distributedFunds(), 1.5 ether);
-        // assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 1 ether);
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[0]), 0 ether, "19/invalid pull balance");
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[1]), 1 ether, "20/invalid pull balance");
 
-        // address(mERC20).safeTransfer(address(waterfallModuleERC20_OR), 1 ether);
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 2 ether);
+        assertEq(waterfallModuleERC20_OR.distributedFunds(), 1.5 ether, "21/invalid distributed funds");
+        assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 1 ether, "22/invalid funds pending");
 
-        // waterfallModuleERC20_OR.waterfallFunds();
+        /// 3
+        address(mERC20).safeTransfer(address(waterfallModuleERC20_OR), 32 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 33 ether);
 
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether);
-        // assertEq(mERC20.balanceOf(address(0)), 0.5 ether);
-        // assertEq(mERC20.balanceOf(address(1)), 1 ether);
+        waterfallModuleERC20_OR.waterfallFunds();
 
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(0)), 0.5 ether);
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(1)), 0.5 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 1 ether);
+        assertEq(mERC20.balanceOf(trancheRecipients[0]), 32 ether);
+        assertEq(mERC20.balanceOf(trancheRecipients[1]), 0.5 ether);
 
-        // assertEq(waterfallModuleERC20_OR.distributedFunds(), 2.5 ether);
-        // assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 1 ether);
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[0]), 0 ether);
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[1]), 1 ether);
 
-        // waterfallModuleERC20_OR.withdraw(address(0));
+        assertEq(waterfallModuleERC20_OR.distributedFunds(), 33.5 ether);
+        assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 1 ether);
 
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0.5 ether);
-        // assertEq(mERC20.balanceOf(address(0)), 1 ether);
-        // assertEq(mERC20.balanceOf(address(1)), 1 ether);
+        waterfallModuleERC20_OR.withdraw(trancheRecipients[1]));
 
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(0)), 0 ether);
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(1)), 0.5 ether);
+        assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0 ether);
+        assertEq(mERC20.balanceOf(trancheRecipients[0]), 32 ether);
+        assertEq(mERC20.balanceOf(trancheRecipients[1]), 1.5 ether);
 
-        // assertEq(waterfallModuleERC20_OR.distributedFunds(), 2.5 ether);
-        // assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 0.5 ether);
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[0]), 0 ether);
+        assertEq(waterfallModuleERC20_OR.getPullBalance(trancheRecipients[1]), 0 ether);
 
-        // waterfallModuleERC20_OR.withdraw(address(1));
-
-        // assertEq(mERC20.balanceOf(address(waterfallModuleERC20_OR)), 0 ether);
-        // assertEq(mERC20.balanceOf(address(0)), 1 ether);
-        // assertEq(mERC20.balanceOf(address(1)), 1.5 ether);
-
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(0)), 0 ether);
-        // assertEq(waterfallModuleERC20_OR.getPullBalance(address(1)), 0 ether);
-
-        // assertEq(waterfallModuleERC20_OR.distributedFunds(), 2.5 ether);
-        // assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 0 ether);
+        assertEq(waterfallModuleERC20_OR.distributedFunds(), 33.5 ether);
+        assertEq(waterfallModuleERC20_OR.fundsPendingWithdrawal(), 0 ether);
     }
 
     function testFuzz_waterfallDepositsToRecipients(
@@ -833,6 +823,17 @@ contract WaterfallModuleTest is WaterfallTestHelper, Test {
                 );
             }
         }
+    }
+
+     function testCan_waterfallPullDepositsToRecipients(
+        uint8 _numTranches,
+        uint256 _recipientsSeed,
+        uint256 _thresholdsSeed,
+        uint8 _numDeposits,
+        uint48 _ethAmount,
+        uint96 _erc20Amount
+    ) public { 
+        
     }
 
 }
