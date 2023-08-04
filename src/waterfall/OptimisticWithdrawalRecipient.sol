@@ -7,9 +7,8 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 /// @title OptimisticWithdrawalRecipient
 /// @author Obol
-/// @notice A maximally-composable OWRecipient contract allowing multiple
-/// recipients to receive preferential payments before residual funds flow to a
-/// final address.
+/// @notice A maximally-composable contract that distributes payments
+/// based on threshold to it's recipients
 /// @dev Only one token can be waterfall'd for a given deployment. There is a
 /// recovery method for non-target tokens sent by accident.
 /// Target ERC20s with very large decimals may overflow & cause issues.
@@ -25,7 +24,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// errors
     /// -----------------------------------------------------------------------
 
-    /// Invalid token recovery; cannot recover the OWR token
+    /// Invalid token recovery; cannot recover the OWRecipient token
     error InvalidTokenRecovery_OWRToken();
 
     /// Invalid token recovery recipient
@@ -51,12 +50,12 @@ contract OptimisticWithdrawalRecipient is Clone {
         address[] recipients, uint256[] payouts, uint256 pullFlowFlag
     );
 
-    /// Emitted after non-waterfall'd tokens are recovered to a recipient
-    /// @param nonWaterfallToken Recovered token (cannot be waterfall token)
+    /// Emitted after non-OWRecipient tokens are recovered to a recipient
+    /// @param nonOWRecipientToken Recovered token (cannot be OptimisticWithdrawalRecipient token)
     /// @param recipient Address receiving recovered token
     /// @param amount Amount of recovered token
     event RecoverNonOWRecipientFunds(
-        address nonWaterfallToken, address recipient, uint256 amount
+        address nonOWRecipientToken, address recipient, uint256 amount
     );
 
     /// Emitted after funds withdrawn using pull flow
@@ -245,7 +244,7 @@ contract OptimisticWithdrawalRecipient is Clone {
             nonWaterfallToken.safeTransfer(recipient, amount);
         }
 
-        emit RecoverNonWaterfallFunds(nonWaterfallToken, recipient, amount);
+        emit RecoverNonOWRecipientFunds(nonWaterfallToken, recipient, amount);
     }
 
     /// Withdraw token balance for account `account`
