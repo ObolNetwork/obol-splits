@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.17;
 
-import {WaterfallModule} from "./WaterfallModule.sol";
+import {OptimisticWithdrawalRecipient} from "./OptimisticWithdrawalRecipient.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 
-/// @title WaterfallModuleFactory
+/// @title OptimisticWithdrawalRecipientFactory
 /// @author Obol
-/// @notice A factory contract for cheaply deploying WaterfallModules.
+/// @notice A factory contract for cheaply deploying OptimisticWithdrawalRecipients.
 /// @dev This contract uses token = address(0) to refer to ETH.
-contract WaterfallModuleFactory {
+contract OptimisticWithdrawalRecipientFactory {
     /// -----------------------------------------------------------------------
     /// errors
     /// -----------------------------------------------------------------------
@@ -33,14 +33,14 @@ contract WaterfallModuleFactory {
     /// events
     /// -----------------------------------------------------------------------
 
-    /// Emitted after a new waterfall module is deployed
-    /// @param waterfallModule Address of newly created WaterfallModule clone
+    /// Emitted after a new OptimisticWithdrawalRecipient module is deployed
+    /// @param waterfallModule Address of newly created OptimisticWithdrawalRecipient clone
     /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
     /// @param nonWaterfallRecipient Address to recover non-waterfall tokens to
     /// @param recipients Addresses to waterfall payments to
     /// @param threshold Absolute payment thresholds for waterfall recipients
     /// (last recipient has no threshold & receives all residual flows)
-    event CreateWaterfallModule(
+    event CreateOWRRecipientlModule(
         address indexed waterfallModule,
         address token,
         address nonWaterfallRecipient,

@@ -5,16 +5,16 @@ import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-/// @title WaterfallModule
+/// @title OptimisticWithdrawalRecipient
 /// @author Obol
-/// @notice A maximally-composable waterfall contract allowing multiple
+/// @notice A maximally-composable OWRecipient contract allowing multiple
 /// recipients to receive preferential payments before residual funds flow to a
 /// final address.
 /// @dev Only one token can be waterfall'd for a given deployment. There is a
 /// recovery method for non-target tokens sent by accident.
 /// Target ERC20s with very large decimals may overflow & cause issues.
 /// This contract uses token = address(0) to refer to ETH.
-contract WaterfallModule is Clone {
+contract OptimisticWithdrawalRecipient is Clone {
     /// -----------------------------------------------------------------------
     /// libraries
     /// -----------------------------------------------------------------------
@@ -25,8 +25,8 @@ contract WaterfallModule is Clone {
     /// errors
     /// -----------------------------------------------------------------------
 
-    /// Invalid token recovery; cannot recover the waterfall token
-    error InvalidTokenRecovery_WaterfallToken();
+    /// Invalid token recovery; cannot recover the OWR token
+    error InvalidTokenRecovery_OWRToken();
 
     /// Invalid token recovery recipient
     error InvalidTokenRecovery_InvalidRecipient();
@@ -55,7 +55,7 @@ contract WaterfallModule is Clone {
     /// @param nonWaterfallToken Recovered token (cannot be waterfall token)
     /// @param recipient Address receiving recovered token
     /// @param amount Amount of recovered token
-    event RecoverNonWaterfallFunds(
+    event RecoverNonOWRecipientFunds(
         address nonWaterfallToken, address recipient, uint256 amount
     );
 
@@ -141,7 +141,7 @@ contract WaterfallModule is Clone {
     /// storage - mutables
     /// -----------------------------------------------------------------------
 
-    /// Amount of distributed waterfall token
+    /// Amount of distributed OWRecipient token
     /// @dev ERC20s with very large decimals may overflow & cause issues
     uint128 public distributedFunds;
 
@@ -149,7 +149,7 @@ contract WaterfallModule is Clone {
     /// @dev ERC20s with very large decimals may overflow & cause issues
     uint128 public fundsPendingWithdrawal;
 
-    /// Amount of distributed waterfall token for first tranche
+    /// Amount of distributed OWRecipient token for first tranche
     /// @dev ERC20s with very large decimals may overflow & cause issues
     uint256 public claimedFirstTrancheFunds;
 
@@ -185,14 +185,14 @@ contract WaterfallModule is Clone {
     }
 
     /// Waterfalls target token inside the contract to next-in-line recipients
-    /// @dev backup recovery if any recipient tries to brick the waterfall for
+    /// @dev backup recovery if any recipient tries to brick the OWRecipient for
     /// remaining recipients
     function waterfallFundsPull() external payable {
         _waterfallFunds(PULL);
     }
 
     /// Recover non-waterfall'd tokens to a recipient
-    /// @param nonWaterfallToken Token to recover (cannot be waterfall token)
+    /// @param nonWaterfallToken Token to recover (cannot be OWRecipient token)
     /// @param recipient Address to receive recovered token
     function recoverNonWaterfallFunds(
         address nonWaterfallToken,
@@ -200,9 +200,9 @@ contract WaterfallModule is Clone {
     ) external payable {
         /// checks
 
-        // revert if caller tries to recover waterfall token
+        // revert if caller tries to recover OWRecipient token
         if (nonWaterfallToken == token()) {
-            revert InvalidTokenRecovery_WaterfallToken();
+            revert InvalidTokenRecovery_OWRToken();
         }
 
         // if nonWaterfallRecipient is set, recipient must match it
