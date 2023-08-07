@@ -96,10 +96,6 @@ contract OptimisticWithdrawalRecipientFactory {
     ) external returns (OptimisticWithdrawalRecipient owr) {
         /// checks
 
-        // ensure token != adress(0)
-        if (token == address(0)) {
-            revert Invalid_Token();
-        }
         // ensure doesn't have address(0)
         if (principalRecipient == address(0) || rewardRecipient == address(0)) {
             revert Invalid__Recipients();
