@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-contract WaterfallTestHelper {
+contract OWRTestHelper {
 
     address internal constant ETH_ADDRESS = address(0);
 
@@ -18,24 +18,24 @@ contract WaterfallTestHelper {
     function generateTranches(uint256 rSeed, uint256 tSeed)
         internal
         pure
-        returns (address[2] memory recipients, uint256 threshold)
+        returns (address principal, address reward, uint256 threshold)
     {
-        // MAX_TRANCHE_SIZE = 2
-        recipients = generateTrancheRecipients(2, rSeed);
+        (principal, reward) = generateTrancheRecipients(rSeed);
         threshold = generateTrancheThreshold(tSeed);
     }
 
-    function generateTrancheRecipients(uint256 numRecipients, uint256 _seed)
+    function generateTrancheRecipients(uint256 _seed)
         internal
         pure
-        returns (address[2] memory recipients)
+        returns (address principal, address reward)
     {
-        recipients = new address[](numRecipients);
         bytes32 seed = bytes32(_seed);
-        for (uint256 i = 0; i < numRecipients; i++) {
-            seed = keccak256(abi.encodePacked(seed));
-            recipients[i] = address(bytes20(seed));
-        }
+
+        seed = keccak256(abi.encodePacked(seed));
+        principal = address(bytes20(seed));
+
+        seed = keccak256(abi.encodePacked(seed));
+        reward = address(bytes20(seed));
     }
 
     function generateTrancheThreshold(uint256 _seed)

@@ -37,15 +37,15 @@ contract OptimisticWithdrawalRecipientFactory {
     /// -----------------------------------------------------------------------
 
     /// Emitted after a new OptimisticWithdrawalRecipient module is deployed
-    /// @param owrModule Address of newly created OptimisticWithdrawalRecipient clone
+    /// @param owr Address of newly created OptimisticWithdrawalRecipient clone
     /// @param token Address of ERC20 to distribute (0x0 used for ETH)
     /// @param nonOWRecipient Address to recover non-OWR tokens to
     /// @param principalRecipient Address to distribute principal payment to
     /// @param rewardRecipient Address to distribute reward payment to
     /// @param threshold Absolute payment threshold for OWR first recipient
-    /// (last recipient has no threshold & receives all residual flows)
-    event CreateOWRecipientModule(
-        address indexed owrModule,
+    /// (reward recipient has no threshold & receives all residual flows)
+    event CreateOWRecipient(
+        address indexed owr,
         address token,
         address nonOWRecipient,
         address principalRecipient,
@@ -87,7 +87,7 @@ contract OptimisticWithdrawalRecipientFactory {
     /// @param threshold Absolute payment threshold for principal recipient
     /// (reward recipient has no threshold & receives all residual flows)
     /// @return owr Address of new OptimisticWithdrawalRecipient clone
-    function createRecipient(
+    function createOWRecipient(
         address token,
         address nonOWRecipient,
         address principalRecipient,
@@ -127,7 +127,7 @@ contract OptimisticWithdrawalRecipientFactory {
         );
         owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
         
-        emit CreateOWRecipientModule(
+        emit CreateOWRecipient(
             address(owr), token, nonOWRecipient, principalRecipient, rewardRecipient, threshold
         );
     }

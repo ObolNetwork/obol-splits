@@ -10,19 +10,21 @@ import {WaterfallTestHelper} from "./WaterfallTestHelper.t.sol";
 contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
 
 
-    event CreateWaterfallModule(
-        address indexed waterfallModule,
+    event CreateOWRecipient(
+         address indexed owr,
         address token,
-        address nonWaterfallRecipient,
-        address[] trancheRecipient,
-        uint256 trancheThreshold
+        address nonOWRecipient,
+        address principalRecipient,
+        address rewardRecipient,
+        uint256 threshold
     );
 
     OptimisticWithdrawalRecipientFactory owrFactoryModule;
     MockERC20 mERC20;
 
     address public nonWaterfallRecipient;
-    address[2] public recipients;
+    address public principalRecipient;
+    address public rewardRecipient;
     uint256 public threshold;
 
     function setUp() public {
@@ -37,20 +39,20 @@ contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
     }
 
     function testCan_createWaterfallModules() public {
-        owrFactoryModule.createRecipient(
+        owrFactoryModule.createOWRecipient(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
-        owrFactoryModule.createRecipient(
+        owrFactoryModule.createOWRecipient(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
 
         nonWaterfallRecipient = address(0);
-        owrFactoryModule.createRecipient(
+        owrFactoryModule.createOWRecipient(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
-        owrFactoryModule.createRecipient(
+        owrFactoryModule.createOWRecipient(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
     }
@@ -59,7 +61,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
     function testCan_emitOnCreate() public {
         // don't check deploy address
         vm.expectEmit(false, true, true, true);
-        emit CreateWaterfallModule(
+        emit CreateOWRecipient(
             address(0xdead),
             ETH_ADDRESS,
             nonWaterfallRecipient,
@@ -72,7 +74,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
 
         // don't check deploy address
         vm.expectEmit(false, true, true, true);
-        emit CreateWaterfallModule(
+        emit CreateOWRecipient(
             address(0xdead),
             address(mERC20),
             nonWaterfallRecipient,
@@ -87,7 +89,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
 
         // don't check deploy address
         vm.expectEmit(false, true, true, true);
-        emit CreateWaterfallModule(
+        emit CreateOWRecipient(
             address(0xdead),
             ETH_ADDRESS,
             nonWaterfallRecipient,
@@ -100,7 +102,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
 
         // don't check deploy address
         vm.expectEmit(false, true, true, true);
-        emit CreateWaterfallModule(
+        emit CreateOWRecipient(
             address(0xdead),
             address(mERC20),
             nonWaterfallRecipient,
@@ -172,7 +174,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
         (recipients, threshold) = generateTranches(recipientsSeed, thresholdSeed);
         
         vm.expectEmit(false, true, true, true);
-        emit CreateWaterfallModule(
+        emit CreateOWRecipient(
             address(0xdead),
             ETH_ADDRESS,
             nonWaterfallRecipient,
@@ -184,7 +186,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
         );
 
         vm.expectEmit(false, true, true, true);
-        emit CreateWaterfallModule(
+        emit CreateOWRecipient(
             address(0xdead),
             address(mERC20),
             nonWaterfallRecipient,
