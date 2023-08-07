@@ -129,13 +129,6 @@ contract OptimisticWithdrawalRecipient is Clone {
         }
     }
 
-    // /// Expected amount of ETH to be staked
-    // /// @dev equivalent to uint256 internal immutable stakedAmount
-    /// @TODO get from the first tranche
-    // function principal() public pure returns(uint256) {
-    //     return _getArgUint256(STAKE_ETHER_OFFSET);
-    // }
-
     /// -----------------------------------------------------------------------
     /// storage - mutables
     /// -----------------------------------------------------------------------
@@ -312,7 +305,6 @@ contract OptimisticWithdrawalRecipient is Clone {
         // load storage into memory
         // fetch the token we want to distribute
         address _token = token();
-        // uint256 _principalIndex;
         // the amount of funds distributed so far
         uint256 _startingDistributedFunds = uint256(distributedFunds);
         uint256 _endingDistributedFunds;
@@ -346,7 +338,6 @@ contract OptimisticWithdrawalRecipient is Clone {
         uint256[] memory _payouts = new uint256[](_payoutsLength);
 
         unchecked {
-            // uint256 _rewardIndex = 1;
             // _claimedFirstTrancheFunds should always be <= threshold
             uint256 firstTrancheRemaining = threshold - _claimedFirstTrancheFunds;
             

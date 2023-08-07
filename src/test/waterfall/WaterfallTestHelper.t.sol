@@ -18,7 +18,7 @@ contract WaterfallTestHelper {
     function generateTranches(uint256 rSeed, uint256 tSeed)
         internal
         pure
-        returns (address[] memory recipients, uint256 threshold)
+        returns (address[2] memory recipients, uint256 threshold)
     {
         // MAX_TRANCHE_SIZE = 2
         recipients = generateTrancheRecipients(2, rSeed);
@@ -28,7 +28,7 @@ contract WaterfallTestHelper {
     function generateTrancheRecipients(uint256 numRecipients, uint256 _seed)
         internal
         pure
-        returns (address[] memory recipients)
+        returns (address[2] memory recipients)
     {
         recipients = new address[](numRecipients);
         bytes32 seed = bytes32(_seed);

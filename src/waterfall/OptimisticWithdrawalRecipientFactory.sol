@@ -13,6 +13,9 @@ contract OptimisticWithdrawalRecipientFactory {
     /// errors
     /// -----------------------------------------------------------------------
 
+    /// Invalid token
+    error Invalid_Token();
+
     /// Invalid number of recipients, must be 2
     error Invalid__Recipients();
 
@@ -34,17 +37,19 @@ contract OptimisticWithdrawalRecipientFactory {
     /// -----------------------------------------------------------------------
 
     /// Emitted after a new OptimisticWithdrawalRecipient module is deployed
-    /// @param waterfallModule Address of newly created OptimisticWithdrawalRecipient clone
+    /// @param owrModule Address of newly created OptimisticWithdrawalRecipient clone
     /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
-    /// @param nonWaterfallRecipient Address to recover non-waterfall tokens to
-    /// @param recipients Addresses to waterfall payments to
-    /// @param threshold Absolute payment thresholds for waterfall recipients
+    /// @param nonOWRecipient Address to recover non-OWR tokens to
+    /// @param principalRecipient Address to waterfall principal payment to
+    /// @param rewardRecipient Address to waterfall reward payment to
+    /// @param threshold Absolute payment threshold for OWR first recipient
     /// (last recipient has no threshold & receives all residual flows)
     event CreateOWRecipientModule(
-        address indexed waterfallModule,
+        address indexed owrModule,
         address token,
-        address nonWaterfallRecipient,
-        address[] recipients,
+        address nonOWRecipient,
+        address principalRecipient,
+        address rewardRecipient,
         uint256 threshold
     );
 
@@ -55,7 +60,7 @@ contract OptimisticWithdrawalRecipientFactory {
     uint256 internal constant ADDRESS_BITS = 160;
     uint256 internal constant RECIPIENT_SIZE = 2;
 
-    /// WaterfallModule implementation address
+    /// OptimisticWithdrawalRecipient implementation address
     OptimisticWithdrawalRecipient public immutable owrImpl;
 
     /// -----------------------------------------------------------------------
@@ -76,24 +81,27 @@ contract OptimisticWithdrawalRecipientFactory {
 
     /// Create a new OptimisticWithdrawalRecipient clone
     /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
-    /// @param nonWaterfallRecipient Address to recover non-waterfall tokens to
-    /// @param recipients Addresses to waterfall payments to
-    /// @param threshold Absolute payment thresholds for waterfall recipient
-    /// (last recipient has no threshold & receives all residual flows)
-    /// @return wm Address of new OptimisticWithdrawalRecipient clone
-    function createWaterfallModule(
+    /// @param nonOWRecipient Address to recover non-OWR tokens to
+    /// @param principalRecipient Address to waterfall principal payments to
+    /// @param rewardRecipient Address to waterfall reward payments to
+    /// @param threshold Absolute payment threshold for principal recipient
+    /// (reward recipient has no threshold & receives all residual flows)
+    /// @return owr Address of new OptimisticWithdrawalRecipient clone
+    function createRecipient(
         address token,
-        address nonWaterfallRecipient,
-        address[] calldata recipients,
+        address nonOWRecipient,
+        address principalRecipient,
+        address rewardRecipient,
         uint256 threshold
-    ) external returns (OptimisticWithdrawalRecipient wm) {
+    ) external returns (OptimisticWithdrawalRecipient owr) {
         /// checks
 
-        // cache lengths for re-use
-        uint256 recipientsLength = recipients.length;
-
-        // ensure recipients does not exceed 2 entries
-        if (recipientsLength != RECIPIENT_SIZE) {
+        // ensure token != adress(0)
+        if (token == address(0)) {
+            revert Invalid_Token();
+        }
+        // ensure doesn't have address(0)
+        if (principalRecipient == address(0) || rewardRecipient == address(0)) {
             revert Invalid__Recipients();
         }
         // ensure threshold isn't zero
@@ -108,19 +116,19 @@ contract OptimisticWithdrawalRecipientFactory {
         /// effects
 
         // copy recipients & threshold into storage
-        uint256[] memory tranches = new uint256[](recipientsLength);
+        uint256[] memory tranches = new uint256[](RECIPIENT_SIZE);
         // tranches size == recipients array size
-        tranches[0] = (threshold << ADDRESS_BITS) | uint256(uint160(recipients[0]));
-        tranches[1] = uint256(uint160(recipients[1]));
+        tranches[0] = (threshold << ADDRESS_BITS) | uint256(uint160(principalRecipient));
+        tranches[1] = uint256(uint160(rewardRecipient));
 
-        // would exceed contract size limits
+        // would not exceed contract size limits
         bytes memory data = abi.encodePacked(
-            token, nonWaterfallRecipient, tranches
+            token, nonOWRecipient, tranches
         );
-        wm = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
+        owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
         
         emit CreateOWRecipientModule(
-            address(wm), token, nonWaterfallRecipient, recipients, threshold
+            address(owr), token, nonOWRecipient, principalRecipient, rewardRecipient, threshold
         );
     }
 }
