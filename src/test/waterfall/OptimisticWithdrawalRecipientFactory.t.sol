@@ -2,12 +2,12 @@
 pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
-import { WaterfallModule } from "src/waterfall/WaterfallModule.sol";
-import { WaterfallModuleFactory } from "src/waterfall/WaterfallModuleFactory.sol";
+import { OptimisticWithdrawalRecipient } from "src/waterfall/OptimisticWithdrawalRecipient.sol";
+import { OptimisticWithdrawalRecipientFactory } from "src/waterfall/OptimisticWithdrawalRecipientFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {WaterfallTestHelper} from "./WaterfallTestHelper.t.sol";
 
-contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
+contract OptimisticWithdrawalRecipientFactoryTest is WaterfallTestHelper, Test {
 
 
     event CreateWaterfallModule(
@@ -18,18 +18,18 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
         uint256 trancheThreshold
     );
 
-    WaterfallModuleFactory waterfallFactoryModule;
+    OptimisticWithdrawalRecipientFactory owrFactoryModule;
     MockERC20 mERC20;
 
     address public nonWaterfallRecipient;
-    address[] public recipients;
+    address[2] public recipients;
     uint256 public threshold;
 
     function setUp() public {
         mERC20 = new MockERC20("Test Token", "TOK", 18);
         mERC20.mint(type(uint256).max);
 
-        waterfallFactoryModule = new WaterfallModuleFactory();
+        owrFactoryModule = new OptimisticWithdrawalRecipientFactory();
 
         nonWaterfallRecipient = makeAddr("nonWaterfallRecipient");
         recipients = generateTrancheRecipients(2, 10);
@@ -37,20 +37,20 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
     }
 
     function testCan_createWaterfallModules() public {
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createRecipient(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createRecipient(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
 
         nonWaterfallRecipient = address(0);
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createRecipient(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createRecipient(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
     }
@@ -66,7 +66,7 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             recipients,
             threshold
             );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
@@ -79,7 +79,7 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             recipients,
             threshold
             );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
 
@@ -94,7 +94,7 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             recipients,
             threshold
             );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
@@ -107,7 +107,7 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             recipients,
             threshold
             );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
     }
@@ -117,17 +117,17 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
         recipients = generateTrancheRecipients(1, 1);
 
         vm.expectRevert(
-            WaterfallModuleFactory.InvalidWaterfall__Recipients.selector
+            OptimisticWithdrawalRecipientFactory.InvalidWaterfall__Recipients.selector
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
         recipients = generateTrancheRecipients(3, 10);
         vm.expectRevert(
-            WaterfallModuleFactory.InvalidWaterfall__Recipients.selector
+            OptimisticWithdrawalRecipientFactory.InvalidWaterfall__Recipients.selector
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
     }
@@ -137,22 +137,22 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
         threshold = 0;
 
         vm.expectRevert(
-            WaterfallModuleFactory
+            OptimisticWithdrawalRecipientFactory
                 .InvalidWaterfall__ZeroThreshold
                 .selector
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
         vm.expectRevert(
-            abi.encodeWithSelector(WaterfallModuleFactory
+            abi.encodeWithSelector(OptimisticWithdrawalRecipientFactory
                 .InvalidWaterfall__ThresholdTooLarge
                 .selector,
                 type(uint128).max
             )
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, type(uint128).max
         );
     }
@@ -179,7 +179,7 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             recipients,
             threshold
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
@@ -191,7 +191,7 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
             recipients,
             threshold
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
     }
@@ -205,17 +205,17 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
         recipients = generateTrancheRecipients(_numRecipeints, _receipientSeed);
 
         vm.expectRevert(
-            WaterfallModuleFactory.InvalidWaterfall__Recipients.selector
+            OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
         vm.expectRevert(
-            WaterfallModuleFactory.InvalidWaterfall__Recipients.selector
+            OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
 
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
     }
@@ -226,18 +226,20 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
         threshold = 0;
         recipients = generateTrancheRecipients(2, _receipientSeed);
 
+        // eth
         vm.expectRevert(
-            WaterfallModuleFactory.InvalidWaterfall__ZeroThreshold.selector
+            OptimisticWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector
         );
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
+        // erc20
         vm.expectRevert(
-            WaterfallModuleFactory.InvalidWaterfall__ZeroThreshold.selector
+            OptimisticWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector
         );
 
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
     }
@@ -252,27 +254,27 @@ contract WaterfallModuleFactoryTest is WaterfallTestHelper, Test {
         recipients = generateTrancheRecipients(2, _receipientSeed);
 
         vm.expectRevert(
-            abi.encodeWithSelector(WaterfallModuleFactory
+            abi.encodeWithSelector(OptimisticWithdrawalRecipientFactory
                 .InvalidWaterfall__ThresholdTooLarge
                 .selector,
                 _threshold
             )
         );
         
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             ETH_ADDRESS, nonWaterfallRecipient, recipients, threshold
         );
 
 
         vm.expectRevert(
-            abi.encodeWithSelector(WaterfallModuleFactory
+            abi.encodeWithSelector(OptimisticWithdrawalRecipientFactory
                 .InvalidWaterfall__ThresholdTooLarge
                 .selector,
                 _threshold
             )
         );
         
-        waterfallFactoryModule.createWaterfallModule(
+        owrFactoryModule.createWaterfallModule(
             address(mERC20), nonWaterfallRecipient, recipients, threshold
         );
 
