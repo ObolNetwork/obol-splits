@@ -9,7 +9,7 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
 /// based on threshold to it's recipients
-/// @dev Only one token can be waterfall'd for a given deployment. There is a
+/// @dev Only one token can be distributed for a given deployment. There is a
 /// recovery method for non-target tokens sent by accident.
 /// Target ERC20s with very large decimals may overflow & cause issues.
 /// This contract uses token = address(0) to refer to ETH.
@@ -42,11 +42,11 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// @dev embedded in & emitted from clone bytecode
     event ReceiveETH(uint256 amount);
 
-    /// Emitted after funds are waterfall'd to recipients
+    /// Emitted after funds are distributed to recipients
     /// @param recipients Addresses receiving payouts
     /// @param payouts Amount of payout
     /// @param pullFlowFlag Flag for pushing funds to recipients or storing for pulling
-    event WaterfallFunds(
+    event DistributeFunds(
         address[] recipients, uint256[] payouts, uint256 pullFlowFlag
     );
 
@@ -101,7 +101,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     // 40 = nonOWRecipient_offset (20) + nonOWRecipient_size (address, 20 bytes)
     uint256 internal constant TRANCHES_OFFSET = 40;
 
-    /// Address of ERC20 to waterfall (0x0 used for ETH)
+    /// Address of ERC20 to distribute (0x0 used for ETH)
     /// @dev equivalent to address public immutable token;
     function token() public pure returns (address) {
         return _getArgAddress(TOKEN_OFFSET);
@@ -113,7 +113,7 @@ contract OptimisticWithdrawalRecipient is Clone {
         return _getArgAddress(NON_OWRECIPIENT_OFFSET);
     }
 
-    /// Get waterfall tranche `i`
+    /// Get OWR tranche `i`
     /// @dev emulates to uint256[] internal immutable tranche;
     function _getTranche(uint256 i) internal pure returns (uint256) {
         unchecked {
@@ -165,37 +165,37 @@ contract OptimisticWithdrawalRecipient is Clone {
 
     /// Distributes target token inside the contract to recipients
     /// @dev pushes funds to recipients
-    function waterfallFunds() external payable {
-        _waterfallFunds(PUSH);
+    function distributeFunds() external payable {
+        _distributeFunds(PUSH);
     }
 
     /// Distributes target token inside the contract to recipients
     /// @dev backup recovery if any recipient tries to brick the OWRecipient for
     /// remaining recipients
-    function waterfallFundsPull() external payable {
-        _waterfallFunds(PULL);
+    function distributeFundsPull() external payable {
+        _distributeFunds(PULL);
     }
 
     /// Recover non-OWR tokens to a recipient
-    /// @param nonWaterfallToken Token to recover (cannot be OWR token)
+    /// @param nonOWRToken Token to recover (cannot be OWR token)
     /// @param recipient Address to receive recovered token
     function recoverNonOWRecipientFunds(
-        address nonWaterfallToken,
+        address nonOWRToken,
         address recipient
     ) external payable {
         /// checks
 
         // revert if caller tries to recover OWRecipient token
-        if (nonWaterfallToken == token()) {
+        if (nonOWRToken == token()) {
             revert InvalidTokenRecovery_OWRToken();
         }
 
         // if nonOWRecipient is set, recipient must match it
-        // else, recipient must be one of the waterfall's recipients
+        // else, recipient must be one of the OWR recipients
 
-        address _nonWaterfallRecipient = nonOWRecipient();
-        if (_nonWaterfallRecipient == address(0)) {
-            // ensure txn recipient is a valid waterfall recipient
+        address _nonOWRecipient= nonOWRecipient();
+        if (_nonOWRecipient == address(0)) {
+            // ensure txn recipient is a valid OWR recipient
             (address[] memory recipients,) = getTranches();
             bool validRecipient = false;
             uint256 _numTranches = TRANCHE_SIZE;
@@ -212,7 +212,7 @@ contract OptimisticWithdrawalRecipient is Clone {
             if (!validRecipient) {
                 revert InvalidTokenRecovery_InvalidRecipient();
             }
-        } else if (recipient != _nonWaterfallRecipient) {
+        } else if (recipient != _nonOWRecipient) {
             revert InvalidTokenRecovery_InvalidRecipient();
         }
 
@@ -222,15 +222,15 @@ contract OptimisticWithdrawalRecipient is Clone {
 
         // recover non-target token
         uint256 amount;
-        if (nonWaterfallToken == ETH_ADDRESS) {
+        if (nonOWRToken == ETH_ADDRESS) {
             amount = address(this).balance;
             recipient.safeTransferETH(amount);
         } else {
-            amount = ERC20(nonWaterfallToken).balanceOf(address(this));
-            nonWaterfallToken.safeTransfer(recipient, amount);
+            amount = ERC20(nonOWRToken).balanceOf(address(this));
+            nonOWRToken.safeTransfer(recipient, amount);
         }
 
-        emit RecoverNonOWRecipientFunds(nonWaterfallToken, recipient, amount);
+        emit RecoverNonOWRecipientFunds(nonOWRToken, recipient, amount);
     }
 
     /// Withdraw token balance for account `account`
@@ -257,7 +257,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// -----------------------------------------------------------------------
 
     /// Return unpacked tranches
-    /// @return recipients Addresses to waterfall payments to
+    /// @return recipients Addresses to distribute payments to
     /// @return threshold Absolute payment threshold for principal
     function getTranches()
         public
@@ -276,7 +276,7 @@ contract OptimisticWithdrawalRecipient is Clone {
 
     /// Returns the balance for account `account`
     /// @param account Account to return balance for
-    /// @return Account's balance waterfall token
+    /// @return Account's balance OWR token
     function getPullBalance(address account) external view returns (uint256) {
         return pullBalances[account];
     }
@@ -285,12 +285,9 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// functions - private & internal
     /// -----------------------------------------------------------------------
 
-
-    /// 
-
-    /// Waterfalls target token inside the contract to next-in-line recipients
+    /// Distributes target token inside the contract to next-in-line recipients
     /// @dev can PUSH or PULL funds to recipients
-    function _waterfallFunds(uint256 pullFlowFlag) internal {
+    function _distributeFunds(uint256 pullFlowFlag) internal {
         /// checks
 
         /// effects
@@ -386,6 +383,6 @@ contract OptimisticWithdrawalRecipient is Clone {
             fundsPendingWithdrawal = uint128(_memoryFundsPendingWithdrawal);
         }
 
-        emit WaterfallFunds(recipients, _payouts, pullFlowFlag);
+        emit DistributeFunds(recipients, _payouts, pullFlowFlag);
     }
 }

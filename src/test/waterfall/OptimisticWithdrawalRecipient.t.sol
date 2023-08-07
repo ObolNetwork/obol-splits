@@ -2,13 +2,13 @@
 pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
-import { WaterfallModule } from "src/waterfall/WaterfallModule.sol";
+import { OptimisticWithdrawalRecipient } from "src/waterfall/OptimisticWithdrawalRecipient.sol";
 import { WaterfallModuleFactory } from "src/waterfall/WaterfallModuleFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {WaterfallTestHelper} from "./WaterfallTestHelper.t.sol";
 
-contract WaterfallModuleTest is WaterfallTestHelper, Test {
+contract OptimisticWithdrawalRecipientTest is WaterfallTestHelper, Test {
     using SafeTransferLib for address;
 
     event CreateWaterfallModule(
