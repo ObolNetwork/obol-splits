@@ -43,11 +43,10 @@ contract OptimisticWithdrawalRecipient is Clone {
     event ReceiveETH(uint256 amount);
 
     /// Emitted after funds are distributed to recipients
-    /// @param recipients Addresses receiving payouts
     /// @param payouts Amount of payout
     /// @param pullFlowFlag Flag for pushing funds to recipients or storing for pulling
     event DistributeFunds(
-        address[] recipients, uint256[] payouts, uint256 pullFlowFlag
+        uint256[] payouts, uint256 pullFlowFlag
     );
 
     /// Emitted after non-OWRecipient tokens are recovered to a recipient
@@ -383,6 +382,6 @@ contract OptimisticWithdrawalRecipient is Clone {
             fundsPendingWithdrawal = uint128(_memoryFundsPendingWithdrawal);
         }
 
-        emit DistributeFunds(recipients, _payouts, pullFlowFlag);
+        emit DistributeFunds(_payouts, pullFlowFlag);
     }
 }
