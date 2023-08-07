@@ -38,10 +38,10 @@ contract OptimisticWithdrawalRecipientFactory {
 
     /// Emitted after a new OptimisticWithdrawalRecipient module is deployed
     /// @param owrModule Address of newly created OptimisticWithdrawalRecipient clone
-    /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
+    /// @param token Address of ERC20 to distribute (0x0 used for ETH)
     /// @param nonOWRecipient Address to recover non-OWR tokens to
-    /// @param principalRecipient Address to waterfall principal payment to
-    /// @param rewardRecipient Address to waterfall reward payment to
+    /// @param principalRecipient Address to distribute principal payment to
+    /// @param rewardRecipient Address to distribute reward payment to
     /// @param threshold Absolute payment threshold for OWR first recipient
     /// (last recipient has no threshold & receives all residual flows)
     event CreateOWRecipientModule(
@@ -80,10 +80,10 @@ contract OptimisticWithdrawalRecipientFactory {
     /// -----------------------------------------------------------------------
 
     /// Create a new OptimisticWithdrawalRecipient clone
-    /// @param token Address of ERC20 to waterfall (0x0 used for ETH)
+    /// @param token Address of ERC20 to distribute (0x0 used for ETH)
     /// @param nonOWRecipient Address to recover non-OWR tokens to
-    /// @param principalRecipient Address to waterfall principal payments to
-    /// @param rewardRecipient Address to waterfall reward payments to
+    /// @param principalRecipient Address to distribute principal payments to
+    /// @param rewardRecipient Address to distribute reward payments to
     /// @param threshold Absolute payment threshold for principal recipient
     /// (reward recipient has no threshold & receives all residual flows)
     /// @return owr Address of new OptimisticWithdrawalRecipient clone
