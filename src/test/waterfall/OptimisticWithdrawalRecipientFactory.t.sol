@@ -38,7 +38,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         threshold = ETH_STAKE;
     }
 
-    function testCan_createWaterfallModules() public {
+    function testCan_createOWRecipient() public {
         owrFactoryModule.createOWRecipient(
             ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
         );
@@ -191,7 +191,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     /// Fuzzing Tests
     /// ----------------------------------------------------------------------
 
-    function testFuzzCan_createWaterfallModules(
+    function testFuzzCan_createOWRecipient(
         address _nonOWRRecipient,
         uint256 recipientsSeed,
         uint256 thresholdSeed
