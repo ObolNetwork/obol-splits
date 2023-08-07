@@ -80,8 +80,10 @@ contract OptimisticWithdrawalRecipient is Clone {
     uint256 internal constant THRESHOLD_BITS = 96;
     uint256 internal constant ADDRESS_BITS = 160;
     uint256 internal constant ADDRESS_BITMASK = uint256(~0 >> THRESHOLD_BITS);
-    uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
     uint256 internal constant TRANCHE_SIZE = 2;
+
+    /// @dev threshold for pushing balance update as reward or principal
+    uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
     uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
     uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
 
@@ -89,16 +91,14 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// storage - cwia offsets
     /// -----------------------------------------------------------------------
 
-    // token (address, 20 bytes), nonWaterfallRecipient (address, 20 bytes),
-    // numTranches (uint64, 8 bytes), tranches (uint256[], numTranches * 32 bytes)
+    // token (address, 20 bytes), nonOWRecipient (address, 20 bytes),
+    // tranches (uint256[], numTranches * 32 bytes)
 
     // 0; first item
     uint256 internal constant TOKEN_OFFSET = 0;
     // 20 = token_offset (0) + token_size (address, 20 bytes)
-    uint256 internal constant NON_WATERFALL_RECIPIENT_OFFSET = 20;
-    // 40 = nonWaterfallRecipient_offset (20) + nonWaterfallRecipient_size (address, 20 bytes)
-    // uint256 internal constant NUM_TRANCHES_OFFSET = 40;
-    // 48 = numTranches_offset (40) + numTranches_size (uint64, 8 bytes)
+    uint256 internal constant NON_OWRECIPIENT_OFFSET = 20;
+    // 40 = nonOWRecipient_offset (20) + nonOWRecipient_size (address, 20 bytes)
     uint256 internal constant TRANCHES_OFFSET = 40;
 
     /// Address of ERC20 to waterfall (0x0 used for ETH)
@@ -107,17 +107,10 @@ contract OptimisticWithdrawalRecipient is Clone {
         return _getArgAddress(TOKEN_OFFSET);
     }
 
-    /// Address to recover non-waterfall tokens to
-    /// @dev equivalent to address public immutable nonWaterfallRecipient;
-    function nonWaterfallRecipient() public pure returns (address) {
-        return _getArgAddress(NON_WATERFALL_RECIPIENT_OFFSET);
-    }
-
-    /// Number of waterfall tranches
-    /// @dev equivalent to uint64 internal immutable numTranches;
-    /// clones-with-immutable-args limits uint256[] array length to uint64
-    function numTranches() internal pure returns (uint256) {
-        return uint256(TRANCHE_SIZE);
+    /// Address to recover non-OWR tokens to
+    /// @dev equivalent to address public immutable nonOWRecipient;
+    function nonOWRecipient() public pure returns (address) {
+        return _getArgAddress(NON_OWRECIPIENT_OFFSET);
     }
 
     /// Get waterfall tranche `i`
@@ -141,7 +134,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// @dev ERC20s with very large decimals may overflow & cause issues
     uint128 public fundsPendingWithdrawal;
 
-    /// Amount of distributed OWRecipient token for first tranche
+    /// Amount of distributed OWRecipient token for first tranche (principal)
     /// @dev ERC20s with very large decimals may overflow & cause issues
     uint256 public claimedFirstTrancheFunds;
 
@@ -170,23 +163,23 @@ contract OptimisticWithdrawalRecipient is Clone {
     /*     emit ReceiveETH(msg.value); */
     /* } */
 
-    /// Waterfalls target token inside the contract to next-in-line recipients
+    /// Distributes target token inside the contract to recipients
     /// @dev pushes funds to recipients
     function waterfallFunds() external payable {
         _waterfallFunds(PUSH);
     }
 
-    /// Waterfalls target token inside the contract to next-in-line recipients
+    /// Distributes target token inside the contract to recipients
     /// @dev backup recovery if any recipient tries to brick the OWRecipient for
     /// remaining recipients
     function waterfallFundsPull() external payable {
         _waterfallFunds(PULL);
     }
 
-    /// Recover non-waterfall'd tokens to a recipient
-    /// @param nonWaterfallToken Token to recover (cannot be OWRecipient token)
+    /// Recover non-OWR tokens to a recipient
+    /// @param nonWaterfallToken Token to recover (cannot be OWR token)
     /// @param recipient Address to receive recovered token
-    function recoverNonWaterfallFunds(
+    function recoverNonOWRecipientFunds(
         address nonWaterfallToken,
         address recipient
     ) external payable {
@@ -197,15 +190,15 @@ contract OptimisticWithdrawalRecipient is Clone {
             revert InvalidTokenRecovery_OWRToken();
         }
 
-        // if nonWaterfallRecipient is set, recipient must match it
+        // if nonOWRecipient is set, recipient must match it
         // else, recipient must be one of the waterfall's recipients
 
-        address _nonWaterfallRecipient = nonWaterfallRecipient();
+        address _nonWaterfallRecipient = nonOWRecipient();
         if (_nonWaterfallRecipient == address(0)) {
             // ensure txn recipient is a valid waterfall recipient
             (address[] memory recipients,) = getTranches();
             bool validRecipient = false;
-            uint256 _numTranches = numTranches();
+            uint256 _numTranches = TRANCHE_SIZE;
             for (uint256 i; i < _numTranches;) {
                 if (recipients[i] == recipient) {
                     validRecipient = true;
@@ -334,7 +327,7 @@ contract OptimisticWithdrawalRecipient is Clone {
         // 1 = second tranche
 
         // construct the payout arrays
-        uint256 _payoutsLength = numTranches();
+        uint256 _payoutsLength = TRANCHE_SIZE;
         uint256[] memory _payouts = new uint256[](_payoutsLength);
 
         unchecked {
