@@ -24,7 +24,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     OptimisticWithdrawalRecipient public owrModule;
     OptimisticWithdrawalRecipientFactory public owrFactory;
-    address public nonOWRecipient;
+    address internal nonOWRecipient;
 
     OptimisticWithdrawalRecipient owrETH;
     OptimisticWithdrawalRecipient owrERC20;
