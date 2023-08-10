@@ -22,7 +22,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     OptimisticWithdrawalRecipientFactory owrFactoryModule;
     MockERC20 mERC20;
 
-    address public nonOWRRecipient;
+    address public recoveryAddress;
     address public principalRecipient;
     address public rewardRecipient;
     uint256 public threshold;
@@ -33,27 +33,27 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
 
         owrFactoryModule = new OptimisticWithdrawalRecipientFactory();
 
-        nonOWRRecipient = makeAddr("nonOWRRecipient");
+        recoveryAddress = makeAddr("recoveryAddress");
         (principalRecipient, rewardRecipient) = generateTrancheRecipients(10);
         threshold = ETH_STAKE;
     }
 
     function testCan_createOWRecipient() public {
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
-        nonOWRRecipient = address(0);
+        recoveryAddress = address(0);
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
     }
 
@@ -64,12 +64,12 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         emit CreateOWRecipient(
             address(0xdead),
             ETH_ADDRESS,
-            nonOWRRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             threshold
             );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
         // don't check deploy address
@@ -77,27 +77,27 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         emit CreateOWRecipient(
             address(0xdead),
             address(mERC20),
-            nonOWRRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             threshold
             );
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
-        nonOWRRecipient = address(0);
+        recoveryAddress = address(0);
 
         // don't check deploy address
         vm.expectEmit(false, true, true, true);
         emit CreateOWRecipient(
             address(0xdead),
             ETH_ADDRESS,
-            nonOWRRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             threshold
             );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
         // don't check deploy address
@@ -105,12 +105,12 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         emit CreateOWRecipient(
             address(0xdead),
             address(mERC20),
-            nonOWRRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             threshold
             );
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
     }
 
@@ -121,21 +121,21 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
             OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, address(0), rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, address(0), rewardRecipient, threshold
         );
 
         vm.expectRevert(
             OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, address(0), address(0), threshold
+            ETH_ADDRESS, recoveryAddress, address(0), address(0), threshold
         );
 
         vm.expectRevert(
             OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, address(0), threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, address(0), threshold
         );
 
         // erc20
@@ -143,21 +143,21 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
             OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, address(0), rewardRecipient, threshold
+            address(mERC20), recoveryAddress, address(0), rewardRecipient, threshold
         );
 
         vm.expectRevert(
             OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, address(0), address(0), threshold
+            address(mERC20), recoveryAddress, address(0), address(0), threshold
         );
 
         vm.expectRevert(
             OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector
         );
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, address(0), threshold
+            address(mERC20), recoveryAddress, principalRecipient, address(0), threshold
         );
     }
 
@@ -171,7 +171,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
                 .selector
         );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
         vm.expectRevert(
@@ -182,7 +182,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
             )
         );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, type(uint128).max
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, type(uint128).max
         );
     }
 
@@ -192,11 +192,11 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     /// ----------------------------------------------------------------------
 
     function testFuzzCan_createOWRecipient(
-        address _nonOWRRecipient,
+        address _recoveryAddress,
         uint256 recipientsSeed,
         uint256 thresholdSeed
     ) public {
-        nonOWRRecipient = _nonOWRRecipient;
+        recoveryAddress = _recoveryAddress;
 
         (principalRecipient, rewardRecipient, threshold) = generateTranches(recipientsSeed, thresholdSeed);
         
@@ -204,24 +204,24 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         emit CreateOWRecipient(
             address(0xdead),
             ETH_ADDRESS,
-            nonOWRRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             threshold
         );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
         vm.expectEmit(false, true, true, true);
         emit CreateOWRecipient(
             address(0xdead),
             address(mERC20),
-            nonOWRRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             threshold
         );
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
     }
 
@@ -236,7 +236,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
             OptimisticWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector
         );
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
         // erc20
@@ -245,7 +245,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         );
 
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
     }
 
@@ -267,7 +267,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         );
         
         owrFactoryModule.createOWRecipient(
-            ETH_ADDRESS, nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
 
@@ -280,7 +280,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
         );
         
         owrFactoryModule.createOWRecipient(
-            address(mERC20), nonOWRRecipient, principalRecipient, rewardRecipient, threshold
+            address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
 
     }
