@@ -50,11 +50,11 @@ contract OptimisticWithdrawalRecipient is Clone {
     );
 
     /// Emitted after non-OWRecipient tokens are recovered to a recipient
-    /// @param nonOWRecipientToken Recovered token (cannot be OptimisticWithdrawalRecipient token)
+    /// @param recoveryAddressToken Recovered token (cannot be OptimisticWithdrawalRecipient token)
     /// @param recipient Address receiving recovered token
     /// @param amount Amount of recovered token
     event RecoverNonOWRecipientFunds(
-        address nonOWRecipientToken, address recipient, uint256 amount
+        address recoveryAddressToken, address recipient, uint256 amount
     );
 
     /// Emitted after funds withdrawn using pull flow
@@ -90,14 +90,14 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// storage - cwia offsets
     /// -----------------------------------------------------------------------
 
-    // token (address, 20 bytes), nonOWRecipient (address, 20 bytes),
+    // token (address, 20 bytes), recoveryAddress (address, 20 bytes),
     // tranches (uint256[], numTranches * 32 bytes)
 
     // 0; first item
     uint256 internal constant TOKEN_OFFSET = 0;
     // 20 = token_offset (0) + token_size (address, 20 bytes)
     uint256 internal constant NON_OWRECIPIENT_OFFSET = 20;
-    // 40 = nonOWRecipient_offset (20) + nonOWRecipient_size (address, 20 bytes)
+    // 40 = recoveryAddress_offset (20) + recoveryAddress_size (address, 20 bytes)
     uint256 internal constant TRANCHES_OFFSET = 40;
 
     /// Address of ERC20 to distribute (0x0 used for ETH)
@@ -107,8 +107,8 @@ contract OptimisticWithdrawalRecipient is Clone {
     }
 
     /// Address to recover non-OWR tokens to
-    /// @dev equivalent to address public immutable nonOWRecipient;
-    function nonOWRecipient() public pure returns (address) {
+    /// @dev equivalent to address public immutable recoveryAddress;
+    function recoveryAddress() public pure returns (address) {
         return _getArgAddress(NON_OWRECIPIENT_OFFSET);
     }
 
@@ -189,11 +189,11 @@ contract OptimisticWithdrawalRecipient is Clone {
             revert InvalidTokenRecovery_OWRToken();
         }
 
-        // if nonOWRecipient is set, recipient must match it
+        // if recoveryAddress is set, recipient must match it
         // else, recipient must be one of the OWR recipients
 
-        address _nonOWRecipient= nonOWRecipient();
-        if (_nonOWRecipient == address(0)) {
+        address _recoveryAddress= recoveryAddress();
+        if (_recoveryAddress == address(0)) {
             // ensure txn recipient is a valid OWR recipient
             (address[] memory recipients,) = getTranches();
             bool validRecipient = false;
@@ -211,7 +211,7 @@ contract OptimisticWithdrawalRecipient is Clone {
             if (!validRecipient) {
                 revert InvalidTokenRecovery_InvalidRecipient();
             }
-        } else if (recipient != _nonOWRecipient) {
+        } else if (recipient != _recoveryAddress) {
             revert InvalidTokenRecovery_InvalidRecipient();
         }
 

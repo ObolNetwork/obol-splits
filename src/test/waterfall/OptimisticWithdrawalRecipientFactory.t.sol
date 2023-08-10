@@ -13,7 +13,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     event CreateOWRecipient(
         address indexed owr,
         address token,
-        address nonOWRecipient,
+        address recoveryAddress,
         address principalRecipient,
         address rewardRecipient,
         uint256 threshold
