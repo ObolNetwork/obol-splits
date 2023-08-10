@@ -96,7 +96,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     // 0; first item
     uint256 internal constant TOKEN_OFFSET = 0;
     // 20 = token_offset (0) + token_size (address, 20 bytes)
-    uint256 internal constant NON_OWRECIPIENT_OFFSET = 20;
+    uint256 internal constant RECOVERY_ADDRESS_OFFSET = 20;
     // 40 = recoveryAddress_offset (20) + recoveryAddress_size (address, 20 bytes)
     uint256 internal constant TRANCHES_OFFSET = 40;
 
@@ -109,7 +109,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// Address to recover non-OWR tokens to
     /// @dev equivalent to address public immutable recoveryAddress;
     function recoveryAddress() public pure returns (address) {
-        return _getArgAddress(NON_OWRECIPIENT_OFFSET);
+        return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
     }
 
     /// Get OWR tranche `i`
@@ -178,7 +178,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// Recover non-OWR tokens to a recipient
     /// @param nonOWRToken Token to recover (cannot be OWR token)
     /// @param recipient Address to receive recovered token
-    function recoverNonOWRecipientFunds(
+    function recoverFunds(
         address nonOWRToken,
         address recipient
     ) external payable {
@@ -192,7 +192,7 @@ contract OptimisticWithdrawalRecipient is Clone {
         // if recoveryAddress is set, recipient must match it
         // else, recipient must be one of the OWR recipients
 
-        address _recoveryAddress= recoveryAddress();
+        address _recoveryAddress = recoveryAddress();
         if (_recoveryAddress == address(0)) {
             // ensure txn recipient is a valid OWR recipient
             (address[] memory recipients,) = getTranches();
