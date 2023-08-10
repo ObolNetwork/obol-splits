@@ -24,7 +24,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     OptimisticWithdrawalRecipient public owrModule;
     OptimisticWithdrawalRecipientFactory public owrFactory;
-    address internal nonOWRecipient;
+    address internal recoveryAddress;
 
     OptimisticWithdrawalRecipient owrETH;
     OptimisticWithdrawalRecipient owrERC20;
@@ -47,18 +47,18 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         // use 1 validator as default tranche threshold
         trancheThreshold = ETH_STAKE;
 
-        nonOWRecipient = makeAddr("nonOWRecipient");
+        recoveryAddress = makeAddr("recoveryAddress");
 
         owrETH = owrFactory.createOWRecipient(
             ETH_ADDRESS,
-            nonOWRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             trancheThreshold
         );
 
         owrERC20 = owrFactory.createOWRecipient(
             address(mERC20),
-            nonOWRecipient,
+            recoveryAddress,
             principalRecipient, rewardRecipient,
             trancheThreshold
         );
@@ -127,12 +127,12 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
         vm.expectEmit(true, true, true, true);
         emit RecoverNonOWRecipientFunds(
-            address(mERC20), nonOWRecipient, 1 ether
+            address(mERC20), recoveryAddress, 1 ether
         );
-        owrETH.recoverNonOWRecipientFunds(address(mERC20), nonOWRecipient);
+        owrETH.recoverNonOWRecipientFunds(address(mERC20), recoveryAddress);
         assertEq(address(owrETH).balance, 1 ether);
         assertEq(mERC20.balanceOf(address(owrETH)), 0 ether);
-        assertEq(mERC20.balanceOf(nonOWRecipient), 1 ether);
+        assertEq(mERC20.balanceOf(recoveryAddress), 1 ether);
 
         vm.expectEmit(true, true, true, true);
         emit RecoverNonOWRecipientFunds(
@@ -161,12 +161,12 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         
         vm.expectEmit(true, true, true, true);
         emit RecoverNonOWRecipientFunds(
-            ETH_ADDRESS, nonOWRecipient, 1 ether
+            ETH_ADDRESS, recoveryAddress, 1 ether
         );
-        owrERC20.recoverNonOWRecipientFunds(ETH_ADDRESS, nonOWRecipient);
+        owrERC20.recoverNonOWRecipientFunds(ETH_ADDRESS, recoveryAddress);
         assertEq(mERC20.balanceOf(address(owrERC20)), 1 ether);
         assertEq(address(owrERC20).balance, 0 ether);
-        assertEq(nonOWRecipient.balance, 1 ether);
+        assertEq(recoveryAddress.balance, 1 ether);
 
 
         address(owrERC20_OR).safeTransferETH(1 ether);
@@ -215,12 +215,12 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector
         );
-        owrETH.recoverNonOWRecipientFunds(ETH_ADDRESS, nonOWRecipient);
+        owrETH.recoverNonOWRecipientFunds(ETH_ADDRESS, recoveryAddress);
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector
         );
-        owrERC20_OR.recoverNonOWRecipientFunds(address(mERC20), nonOWRecipient);
+        owrERC20_OR.recoverNonOWRecipientFunds(address(mERC20), recoveryAddress);
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector
@@ -392,7 +392,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
         owrETH = owrFactory.createOWRecipient(
             ETH_ADDRESS,
-            nonOWRecipient,
+            recoveryAddress,
             address(wr),
             rewardRecipient,
             1 ether
@@ -672,7 +672,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
         owrETH = owrFactory.createOWRecipient(
             ETH_ADDRESS,
-            nonOWRecipient,
+            recoveryAddress,
             _principalRecipient,
             _rewardRecipient,
             _trancheThreshold
@@ -680,7 +680,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
         owrERC20 = owrFactory.createOWRecipient(
             address(mERC20),
-            nonOWRecipient,
+            recoveryAddress,
             _principalRecipient,
             _rewardRecipient,
             _trancheThreshold
@@ -826,14 +826,14 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
         owrETH = owrFactory.createOWRecipient(
             ETH_ADDRESS,
-            nonOWRecipient,
+            recoveryAddress,
             _principalRecipient,
             _rewardRecipient,
             _trancheThreshold
         );
         owrERC20 = owrFactory.createOWRecipient(
             address(mERC20),
-            nonOWRecipient,
+            recoveryAddress,
             _principalRecipient,
             _rewardRecipient,
             _trancheThreshold

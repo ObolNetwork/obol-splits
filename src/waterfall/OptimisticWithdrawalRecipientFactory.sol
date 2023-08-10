@@ -39,7 +39,7 @@ contract OptimisticWithdrawalRecipientFactory {
     /// Emitted after a new OptimisticWithdrawalRecipient module is deployed
     /// @param owr Address of newly created OptimisticWithdrawalRecipient clone
     /// @param token Address of ERC20 to distribute (0x0 used for ETH)
-    /// @param nonOWRecipient Address to recover non-OWR tokens to
+    /// @param recoveryAddress Address to recover non-OWR tokens to
     /// @param principalRecipient Address to distribute principal payment to
     /// @param rewardRecipient Address to distribute reward payment to
     /// @param threshold Absolute payment threshold for OWR first recipient
@@ -47,7 +47,7 @@ contract OptimisticWithdrawalRecipientFactory {
     event CreateOWRecipient(
         address indexed owr,
         address token,
-        address nonOWRecipient,
+        address recoveryAddress,
         address principalRecipient,
         address rewardRecipient,
         uint256 threshold
@@ -81,7 +81,7 @@ contract OptimisticWithdrawalRecipientFactory {
 
     /// Create a new OptimisticWithdrawalRecipient clone
     /// @param token Address of ERC20 to distribute (0x0 used for ETH)
-    /// @param nonOWRecipient Address to recover non-OWR tokens to
+    /// @param recoveryAddress Address to recover non-OWR tokens to
     /// If this address is 0x0, recovery of unrelated tokens can be completed by 
     /// either the principal or reward recipients.  If this address is set, only this address can recover
     /// tokens (or ether) that are not the focus of this OWRecipient contract
@@ -93,7 +93,7 @@ contract OptimisticWithdrawalRecipientFactory {
     /// @return owr Address of new OptimisticWithdrawalRecipient clone
     function createOWRecipient(
         address token,
-        address nonOWRecipient,
+        address recoveryAddress,
         address principalRecipient,
         address rewardRecipient,
         uint256 threshold
@@ -123,12 +123,12 @@ contract OptimisticWithdrawalRecipientFactory {
 
         // would not exceed contract size limits
         bytes memory data = abi.encodePacked(
-            token, nonOWRecipient, tranches
+            token, recoveryAddress, tranches
         );
         owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
         
         emit CreateOWRecipient(
-            address(owr), token, nonOWRecipient, principalRecipient, rewardRecipient, threshold
+            address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, threshold
         );
     }
 }
