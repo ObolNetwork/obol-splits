@@ -129,7 +129,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         emit RecoverNonOWRecipientFunds(
             address(mERC20), recoveryAddress, 1 ether
         );
-        owrETH.recoverNonOWRecipientFunds(address(mERC20), recoveryAddress);
+        owrETH.recoverFunds(address(mERC20), recoveryAddress);
         assertEq(address(owrETH).balance, 1 ether);
         assertEq(mERC20.balanceOf(address(owrETH)), 0 ether);
         assertEq(mERC20.balanceOf(recoveryAddress), 1 ether);
@@ -138,7 +138,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         emit RecoverNonOWRecipientFunds(
             address(mERC20), principalRecipient, 1 ether
         );
-        owrETH_OR.recoverNonOWRecipientFunds(address(mERC20), principalRecipient);
+        owrETH_OR.recoverFunds(address(mERC20), principalRecipient);
         assertEq(address(owrETH_OR).balance, 1 ether);
         assertEq(mERC20.balanceOf(address(owrETH_OR)), 0 ether);
         assertEq(mERC20.balanceOf(principalRecipient), 1 ether);
@@ -149,7 +149,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         emit RecoverNonOWRecipientFunds(
             address(mERC20), rewardRecipient, 1 ether
         );
-        owrETH_OR.recoverNonOWRecipientFunds(address(mERC20), rewardRecipient);
+        owrETH_OR.recoverFunds(address(mERC20), rewardRecipient);
         assertEq(address(owrETH_OR).balance, 1 ether);
         assertEq(mERC20.balanceOf(address(owrETH_OR)), 0 ether);
         assertEq(mERC20.balanceOf(rewardRecipient), 1 ether);
@@ -163,7 +163,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         emit RecoverNonOWRecipientFunds(
             ETH_ADDRESS, recoveryAddress, 1 ether
         );
-        owrERC20.recoverNonOWRecipientFunds(ETH_ADDRESS, recoveryAddress);
+        owrERC20.recoverFunds(ETH_ADDRESS, recoveryAddress);
         assertEq(mERC20.balanceOf(address(owrERC20)), 1 ether);
         assertEq(address(owrERC20).balance, 0 ether);
         assertEq(recoveryAddress.balance, 1 ether);
@@ -176,61 +176,61 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         emit RecoverNonOWRecipientFunds(
             ETH_ADDRESS, principalRecipient, 1 ether
         );
-        owrERC20_OR.recoverNonOWRecipientFunds(ETH_ADDRESS, principalRecipient);
+        owrERC20_OR.recoverFunds(ETH_ADDRESS, principalRecipient);
         assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether);
         assertEq(address(owrERC20_OR).balance, 0 ether);
         assertEq(principalRecipient.balance, 1 ether);
 
         address(owrERC20_OR).safeTransferETH(1 ether);
 
-        owrERC20_OR.recoverNonOWRecipientFunds(ETH_ADDRESS, rewardRecipient);
+        owrERC20_OR.recoverFunds(ETH_ADDRESS, rewardRecipient);
         assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether);
         assertEq(address(owrERC20_OR).balance, 0 ether, "invalid erc20 balance");
         assertEq(rewardRecipient.balance, 1 ether, "invalid eth balance");
     }
 
-    function testCannot_recoverNonOWRecipientFundsToNonRecipient() public {
+    function testCannot_recoverFundsToNonRecipient() public {
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector
         );
-        owrETH.recoverNonOWRecipientFunds(address(mERC20), address(1));
+        owrETH.recoverFunds(address(mERC20), address(1));
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector
         );
-        owrERC20_OR.recoverNonOWRecipientFunds(ETH_ADDRESS, address(1));
+        owrERC20_OR.recoverFunds(ETH_ADDRESS, address(1));
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector
         );
-        owrETH_OR.recoverNonOWRecipientFunds(address(mERC20), address(2));
+        owrETH_OR.recoverFunds(address(mERC20), address(2));
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector
         );
-        owrERC20_OR.recoverNonOWRecipientFunds(ETH_ADDRESS, address(2));
+        owrERC20_OR.recoverFunds(ETH_ADDRESS, address(2));
     }
 
     function testCannot_recoverOWRFunds() public {
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector
         );
-        owrETH.recoverNonOWRecipientFunds(ETH_ADDRESS, recoveryAddress);
+        owrETH.recoverFunds(ETH_ADDRESS, recoveryAddress);
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector
         );
-        owrERC20_OR.recoverNonOWRecipientFunds(address(mERC20), recoveryAddress);
+        owrERC20_OR.recoverFunds(address(mERC20), recoveryAddress);
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector
         );
-        owrETH_OR.recoverNonOWRecipientFunds(ETH_ADDRESS, address(1));
+        owrETH_OR.recoverFunds(ETH_ADDRESS, address(1));
 
         vm.expectRevert(
             OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector
         );
-        owrERC20_OR.recoverNonOWRecipientFunds(address(mERC20), address(1));
+        owrERC20_OR.recoverFunds(address(mERC20), address(1));
     }
 
     function testCan_OWRIsPayable() public {

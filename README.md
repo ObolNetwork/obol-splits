@@ -65,7 +65,13 @@ This command generates compilation output into the `out` directory.
 
 ### Deployment
 
-This repo can be deployed with `forge create`. 
+This repo can be deployed with `forge create` or running the deployment scripts. 
+
+#### Goerli
+
+OptimisticWithdrawalRecipient: 
+
+OptimisticWithdrawalRecipientFactory: https://goerli.etherscan.io/address/0x554AF2D4b3ACB9A4b4122dB8d6A56ddaB95CC537
 
 ### Versioning
 
