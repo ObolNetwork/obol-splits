@@ -82,10 +82,14 @@ contract OptimisticWithdrawalRecipientFactory {
     /// Create a new OptimisticWithdrawalRecipient clone
     /// @param token Address of ERC20 to distribute (0x0 used for ETH)
     /// @param nonOWRecipient Address to recover non-OWR tokens to
+    /// If this address is 0x0, recovery of unrelated tokens can be completed by 
+    /// either the principal or reward recipients.  If this address is set, only this address can recover
+    /// tokens (or ether) that are not the focus of this OWRecipient contract
     /// @param principalRecipient Address to distribute principal payments to
     /// @param rewardRecipient Address to distribute reward payments to
     /// @param threshold Absolute payment threshold for principal recipient
     /// (reward recipient has no threshold & receives all residual flows)
+    /// it cannot be greater than uint96
     /// @return owr Address of new OptimisticWithdrawalRecipient clone
     function createOWRecipient(
         address token,
