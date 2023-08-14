@@ -30,27 +30,38 @@ contract LidoSplit is Clone {
 
     constructor() {}
 
-    function _getSplitWallet() internal pure returns (address) {
+    /// Address of split wallet to send funds to to
+    /// @dev equivalent to address public immutable splitWallet
+    function splitWallet() public pure returns (address) {
         return _getArgAddress(SPLIT_WALLET_ADDRESS_OFFSET);
     }
 
-    function _getstETHAddress() internal pure returns (address) {
+    /// Address of stETH token
+    /// @dev equivalent to address public immutable stETHAddress
+    function stETHAddress() public pure returns (address) {
         return _getArgAddress(ST_ETH_ADDRESS_OFFSET);
     }
 
-    function _getwstETHAddress() internal pure returns (address) {
+    /// Address of wstETH token
+    /// @dev equivalent to address public immutable wstETHAddress    
+    function wstETHAddress() public pure returns (address) {
         return _getArgAddress(WST_ETH_ADDRESS_OFFSET);
     }
 
+    /// Wraps the current stETH token balance to wstETH
+    /// transfers the wstETH balance to splitWallet for distribution
+    /// @return amount Amount of wstETH transferred to splitWallet
     function distribute() external returns(uint256 amount) {
-        ERC20 stETH = ERC20(_getstETHAddress());
-        ERC20 wstETH = ERC20(_getwstETHAddress());
+        ERC20 stETH = ERC20(stETHAddress());
+        ERC20 wstETH = ERC20(wstETHAddress());
 
-
+        // get current balance
         uint256 balance = stETH.balanceOf(address(this));
         // approve the wstETH
         stETH.approve(address(wstETH), balance);
+        // wrap into wseth
         amount = IwSTETH(address(wstETH)).wrap(balance);
-        ERC20(wstETH).safeTransfer(_getSplitWallet(), amount);
+        // transfer to split wallet
+        ERC20(wstETH).safeTransfer(splitWallet(), amount);
     }
 }
