@@ -21,9 +21,11 @@ contract LidoSplit is Clone {
     // stETH (address, 20 bytes),
     // 0; first item
     uint256 internal constant ST_ETH_ADDRESS_OFFSET = 0;
-    // 1; second item
+    // wstETH (address, 20 bytees)
+    // 20 = st_eth_offset(0) + st_eth_address_size(address, 20 bytes)
     uint256 internal constant WST_ETH_ADDRESS_OFFSET = 20;
-    // 2; third item
+    // splitWallet (adress, 20 bytes)
+    // 40 = wst_eth_offset(20) + wst_eth_size(address, 20 bytes)
     uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 40;
 
     constructor() {}
