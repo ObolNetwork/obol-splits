@@ -38,15 +38,16 @@ contract LidoSplitFactory {
     /// @notice wstETH token address
     ERC20 public immutable wstETH;
 
-    /// @dev lido split fact
-    LidoSplit public lidoSplitImpl;
+    /// @dev lido split implementation
+    LidoSplit public immutable lidoSplitImpl;
 
     constructor(ERC20 _stETH, ERC20 _wstETH) {
         stETH = _stETH;
         wstETH = _wstETH;
+        lidoSplitImpl = new LidoSplit();
     }
 
-    function createLidoSplit(address splitWallet) external returns (address lidoSplit) {
+    function createSplit(address splitWallet) external returns (address lidoSplit) {
         
         if (splitWallet == address(0)) {
             revert Invalid_Wallet();
