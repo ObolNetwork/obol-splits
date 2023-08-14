@@ -53,6 +53,27 @@ interface ISplitMain {
     address distributorAddress
   ) external;
 
+
+  /// @notice Distributes the ERC20 `token` balance for split `split`
+  /// @dev `accounts`, `percentAllocations`, and `distributorFee` are verified by hashing
+  /// & comparing to the hash in storage associated with split `split`
+  /// @dev pernicious ERC20s may cause overflow in this function inside
+  /// _scaleAmountByPercentage, but results do not affect ETH & other ERC20 balances
+  /// @param split Address of split to distribute balance for
+  /// @param token Address of ERC20 to distribute balance for
+  /// @param accounts Ordered, unique list of addresses with ownership in the split
+  /// @param percentAllocations Percent allocations associated with each address
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  /// @param distributorAddress Address to pay `distributorFee` to
+  function distributeERC20(
+    address split,
+    ERC20 token,
+    address[] calldata accounts,
+    uint32[] calldata percentAllocations,
+    uint32 distributorFee,
+    address distributorAddress
+  ) external;
+
   /// @notice Withdraw ETH &/ ERC20 balances for account `account`
   /// @param account Address to withdraw on behalf of
   /// @param withdrawETH Withdraw all ETH if nonzero
