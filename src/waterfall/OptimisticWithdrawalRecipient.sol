@@ -76,9 +76,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     uint256 internal constant PULL = 1;
 
     uint256 internal constant ONE_WORD = 32;
-    uint256 internal constant THRESHOLD_BITS = 96;
     uint256 internal constant ADDRESS_BITS = 160;
-    uint256 internal constant ADDRESS_BITMASK = uint256(~0 >> THRESHOLD_BITS);
     uint256 internal constant TRANCHE_SIZE = 2;
 
     /// @dev threshold for pushing balance update as reward or principal
