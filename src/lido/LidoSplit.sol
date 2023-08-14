@@ -18,12 +18,12 @@ contract LidoSplit is Clone {
     /// storage - cwia offsets
     /// -----------------------------------------------------------------------
 
-    // stETH (address, 32 bytes), recoveryAddress (address, 20 bytes),
+    // stETH (address, 20 bytes),
     // 0; first item
     uint256 internal constant ST_ETH_ADDRESS_OFFSET = 0;
-
+    // 1; second item
     uint256 internal constant WST_ETH_ADDRESS_OFFSET = 20;
-
+    // 2; third item
     uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 40;
 
     constructor() {}
@@ -44,7 +44,7 @@ contract LidoSplit is Clone {
         ERC20 stETH = ERC20(_getstETHAddress());
         ERC20 wstETH = ERC20(_getwstETHAddress());
 
-        
+
         uint256 balance = stETH.balanceOf(address(this));
         // approve the wstETH
         stETH.approve(address(wstETH), balance);
