@@ -2,7 +2,7 @@
 pragma solidity =0.8.17;
 
 import "forge-std/Script.sol";
-import {OptimisticWithdrawalRecipientFactory} from "src/waterfall/OptimisticWithdrawalRecipientFactory.sol";
+import {OptimisticWithdrawalRecipientFactory} from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
 
 contract OWRFactoryScript is Script {
   function run() external {

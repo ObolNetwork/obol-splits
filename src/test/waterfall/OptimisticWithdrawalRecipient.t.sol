@@ -2,8 +2,8 @@
 pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
-import { OptimisticWithdrawalRecipient } from "src/waterfall/OptimisticWithdrawalRecipient.sol";
-import { OptimisticWithdrawalRecipientFactory } from "src/waterfall/OptimisticWithdrawalRecipientFactory.sol";
+import { OptimisticWithdrawalRecipient } from "src/owr/OptimisticWithdrawalRecipient.sol";
+import { OptimisticWithdrawalRecipientFactory } from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {OWRReentrancy} from "./OWRReentrancy.sol";
