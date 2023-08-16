@@ -8,6 +8,11 @@ interface IwSTETH {
     function wrap(uint256 amount) external returns (uint256);
 }
 
+/// @title LidoSplit
+/// @author Obol
+/// @notice A wrapper for 0xsplits/split-contracts SplitWallet that transforms 
+/// stETH token to wstETH token because stETH is a rebasing token
+/// @dev Wraps stETH to wstETH and transfers to defined SplitWallet address
 contract LidoSplit is Clone {
     /// -----------------------------------------------------------------------
     /// libraries

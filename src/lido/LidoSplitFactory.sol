@@ -4,6 +4,10 @@ import {LibClone} from "solady/utils/LibClone.sol";
 import {ERC20} from 'solmate/tokens/ERC20.sol';
 import "./LidoSplit.sol";
 
+/// @title LidoSplitFactory
+/// @author Obol
+/// @notice A factory contract for cheaply deploying LidoSplit.
+/// @dev The address returned should be used to as reward address for Lido
 contract LidoSplitFactory {
 
     /// -----------------------------------------------------------------------
