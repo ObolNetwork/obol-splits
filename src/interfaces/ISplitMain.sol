@@ -79,4 +79,16 @@ interface ISplitMain {
   /// @param withdrawETH Withdraw all ETH if nonzero
   /// @param tokens Addresses of ERC20s to withdraw
   function withdraw(address account, uint256 withdrawETH, ERC20[] calldata tokens) external;
+
+  /// @notice Updates an existing split with recipients `accounts` with ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
+  /// @param split Address of mutable split to update
+  /// @param accounts Ordered, unique list of addresses with ownership in the split
+  /// @param percentAllocations Percent allocations associated with each address
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  function updateSplit(
+    address split,
+    address[] calldata accounts,
+    uint32[] calldata percentAllocations,
+    uint32 distributorFee
+  ) external;
 }
