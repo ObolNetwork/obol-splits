@@ -3,59 +3,53 @@ pragma solidity 0.8.17;
 
 import "forge-std/Test.sol";
 import {LidoSplitFactory, LidoSplit} from "src/lido/LidoSplitFactory.sol";
-import {ERC20} from 'solmate/tokens/ERC20.sol';
-import {LidoSplitTestHelper} from './LidoSplitTestHelper.sol';
-
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {LidoSplitTestHelper} from "./LidoSplitTestHelper.sol";
 
 contract LidoSplitTest is LidoSplitTestHelper, Test {
+  LidoSplitFactory internal lidoSplitFactory;
+  LidoSplit internal lidoSplit;
 
-    LidoSplitFactory internal lidoSplitFactory;
-    LidoSplit internal lidoSplit;
+  address demoSplit;
 
-    address demoSplit;
+  function setUp() public {
+    uint256 mainnetBlock = 17_421_005;
+    vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
-    function setUp() public {
-        uint256 mainnetBlock = 17421005;
-        vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
-
-        lidoSplitFactory = new LidoSplitFactory(
+    lidoSplitFactory = new LidoSplitFactory(
             ERC20(STETH_MAINNET_ADDRESS),
             ERC20(WSTETH_MAINNET_ADDRESS)
         );
 
-        demoSplit = makeAddr("demoSplit");
+    demoSplit = makeAddr("demoSplit");
 
-        lidoSplit = LidoSplit(
-            lidoSplitFactory.createSplit(
-                demoSplit
-            )
-        );
-    }
+    lidoSplit = LidoSplit(lidoSplitFactory.createSplit(demoSplit));
+  }
 
-    function test_CloneArgsIsCorrect() public {
-        assertEq(lidoSplit.splitWallet(), demoSplit, "invalid address");
-        assertEq(lidoSplit.stETHAddress(), STETH_MAINNET_ADDRESS, "invalid stETH address");
-        assertEq(lidoSplit.wstETHAddress(), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
-    }
+  function test_CloneArgsIsCorrect() public {
+    assertEq(lidoSplit.splitWallet(), demoSplit, "invalid address");
+    assertEq(lidoSplit.stETHAddress(), STETH_MAINNET_ADDRESS, "invalid stETH address");
+    assertEq(lidoSplit.wstETHAddress(), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
+  }
 
-    function test_CanDistribute() public {
-        // we use a random account on Etherscan to credit the lidoSplit address 
-        // with 10 ether worth of stETH on mainnet
-        vm.prank(0x2bf3937b8BcccE4B65650F122Bb3f1976B937B2f);
-        ERC20(STETH_MAINNET_ADDRESS).transfer(address(lidoSplit), 100 ether);
+  function test_CanDistribute() public {
+    // we use a random account on Etherscan to credit the lidoSplit address
+    // with 10 ether worth of stETH on mainnet
+    vm.prank(0x2bf3937b8BcccE4B65650F122Bb3f1976B937B2f);
+    ERC20(STETH_MAINNET_ADDRESS).transfer(address(lidoSplit), 100 ether);
 
-        uint256 prevBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(demoSplit);
+    uint256 prevBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(demoSplit);
 
-        uint256 amount = lidoSplit.distribute();
+    uint256 amount = lidoSplit.distribute();
 
-        assertTrue(amount > 0, "invalid amount");
+    assertTrue(amount > 0, "invalid amount");
 
-        uint256 afterBalance =  ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(demoSplit);
+    uint256 afterBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(demoSplit);
 
-        console.log("checking");
-        console.log(afterBalance);
-        console.log(prevBalance);
+    console.log("checking");
+    console.log(afterBalance);
+    console.log(prevBalance);
 
-        assertGe(afterBalance, prevBalance, "after balance greater");
-    }
+    assertGe(afterBalance, prevBalance, "after balance greater");
+  }
 }
