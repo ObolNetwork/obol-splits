@@ -53,7 +53,6 @@ interface ISplitMain {
     address distributorAddress
   ) external;
 
-
   /// @notice Distributes the ERC20 `token` balance for split `split`
   /// @dev `accounts`, `percentAllocations`, and `distributorFee` are verified by hashing
   /// & comparing to the hash in storage associated with split `split`
