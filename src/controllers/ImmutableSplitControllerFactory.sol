@@ -14,8 +14,8 @@ contract ImmutableSplitControllerFactory {
     /// @param accountsLength Length of accounts array
     /// @param allocationsLength Length of percentAllocations array
     error InvalidSplit__AccountsAndAllocationsMismatch(
-    uint256 accountsLength,
-    uint256 allocationsLength
+        uint256 accountsLength,
+        uint256 allocationsLength
     );
     /// @notice Invalid percentAllocations sum `allocationsSum` must equal `PERCENTAGE_SCALE`
     /// @param allocationsSum Sum of percentAllocations array
@@ -218,6 +218,21 @@ contract ImmutableSplitControllerFactory {
         data = abi.encodePacked(
             splitMain, distributorFee, uint8(recipientsSize), recipients
         );
+    }
+
+    /// @notice Sums array of uint32s
+    /// @param numbers Array of uint32s to sum
+    /// @return sum Sum of `numbers`.
+    function _getSum(uint32[] memory numbers) internal pure returns (uint32 sum) {
+        // overflow should be impossible in for-loop index
+        uint256 numbersLength = numbers.length;
+        for (uint256 i = 0; i < numbersLength; ) {
+            sum += numbers[i];
+            unchecked {
+            // overflow should be impossible in for-loop index
+            ++i;
+            }
+        }
     }
     
 }
