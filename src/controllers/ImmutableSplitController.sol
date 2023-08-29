@@ -29,22 +29,20 @@ contract ImmutableSplitController is Clone {
     // splitMain (address, 20 bytes)
     // 0; first item
     uint256 internal constant SPLIT_MAIN_OFFSET = 0;
-    // // split (address, 20 bytes)
-    // // 1; second item
-    // uint256 internal constant SPLIT_ADDRESS_OFFSET = 20;
     // distributorFee (uint32, 4 bytes)
-    // 2; third item
+    // 1; second item
     uint256 internal constant DISTRIBUTOR_FEE_OFFSET = 20;
     // recipeints size (uint8, 1 byte )
-    // 3; fourth item
+    // 2; third item
     uint256 internal constant RECIPIENTS_SIZE_OFFSET = 24;
     // recipients data ()
-    // 4; fifth item
+    // 4; fourth item
     uint256 internal constant RECIPIENTS_OFFSET = 25;
 
     /// -----------------------------------------------------------------------
     /// storage - mutable
     /// -----------------------------------------------------------------------
+    /// @dev Address of split to update
     address public split;
 
 
@@ -77,12 +75,6 @@ contract ImmutableSplitController is Clone {
     function splitMain() public pure returns (address) {
         return _getArgAddress(SPLIT_MAIN_OFFSET);
     }
-
-    // /// Address of split to update
-    // /// @dev equivalent to address public immutable split;
-    // function split() public pure returns (address) {
-    //     return _getArgAddress(SPLIT_ADDRESS_OFFSET);
-    // }
 
     /// Fee charged by distributor
     /// @dev equivalent to address public immutable distributorFee;
