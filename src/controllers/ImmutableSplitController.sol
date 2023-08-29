@@ -9,10 +9,6 @@ import {Clone} from "solady/utils/Clone.sol";
 /// configuration is defined at deployment and cannot change
 contract ImmutableSplitController is Clone {
 
-    /// -----------------------------------------------------------------------
-    /// errors
-    /// -----------------------------------------------------------------------
-    
     /// @notice IMSC already initialized
     error Initialized();
 
@@ -54,30 +50,25 @@ contract ImmutableSplitController is Clone {
 
     constructor() {}
 
-    function init(address _split) external {
-        if (_split != address(0)) revert Initialized();
+    function init(address splitAddress) external {
+        if (split != address(0)) revert Initialized();
 
-        split = _split;
+        split = splitAddress;
     }
 
     /// Updates split with the hardcoded configuration
     /// @dev Updates split with stored split configuration
     function updateSplit() external payable {
-        // @TODO accept control
-        address _splitMain = splitMain();
-        address _split = split;
-        uint32 _distributorFee = uint32(distributorFee());
-
         (
             address[] memory accounts,
             uint32[] memory percentAllocations
         ) = getNewSplitConfiguration();
 
-        ISplitMain(_splitMain).updateSplit(
-            _split,
+        ISplitMain(splitMain()).updateSplit(
+            split,
             accounts,
             percentAllocations,
-            _distributorFee
+            uint32(distributorFee())
         );
     }
 

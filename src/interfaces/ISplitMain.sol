@@ -91,4 +91,8 @@ interface ISplitMain {
     uint32[] calldata percentAllocations,
     uint32 distributorFee
   ) external;
+
+  
+  function getHash(address split) external view returns (bytes32);
+
 }
