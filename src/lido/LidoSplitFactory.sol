@@ -55,9 +55,7 @@ contract LidoSplitFactory {
   function createSplit(address splitWallet) external returns (address lidoSplit) {
     if (splitWallet == address(0)) revert Invalid_Wallet();
 
-    bytes memory data = abi.encodePacked(stETH, wstETH, splitWallet);
-
-    lidoSplit = address(lidoSplitImpl).clone(data);
+    lidoSplit = address(lidoSplitImpl).clone(abi.encodePacked(stETH, wstETH, splitWallet));
 
     emit CreateLidoSplit(lidoSplit);
   }
