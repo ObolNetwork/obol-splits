@@ -188,23 +188,9 @@ contract OptimisticWithdrawalRecipient is Clone {
     if (_recoveryAddress == address(0)) {
       // ensure txn recipient is a valid OWR recipient
       (address principalRecipient, address rewardRecipient,) = getTranches();
-      // bool validRecipient = false;
-
       if (recipient != principalRecipient && recipient != rewardRecipient) {
         revert InvalidTokenRecovery_InvalidRecipient();
       }
-      // uint256 _numTranches = TRANCHE_SIZE;
-      // for (uint256 i; i < _numTranches;) {
-      //   if (recipients[i] == recipient) {
-      //     validRecipient = true;
-      //     break;
-      //   }
-      //   unchecked {
-      //     // shouldn't overflow
-      //     ++i;
-      //   }
-      // }
-      // if (!validRecipient)
     } else if (recipient != _recoveryAddress) {
       revert InvalidTokenRecovery_InvalidRecipient();
     }
