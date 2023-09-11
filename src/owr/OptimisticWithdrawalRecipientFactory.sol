@@ -87,7 +87,7 @@ contract OptimisticWithdrawalRecipientFactory {
   /// tokens (or ether) that isn't the token of the OWRecipient contract
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
-  /// @param threshold Absolute payment threshold for principal recipient
+  /// @param amountOfStake Absolute amount of stake to be paid to principal recipient (multiple of 32 ETH)
   /// (reward recipient has no threshold & receives all residual flows)
   /// it cannot be greater than uint96
   /// @return owr Address of new OptimisticWithdrawalRecipient clone
@@ -96,19 +96,19 @@ contract OptimisticWithdrawalRecipientFactory {
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
-    uint256 threshold
+    uint256 amountOfStake
   ) external returns (OptimisticWithdrawalRecipient owr) {
     /// checks
 
     // ensure doesn't have address(0)
     if (principalRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
     // ensure threshold isn't zero
-    if (threshold == 0) revert Invalid__ZeroThreshold();
+    if (amountOfStake == 0) revert Invalid__ZeroThreshold();
     // ensure threshold isn't too large
-    if (threshold > type(uint96).max) revert Invalid__ThresholdTooLarge(threshold);
+    if (amountOfStake > type(uint96).max) revert Invalid__ThresholdTooLarge(amountOfStake);
 
     /// effects
-    uint256 principalData = (threshold << ADDRESS_BITS) | uint256(uint160(principalRecipient));
+    uint256 principalData = (amountOfStake << ADDRESS_BITS) | uint256(uint160(principalRecipient));
     uint256 rewardData = uint256(uint160(rewardRecipient));
 
     // would not exceed contract size limits
@@ -116,6 +116,6 @@ contract OptimisticWithdrawalRecipientFactory {
     bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
     owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
 
-    emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfStake);
   }
 }
