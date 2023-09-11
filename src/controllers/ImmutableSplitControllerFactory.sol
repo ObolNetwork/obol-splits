@@ -43,12 +43,14 @@ contract ImmutableSplitControllerFactory {
     /// Emitted after a new IMSC is deployed
     /// @param controller Address of newly created IMSC clone
     /// @param split Address of split
+    /// @param owner Adderss of the owner of the controller
     /// @param accounts Addresses of 
     /// @param percentAllocations Addresses to recover non-waterfall tokens to
     /// @param distributorFee Amount of 
     event CreateIMSC(
         address indexed controller,
         address indexed split,
+        address owner,
         address[] accounts,
         uint32[] percentAllocations,
         uint256 distributorFee
@@ -128,12 +130,14 @@ contract ImmutableSplitControllerFactory {
     /// Deploys a new immutable controller
     /// @dev Create a new immutable split controller
     /// @param split Address of the split to create a controller for
+    /// @param owner Address that can call the updateSplit(..) function
     /// @param accounts Ordered, unique list of addresses with ownership in the split
     /// @param percentAllocations  Percent allocations associated with each address
     /// @param distributorFee Distributor fee share
     /// @param deploymentSalt salt to use for deterministic deploy
     function createController(
         address split,
+        address owner,
         address[] calldata accounts,
         uint32[] calldata percentAllocations,
         uint32 distributorFee,
@@ -142,16 +146,16 @@ contract ImmutableSplitControllerFactory {
         external validSplit(accounts, percentAllocations, distributorFee) 
         returns (ImmutableSplitController newController) 
     {
-        // ensure it's valid split
-
-        bytes memory data = _packSplitControllerData(
-            accounts,
-            percentAllocations,
-            distributorFee
-        );
-
         newController = ImmutableSplitController(
-            address(controller).cloneDeterministic(data, deploymentSalt)
+            address(controller).cloneDeterministic(
+                _packSplitControllerData(
+                    owner,
+                    accounts,
+                    percentAllocations,
+                    distributorFee
+                ), 
+                deploymentSalt
+            )
         );
 
         // initialize with split address
@@ -160,6 +164,7 @@ contract ImmutableSplitControllerFactory {
         emit CreateIMSC(
             address(controller),
             split,
+            owner,
             accounts,
             percentAllocations,
             distributorFee
@@ -175,19 +180,19 @@ contract ImmutableSplitControllerFactory {
     /// @param deploymentSalt Salt to use to deploy 
     /// @return splitController Predicted address of such a split controller
    function predictSplitControllerAddress(
+        address owner,
         address[] calldata accounts,
         uint32[] calldata percentAllocations,
         uint32 distributorFee,
         bytes32 deploymentSalt
     ) external view returns (address splitController) {
-        bytes memory data = _packSplitControllerData(
-            accounts,
-            percentAllocations,
-            distributorFee
-        );
-
         splitController = address(controller).predictDeterministicAddress(
-            data,
+            _packSplitControllerData(
+                owner,
+                accounts,
+                percentAllocations,
+                distributorFee
+            ),
             deploymentSalt,
             address(this)
         );
@@ -198,6 +203,7 @@ contract ImmutableSplitControllerFactory {
     /// @param percentAllocations Percent allocations associated with each address
     /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
     function _packSplitControllerData(
+        address owner,
         address[] calldata accounts,
         uint32[] calldata percentAllocations,
         uint32 distributorFee
@@ -216,7 +222,7 @@ contract ImmutableSplitControllerFactory {
         }
         
         data = abi.encodePacked(
-            splitMain, distributorFee, uint8(recipientsSize), recipients
+            splitMain, distributorFee, owner, uint8(recipientsSize), recipients
         );
     }
 
