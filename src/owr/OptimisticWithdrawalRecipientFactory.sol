@@ -116,6 +116,8 @@ contract OptimisticWithdrawalRecipientFactory {
     bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
     owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
 
-    emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake);
+    emit CreateOWRecipient(
+      address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake
+    );
   }
 }
