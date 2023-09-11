@@ -129,7 +129,7 @@ contract OptimisticWithdrawalRecipient is Clone {
 
   /// Amount of distributed OWRecipient token for first tranche (principal)
   /// @dev ERC20s with very large decimals may overflow & cause issues
-  uint256 public claimedFirstTrancheFunds;
+  uint256 public claimedPrincipalFunds;
 
   /// Mapping to account balances for pulling
   mapping(address => uint256) internal pullBalances;
@@ -278,7 +278,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     uint256 _startingDistributedFunds = uint256(distributedFunds);
     uint256 _endingDistributedFunds;
     uint256 _fundsToBeDistributed;
-    uint256 _claimedFirstTrancheFunds = uint256(claimedFirstTrancheFunds);
+    uint256 _claimedFirstTrancheFunds = uint256(claimedPrincipalFunds);
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
     unchecked {
       // shouldn't overflow
@@ -325,7 +325,7 @@ contract OptimisticWithdrawalRecipient is Clone {
       // Write to storage
       distributedFunds = uint128(_endingDistributedFunds);
       // the principal value
-      claimedFirstTrancheFunds += _payouts[PRINCIPAL_RECIPIENT_INDEX];
+      claimedPrincipalFunds += _payouts[PRINCIPAL_RECIPIENT_INDEX];
     }
 
     /// interactions
