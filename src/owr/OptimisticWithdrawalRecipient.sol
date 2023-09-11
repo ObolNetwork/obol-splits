@@ -301,14 +301,7 @@ contract OptimisticWithdrawalRecipient is Clone {
 
     (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
 
-    // determine which tranche is getting paid based on funds to be distributed
-    // 0 = first tranche
-    // 1 = second tranche
-
-    // construct the payout arrays
-    // uint256 _payoutsLength = TRANCHE_SIZE;
-    // uint256[] memory _payouts = new uint256[](_payoutsLength);
-
+    // determine which recipeint is getting paid based on funds to be distributed
     uint256 _principalPayout;
     uint256 _rewardPayout;
 
