@@ -12,6 +12,9 @@ contract ImmutableSplitController is Clone {
     /// @notice IMSC already initialized
     error Initialized();
 
+    /// @notice 
+    error Unauthorized();
+
     /// -----------------------------------------------------------------------
     /// storage
     /// -----------------------------------------------------------------------
@@ -32,12 +35,15 @@ contract ImmutableSplitController is Clone {
     // distributorFee (uint32, 4 bytes)
     // 1; second item
     uint256 internal constant DISTRIBUTOR_FEE_OFFSET = 20;
-    // recipeints size (uint8, 1 byte )
+    // onwer (address, 20 bytes)
     // 2; third item
-    uint256 internal constant RECIPIENTS_SIZE_OFFSET = 24;
+    uint256 internal constant OWNER_OFFSET = 24;
+    // recipeints size (uint8, 1 byte )
+    // 3; third item
+    uint256 internal constant RECIPIENTS_SIZE_OFFSET = 44;
     // recipients data ()
     // 4; fourth item
-    uint256 internal constant RECIPIENTS_OFFSET = 25;
+    uint256 internal constant RECIPIENTS_OFFSET = 45;
 
     /// -----------------------------------------------------------------------
     /// storage - mutable
@@ -57,6 +63,10 @@ contract ImmutableSplitController is Clone {
     /// Updates split with the hardcoded configuration
     /// @dev Updates split with stored split configuration
     function updateSplit() external payable {
+        if (msg.sender != owner()) {
+            revert Unauthorized();
+        }
+
         (
             address[] memory accounts,
             uint32[] memory percentAllocations
@@ -80,6 +90,12 @@ contract ImmutableSplitController is Clone {
     /// @dev equivalent to address public immutable distributorFee;
     function distributorFee() public pure returns(uint256) {
         return _getArgUint32(DISTRIBUTOR_FEE_OFFSET);
+    }
+
+    /// Adress of owner
+    /// @dev equivalent to address public immutable owner;
+    function owner() public pure returns (address) {
+        return _getArgAddress(OWNER_OFFSET);
     }
 
     // Returns unpacked recipients
