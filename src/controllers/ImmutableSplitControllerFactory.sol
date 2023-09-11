@@ -152,11 +152,11 @@ contract ImmutableSplitControllerFactory {
         returns (ImmutableSplitController newController) 
     {
         if (split == address(0)) {
-            revert Invalid_Owner();
+            revert InvalidSplit_Address();
         }
 
         if (owner == address(0)) {
-            revert InvalidSplit_Address();
+            revert Invalid_Owner();
         }
 
         newController = ImmutableSplitController(
