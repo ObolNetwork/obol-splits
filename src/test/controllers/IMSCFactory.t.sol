@@ -10,6 +10,8 @@ import {ISplitMain} from "src/interfaces/ISplitMain.sol";
 
 contract IMSCFactory is Test {
 
+    error Invalid_Owner();
+    error InvalidSplit_Address();
     error InvalidSplit__TooFewAccounts(uint256 accountsLength);
     error InvalidSplit__AccountsAndAllocationsMismatch(
         uint256 accountsLength,
@@ -176,6 +178,32 @@ contract IMSCFactory is Test {
             newPercentAllocations,
             0,
             keccak256(abi.encodePacked(uint256(12)))
+        );
+    }
+
+    function test_RevertIfInvalidOwner() public {
+        vm.expectRevert(Invalid_Owner.selector);
+        
+        factory.createController(
+            address(1),
+            address(0),
+            accounts,
+            percentAllocations,
+            0,
+            keccak256(abi.encodePacked(uint256(123)))
+        );
+    }
+
+    function test_RevertIfInvalidSplitAddress() public {
+        vm.expectRevert(InvalidSplit_Address.selector);
+
+        factory.createController(
+            address(0),
+            address(1),
+            accounts,
+            percentAllocations,
+            0,
+            keccak256(abi.encodePacked(uint256(123)))
         );
     }
 
