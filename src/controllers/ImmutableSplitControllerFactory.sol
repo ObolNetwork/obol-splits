@@ -9,6 +9,11 @@ import {ImmutableSplitController} from "./ImmutableSplitController.sol";
 /// @dev Deploys ImmutableSplitController cheaply using cwia clones
 contract ImmutableSplitControllerFactory {
     
+    /// @dev invalid owner address
+    error Invalid_Owner();
+    /// @dev invalid split address
+    error InvalidSplit_Address();
+    /// @dev invalid split accounts configuration
     error InvalidSplit__TooFewAccounts(uint256 accountsLength);
     /// @notice Array lengths of accounts & percentAllocations don't match (`accountsLength` != `allocationsLength`)
     /// @param accountsLength Length of accounts array
@@ -146,6 +151,14 @@ contract ImmutableSplitControllerFactory {
         external validSplit(accounts, percentAllocations, distributorFee) 
         returns (ImmutableSplitController newController) 
     {
+        if (split == address(0)) {
+            revert Invalid_Owner();
+        }
+
+        if (owner == address(0)) {
+            revert InvalidSplit_Address();
+        }
+
         newController = ImmutableSplitController(
             address(controller).cloneDeterministic(
                 _packSplitControllerData(
