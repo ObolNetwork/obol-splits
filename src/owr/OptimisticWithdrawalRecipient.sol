@@ -5,6 +5,7 @@ import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
+
 /// @title OptimisticWithdrawalRecipient
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
@@ -43,9 +44,10 @@ contract OptimisticWithdrawalRecipient is Clone {
   event ReceiveETH(uint256 amount);
 
   /// Emitted after funds are distributed to recipients
-  /// @param payouts Amount of payout
+  /// @param principalPayout Amount of principal paid out
+  /// @param rewardPayout Amount of reward paid out
   /// @param pullFlowFlag Flag for pushing funds to recipients or storing for pulling
-  event DistributeFunds(uint256[] payouts, uint256 pullFlowFlag);
+  event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
 
   /// Emitted after non-OWRecipient tokens are recovered to a recipient
   /// @param recoveryAddressToken Recovered token (cannot be OptimisticWithdrawalRecipient token)
@@ -127,7 +129,8 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// @dev ERC20s with very large decimals may overflow & cause issues
   uint128 public fundsPendingWithdrawal;
 
-  /// Amount of distributed OWRecipient token for first tranche (principal)
+  /// Amount of distributed OWRecipient token for principal 
+  /// @dev Would be less than or equal to amount of stake
   /// @dev ERC20s with very large decimals may overflow & cause issues
   uint256 public claimedPrincipalFunds;
 
@@ -184,20 +187,24 @@ contract OptimisticWithdrawalRecipient is Clone {
     address _recoveryAddress = recoveryAddress();
     if (_recoveryAddress == address(0)) {
       // ensure txn recipient is a valid OWR recipient
-      (address[] memory recipients,) = getTranches();
-      bool validRecipient = false;
-      uint256 _numTranches = TRANCHE_SIZE;
-      for (uint256 i; i < _numTranches;) {
-        if (recipients[i] == recipient) {
-          validRecipient = true;
-          break;
-        }
-        unchecked {
-          // shouldn't overflow
-          ++i;
-        }
+      (address principalRecipient, address rewardRecipient,) = getTranches();
+      // bool validRecipient = false;
+
+      if (recipient != principalRecipient && recipient != rewardRecipient) {
+        revert InvalidTokenRecovery_InvalidRecipient();
       }
-      if (!validRecipient) revert InvalidTokenRecovery_InvalidRecipient();
+      // uint256 _numTranches = TRANCHE_SIZE;
+      // for (uint256 i; i < _numTranches;) {
+      //   if (recipients[i] == recipient) {
+      //     validRecipient = true;
+      //     break;
+      //   }
+      //   unchecked {
+      //     // shouldn't overflow
+      //     ++i;
+      //   }
+      // }
+      // if (!validRecipient) 
     } else if (recipient != _recoveryAddress) {
       revert InvalidTokenRecovery_InvalidRecipient();
     }
@@ -240,17 +247,15 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// -----------------------------------------------------------------------
 
   /// Return unpacked tranches
-  /// @return recipients Addresses to distribute payments to
-  /// @return threshold Absolute payment threshold for principal
-  function getTranches() public pure returns (address[] memory recipients, uint256 threshold) {
-    recipients = new address[](TRANCHE_SIZE);
-
+  /// @return principalRecipient Addres of principal recipient
+  /// @return rewardRecipient Address of reward recipient
+  /// @return amountOfPrincipalStake Absolute payment threshold for principal
+  function getTranches() public pure returns (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) {
     uint256 tranche = _getTranche(PRINCIPAL_RECIPIENT_INDEX);
-    recipients[0] = address(uint160(tranche));
-    threshold = tranche >> ADDRESS_BITS;
+    principalRecipient = address(uint160(tranche));
+    amountOfPrincipalStake = tranche >> ADDRESS_BITS;
 
-    // recipients has one more entry than thresholds
-    recipients[1] = address(uint160(_getTranche(REWARD_RECIPIENT_INDEX)));
+    rewardRecipient = address(uint160(_getTranche(REWARD_RECIPIENT_INDEX)));
   }
 
   /// Returns the balance for account `account`
@@ -278,7 +283,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     uint256 _startingDistributedFunds = uint256(distributedFunds);
     uint256 _endingDistributedFunds;
     uint256 _fundsToBeDistributed;
-    uint256 _claimedFirstTrancheFunds = uint256(claimedPrincipalFunds);
+    uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
     unchecked {
       // shouldn't overflow
@@ -291,32 +296,35 @@ contract OptimisticWithdrawalRecipient is Clone {
       _fundsToBeDistributed = _endingDistributedFunds - _startingDistributedFunds;
     }
 
-    (address[] memory recipients, uint256 threshold) = getTranches();
+    (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
 
     // determine which tranche is getting paid based on funds to be distributed
     // 0 = first tranche
     // 1 = second tranche
 
     // construct the payout arrays
-    uint256 _payoutsLength = TRANCHE_SIZE;
-    uint256[] memory _payouts = new uint256[](_payoutsLength);
+    // uint256 _payoutsLength = TRANCHE_SIZE;
+    // uint256[] memory _payouts = new uint256[](_payoutsLength);
+
+    uint256 _principalPayout;
+    uint256 _rewardPayout;
 
     unchecked {
-      // _claimedFirstTrancheFunds should always be <= threshold
-      uint256 firstTrancheRemaining = threshold - _claimedFirstTrancheFunds;
+      // _claimedPrincipalFunds should always be <= amountOfPrincipalStake
+      uint256 principalStakeRemaining = amountOfPrincipalStake - _claimedPrincipalFunds;
 
-      if (_fundsToBeDistributed >= BALANCE_CLASSIFICATION_THRESHOLD && firstTrancheRemaining > 0) {
-        if (_fundsToBeDistributed > firstTrancheRemaining) {
+      if (_fundsToBeDistributed >= BALANCE_CLASSIFICATION_THRESHOLD && principalStakeRemaining > 0) {
+        if (_fundsToBeDistributed > principalStakeRemaining) {
           // this means there is reward part of the funds to be distributed
-          _payouts[PRINCIPAL_RECIPIENT_INDEX] = firstTrancheRemaining;
+          _principalPayout = principalStakeRemaining;
           // shouldn't underflow
-          _payouts[REWARD_RECIPIENT_INDEX] = _fundsToBeDistributed - firstTrancheRemaining;
+          _rewardPayout = _fundsToBeDistributed - principalStakeRemaining;
         } else {
           // this means there is no reward part of the funds to be distributed
-          _payouts[PRINCIPAL_RECIPIENT_INDEX] = _fundsToBeDistributed;
+          _principalPayout = _fundsToBeDistributed;
         }
       } else {
-        _payouts[REWARD_RECIPIENT_INDEX] = _fundsToBeDistributed;
+        _rewardPayout = _fundsToBeDistributed;
       }
     }
 
@@ -325,7 +333,7 @@ contract OptimisticWithdrawalRecipient is Clone {
       // Write to storage
       distributedFunds = uint128(_endingDistributedFunds);
       // the principal value
-      claimedPrincipalFunds += _payouts[PRINCIPAL_RECIPIENT_INDEX];
+      claimedPrincipalFunds += _principalPayout;
     }
 
     /// interactions
@@ -333,28 +341,33 @@ contract OptimisticWithdrawalRecipient is Clone {
     // pay outs
     // earlier tranche recipients may try to re-enter but will cause fn to revert
     // when later external calls fail (bc balance is emptied early)
-    for (uint256 i; i < _payoutsLength;) {
-      if (_payouts[i] > 0) {
-        if (pullFlowFlag == PULL) {
-          pullBalances[recipients[i]] += _payouts[i];
-          _memoryFundsPendingWithdrawal += _payouts[i];
-        } else if (_token == ETH_ADDRESS) {
-          (recipients[i]).safeTransferETH(_payouts[i]);
-        } else {
-          _token.safeTransfer(recipients[i], _payouts[i]);
-        }
-      }
-      unchecked {
-        // shouldn't overflow
-        ++i;
-      }
-    }
+    
+    // pay out principal
+    _payout(_token, principalRecipient, _principalPayout, pullFlowFlag);
+    // pay out reward
+    _payout(_token, rewardRecipient, _rewardPayout, pullFlowFlag);
 
     if (pullFlowFlag == PULL) {
-      // Write to storage
-      fundsPendingWithdrawal = uint128(_memoryFundsPendingWithdrawal);
+      if (_principalPayout > 0 || _rewardPayout > 0) {
+        // Write to storage
+        fundsPendingWithdrawal = uint128(_memoryFundsPendingWithdrawal + _principalPayout + _rewardPayout);
+      }
     }
 
-    emit DistributeFunds(_payouts, pullFlowFlag);
+    emit DistributeFunds(_principalPayout, _rewardPayout, pullFlowFlag);
   }
+
+  function _payout(address payoutToken, address recipient, uint256 payoutAmount, uint256 pullFlowFlag) internal {
+    if (payoutAmount > 0) {
+      if (pullFlowFlag == PULL) {
+        // Write to Storage
+        pullBalances[recipient] += payoutAmount;
+      } else if(payoutToken == ETH_ADDRESS) {
+        recipient.safeTransferETH(payoutAmount);
+      } else {
+        payoutToken.safeTransfer(recipient, payoutAmount);
+      }
+    }
+  }
+   
 }

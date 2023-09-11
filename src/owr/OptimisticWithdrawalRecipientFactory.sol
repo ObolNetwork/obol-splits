@@ -87,7 +87,7 @@ contract OptimisticWithdrawalRecipientFactory {
   /// tokens (or ether) that isn't the token of the OWRecipient contract
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
-  /// @param amountOfStake Absolute amount of stake to be paid to principal recipient (multiple of 32 ETH)
+  /// @param amountOfPrincipalStake Absolute amount of stake to be paid to principal recipient (multiple of 32 ETH)
   /// (reward recipient has no threshold & receives all residual flows)
   /// it cannot be greater than uint96
   /// @return owr Address of new OptimisticWithdrawalRecipient clone
@@ -96,19 +96,19 @@ contract OptimisticWithdrawalRecipientFactory {
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
-    uint256 amountOfStake
+    uint256 amountOfPrincipalStake
   ) external returns (OptimisticWithdrawalRecipient owr) {
     /// checks
 
     // ensure doesn't have address(0)
     if (principalRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
     // ensure threshold isn't zero
-    if (amountOfStake == 0) revert Invalid__ZeroThreshold();
+    if (amountOfPrincipalStake == 0) revert Invalid__ZeroThreshold();
     // ensure threshold isn't too large
-    if (amountOfStake > type(uint96).max) revert Invalid__ThresholdTooLarge(amountOfStake);
+    if (amountOfPrincipalStake > type(uint96).max) revert Invalid__ThresholdTooLarge(amountOfPrincipalStake);
 
     /// effects
-    uint256 principalData = (amountOfStake << ADDRESS_BITS) | uint256(uint160(principalRecipient));
+    uint256 principalData = (amountOfPrincipalStake << ADDRESS_BITS) | uint256(uint160(principalRecipient));
     uint256 rewardData = uint256(uint160(rewardRecipient));
 
     // would not exceed contract size limits
@@ -116,6 +116,6 @@ contract OptimisticWithdrawalRecipientFactory {
     bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
     owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
 
-    emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfStake);
+    emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake);
   }
 }
