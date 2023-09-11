@@ -5,7 +5,6 @@ import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-
 /// @title OptimisticWithdrawalRecipient
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
@@ -129,7 +128,7 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// @dev ERC20s with very large decimals may overflow & cause issues
   uint128 public fundsPendingWithdrawal;
 
-  /// Amount of distributed OWRecipient token for principal 
+  /// Amount of distributed OWRecipient token for principal
   /// @dev Would be less than or equal to amount of stake
   /// @dev ERC20s with very large decimals may overflow & cause issues
   uint256 public claimedPrincipalFunds;
@@ -204,7 +203,7 @@ contract OptimisticWithdrawalRecipient is Clone {
       //     ++i;
       //   }
       // }
-      // if (!validRecipient) 
+      // if (!validRecipient)
     } else if (recipient != _recoveryAddress) {
       revert InvalidTokenRecovery_InvalidRecipient();
     }
@@ -250,7 +249,11 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// @return principalRecipient Addres of principal recipient
   /// @return rewardRecipient Address of reward recipient
   /// @return amountOfPrincipalStake Absolute payment threshold for principal
-  function getTranches() public pure returns (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) {
+  function getTranches()
+    public
+    pure
+    returns (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake)
+  {
     uint256 tranche = _getTranche(PRINCIPAL_RECIPIENT_INDEX);
     principalRecipient = address(uint160(tranche));
     amountOfPrincipalStake = tranche >> ADDRESS_BITS;
@@ -341,7 +344,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     // pay outs
     // earlier tranche recipients may try to re-enter but will cause fn to revert
     // when later external calls fail (bc balance is emptied early)
-    
+
     // pay out principal
     _payout(_token, principalRecipient, _principalPayout, pullFlowFlag);
     // pay out reward
@@ -362,12 +365,11 @@ contract OptimisticWithdrawalRecipient is Clone {
       if (pullFlowFlag == PULL) {
         // Write to Storage
         pullBalances[recipient] += payoutAmount;
-      } else if(payoutToken == ETH_ADDRESS) {
+      } else if (payoutToken == ETH_ADDRESS) {
         recipient.safeTransferETH(payoutAmount);
       } else {
         payoutToken.safeTransfer(recipient, payoutAmount);
       }
     }
   }
-   
 }
