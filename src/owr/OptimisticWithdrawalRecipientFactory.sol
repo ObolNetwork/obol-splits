@@ -108,15 +108,12 @@ contract OptimisticWithdrawalRecipientFactory {
     if (threshold > type(uint96).max) revert Invalid__ThresholdTooLarge(threshold);
 
     /// effects
-
-    // copy recipients & threshold into storage
-    uint256[] memory tranches = new uint256[](RECIPIENT_SIZE);
-    // tranches size == recipients array size
-    tranches[0] = (threshold << ADDRESS_BITS) | uint256(uint160(principalRecipient));
-    tranches[1] = uint256(uint160(rewardRecipient));
+    uint256 principalData = (threshold << ADDRESS_BITS) | uint256(uint160(principalRecipient));
+    uint256 rewardData = uint256(uint160(rewardRecipient));
 
     // would not exceed contract size limits
-    bytes memory data = abi.encodePacked(token, recoveryAddress, tranches);
+    // important to not reorder
+    bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
     owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
 
     emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, threshold);
