@@ -63,7 +63,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     (address _principalRecipient, address _rewardRecipient, uint256 wtrancheThreshold) = owrETH.getTranches();
 
     assertEq(_principalRecipient, principalRecipient, "invalid principal recipient");
-    assertEq( _rewardRecipient, rewardRecipient, "invalid reward recipient");
+    assertEq(_rewardRecipient, rewardRecipient, "invalid reward recipient");
     assertEq(wtrancheThreshold, ETH_STAKE, "invalid eth tranche threshold");
 
     // erc20
@@ -220,7 +220,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     // uint256[] memory payouts = new uint256[](2);
     uint256 rewardPayout = 1 ether;
-    uint256 principalPayout; 
+    uint256 principalPayout;
 
     vm.expectEmit(true, true, true, true);
     emit DistributeFunds(principalPayout, rewardPayout, 0);
