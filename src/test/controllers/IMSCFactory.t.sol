@@ -27,6 +27,8 @@ contract IMSCFactory is Test {
     ImmutableSplitControllerFactory public factory;
     ImmutableSplitController public cntrlImpl;
 
+    address owner;
+
     address[] accounts;
     uint32[]  percentAllocations;
 
@@ -44,6 +46,8 @@ contract IMSCFactory is Test {
         percentAllocations = new uint32[](2);
         percentAllocations[0] = 400_000;
         percentAllocations[1] = 600_000;
+
+        owner = makeAddr("owner");
     }
     
     function test_RevertIfAccountSizeIsOne() public {
@@ -56,6 +60,7 @@ contract IMSCFactory is Test {
 
         factory.createController(
             address(1),
+            owner,
             newAccounts,
             percentAllocations,
             0,
@@ -79,6 +84,7 @@ contract IMSCFactory is Test {
 
         factory.createController(
             address(1),
+            owner,
             accounts,
             newPercentAllocations,
             0,
@@ -101,6 +107,7 @@ contract IMSCFactory is Test {
 
         factory.createController(
             address(1),
+            owner,
             newAccounts,
             percentAllocations,
             0,
@@ -122,6 +129,7 @@ contract IMSCFactory is Test {
 
         factory.createController(
             address(1),
+            owner,
             accounts,
             newPercentAllocations,
             0,
@@ -141,6 +149,7 @@ contract IMSCFactory is Test {
 
         factory.createController(
             address(1),
+            owner,
             accounts,
             percentAllocations,
             invalidDistributorFee,
@@ -162,6 +171,7 @@ contract IMSCFactory is Test {
 
         factory.createController(
             address(1),
+            owner,
             accounts,
             newPercentAllocations,
             0,
@@ -173,6 +183,7 @@ contract IMSCFactory is Test {
         bytes32 deploymentSalt =  keccak256(abi.encodePacked(uint256(1102)));
 
         address predictedAddress = factory.predictSplitControllerAddress(
+            owner,
             accounts,
             percentAllocations,
             0,
@@ -188,6 +199,7 @@ contract IMSCFactory is Test {
 
         ImmutableSplitController controller = factory.createController(
             split,
+            owner,
             accounts,
             percentAllocations,
             0,

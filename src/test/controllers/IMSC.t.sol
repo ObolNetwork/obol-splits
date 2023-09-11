@@ -10,6 +10,7 @@ import {ISplitMain} from "src/interfaces/ISplitMain.sol";
 
 contract IMSC is Test {
     error Initialized();
+    error Unauthorized();
 
     address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
     uint256 public constant PERCENTAGE_SCALE = 1e6;
@@ -26,6 +27,7 @@ contract IMSC is Test {
     uint32[] controllerPercentAllocations;
 
     address split;
+    address owner;
 
     function setUp() public {
         uint256 goerliBlock = 8_529_931;
@@ -37,6 +39,8 @@ contract IMSC is Test {
         accounts = new address[](2);
         accounts[0] = makeAddr("accounts0");
         accounts[1] = makeAddr("accounts1");
+
+        owner = makeAddr("accounts3");
 
         percentAllocations = new uint32[](2);
         percentAllocations[0] = 400_000;
@@ -56,6 +60,7 @@ contract IMSC is Test {
         
         // predict controller address
         address predictedControllerAddress = factory.predictSplitControllerAddress(
+            owner,
             controllerAccounts,
             controllerPercentAllocations,
             0,
@@ -72,6 +77,7 @@ contract IMSC is Test {
         // deploy controller 
         controller = factory.createController(
             split,
+            owner,
             controllerAccounts,
             controllerPercentAllocations,
             0,
@@ -92,6 +98,13 @@ contract IMSC is Test {
         assertEq(controller.splitMain(), SPLIT_MAIN_GOERLI, "valid splitMain address");
     }
 
+    function testCan_getOwner() public {
+        assertEq(
+            controller.owner(),
+            owner,
+            "valid controller owner"
+        );
+    }
     function testCan_getDistributorFee() public {
         assertEq(controller.distributorFee(), 0 , "invalid distributor fee");
         
@@ -99,6 +112,7 @@ contract IMSC is Test {
 
         ImmutableSplitController customController = factory.createController(
             split,
+            owner,
             controllerAccounts,
             controllerPercentAllocations,
             maxDistributorFee,
@@ -144,7 +158,13 @@ contract IMSC is Test {
         );
     }
 
+    function testCannot_updateSplitIfNonOwner() public {
+        vm.expectRevert(Unauthorized.selector);
+        controller.updateSplit();
+    }
+
     function testCan_updateSplit() public {
+        vm.prank(owner);
         controller.updateSplit();
 
         assertEq(
@@ -155,11 +175,13 @@ contract IMSC is Test {
     }
 
     function testFuzz_updateSplit(
+        address ownerAddress,
         uint256 splitSeed,
         uint256 controllerSeed,
         uint8 splitSize,
         uint8 controllerSize
     ) public {
+        vm.assume (ownerAddress != address(0));
         vm.assume(splitSeed != controllerSeed);
         vm.assume(splitSize > 1);
         vm.assume(controllerSize > 1);
@@ -174,6 +196,7 @@ contract IMSC is Test {
 
         // predict controller address
         address predictedControllerAddress = factory.predictSplitControllerAddress(
+            ownerAddress,
             ctrllerAccounts,
             ctrllerPercentAlloc,
             0,
@@ -191,6 +214,7 @@ contract IMSC is Test {
         // create controller
         controller = factory.createController(
             fuzzSplit,
+            ownerAddress,
             ctrllerAccounts,
             ctrllerPercentAlloc,
             0,
@@ -200,6 +224,7 @@ contract IMSC is Test {
         // get current split hash
         bytes32 currentSplitHash = ISplitMain(SPLIT_MAIN_GOERLI).getHash(fuzzSplit);
         // update split
+        vm.prank(ownerAddress);
         controller.updateSplit();
 
         bytes32 newSplitHash = ISplitMain(SPLIT_MAIN_GOERLI).getHash(fuzzSplit);
