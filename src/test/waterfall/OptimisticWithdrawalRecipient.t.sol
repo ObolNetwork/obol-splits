@@ -14,7 +14,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
   event ReceiveETH(uint256 amount);
 
-  event DistributeFunds(uint256[] payouts, uint256 pullFlowFlag);
+  event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
 
   event RecoverNonOWRecipientFunds(address nonOWRToken, address recipient, uint256 amount);
 
@@ -60,17 +60,17 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
   function testGetTranches() public {
     // eth
-    (address[] memory recipients, uint256 wtrancheThreshold) = owrETH.getTranches();
+    (address _principalRecipient, address _rewardRecipient, uint256 wtrancheThreshold) = owrETH.getTranches();
 
-    assertEq(recipients[0], principalRecipient, "invalid principal recipient");
-    assertEq(recipients[1], rewardRecipient, "invalid reward recipient");
+    assertEq(_principalRecipient, principalRecipient, "invalid principal recipient");
+    assertEq( _rewardRecipient, rewardRecipient, "invalid reward recipient");
     assertEq(wtrancheThreshold, ETH_STAKE, "invalid eth tranche threshold");
 
     // erc20
-    (recipients, wtrancheThreshold) = owrERC20.getTranches();
+    (_principalRecipient, _rewardRecipient, wtrancheThreshold) = owrERC20.getTranches();
 
-    assertEq(recipients[0], principalRecipient, "invalid erc20 principal recipient");
-    assertEq(recipients[1], rewardRecipient, "invalid erc20 reward recipient");
+    assertEq(_principalRecipient, principalRecipient, "invalid erc20 principal recipient");
+    assertEq(_rewardRecipient, rewardRecipient, "invalid erc20 reward recipient");
     assertEq(wtrancheThreshold, ETH_STAKE, "invalid erc20 tranche threshold");
   }
 
@@ -207,30 +207,30 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   }
 
   function testCan_emitOnDistributeToNoRecipients() public {
-    uint256[] memory payouts = new uint256[](2);
-    payouts[0] = 0 ether;
-    payouts[1] = 0 ether;
+    uint256 principalPayout;
+    uint256 rewardPayout;
 
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(payouts, 0);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
     owrETH.distributeFunds();
   }
 
   function testCan_distributeToSecondRecipient() public {
     address(owrETH).safeTransferETH(1 ether);
 
-    uint256[] memory payouts = new uint256[](2);
-    payouts[1] = 1 ether;
+    // uint256[] memory payouts = new uint256[](2);
+    uint256 rewardPayout = 1 ether;
+    uint256 principalPayout; 
 
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(payouts, 0);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
     owrETH.distributeFunds();
     assertEq(address(owrETH).balance, 0 ether);
     assertEq(rewardRecipient.balance, 1 ether);
 
-    payouts[1] = 0;
+    rewardPayout = 0;
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(payouts, 0);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
     owrETH.distributeFunds();
     assertEq(address(owrETH).balance, 0 ether);
     assertEq(principalRecipient.balance, 0 ether);
@@ -238,16 +238,16 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     address(mERC20).safeTransfer(address(owrERC20_OR), 1 ether);
 
-    payouts[1] = 1 ether;
+    rewardPayout = 1 ether;
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(payouts, 0);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
     owrERC20_OR.distributeFunds();
     assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
     assertEq(mERC20.balanceOf(rewardRecipient), 1 ether);
 
-    payouts[1] = 0;
+    rewardPayout = 0;
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(payouts, 0);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
     owrERC20_OR.distributeFunds();
     assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
     assertEq(principalRecipient.balance, 0 ether);
@@ -279,12 +279,11 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   function testCan_distributeToBothRecipients() public {
     address(owrETH).safeTransferETH(36 ether);
 
-    uint256[] memory payouts = new uint256[](2);
-    payouts[0] = 32 ether;
-    payouts[1] = 4 ether;
+    uint256 principalPayout = 32 ether;
+    uint256 rewardPayout = 4 ether;
 
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(payouts, 0);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
     owrETH.distributeFunds();
     assertEq(address(owrETH).balance, 0 ether);
     assertEq(principalRecipient.balance, 32 ether);
@@ -293,7 +292,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     address(mERC20).safeTransfer(address(owrERC20_OR), 36 ether);
 
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(payouts, 0);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
     owrERC20_OR.distributeFunds();
     assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
     assertEq(principalRecipient.balance, 32 ether);
