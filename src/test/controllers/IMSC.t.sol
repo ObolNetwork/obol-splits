@@ -181,7 +181,7 @@ contract IMSC is Test {
         uint8 splitSize,
         uint8 controllerSize
     ) public {
-        vm.assume (ownerAddress != address(0));
+        vm.assume(ownerAddress != address(0));
         vm.assume(splitSeed != controllerSeed);
         vm.assume(splitSize > 1);
         vm.assume(controllerSize > 1);
@@ -220,6 +220,8 @@ contract IMSC is Test {
             0,
             deploymentSalt
         );
+
+        assertEq(controller.owner(), ownerAddress, "invalid owner address");
 
         // get current split hash
         bytes32 currentSplitHash = ISplitMain(SPLIT_MAIN_GOERLI).getHash(fuzzSplit);
