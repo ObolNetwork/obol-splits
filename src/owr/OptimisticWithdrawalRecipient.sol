@@ -5,7 +5,6 @@ import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-
 /// @title OptimisticWithdrawalRecipient
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
