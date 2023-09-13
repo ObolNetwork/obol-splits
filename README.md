@@ -69,9 +69,13 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 
 #### Goerli
 
-OptimisticWithdrawalRecipient: https://goerli.etherscan.io/address/0x7b4b2cbbdac4f9b70252503a411574f4ff960e68
+OptimisticWithdrawalRecipient: https://goerli.etherscan.io/address/0xBB3b6CC2882B73eeFb32284Ecc9035839fb2C908
 
-OptimisticWithdrawalRecipientFactory: https://goerli.etherscan.io/address/0xBB3b6CC2882B73eeFb32284Ecc9035839fb2C908
+OptimisticWithdrawalRecipientFactory: https://goerli.etherscan.io/address/0x7b4b2cbbdac4f9b70252503a411574f4ff960e68 
+
+ImmutableSplitControllerFactory: https://goerli.etherscan.io/address/0x64a2c4A50B1f46c3e2bF753CFe270ceB18b5e18f
+
+ImmutableSplitController: https://goerli.etherscan.io/address/0x009894cdA6cB6d99866ca8E04e8EDeabd625712F
 
 ### Versioning
 
