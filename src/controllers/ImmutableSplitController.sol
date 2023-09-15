@@ -100,8 +100,8 @@ contract ImmutableSplitController is Clone {
     accounts = new address[](size);
     percentAllocations = new uint32[](size);
 
-    uint256 i;
-    for (i; i < size;) {
+    uint256 i = 0;
+    for (; i < size;) {
       uint256 recipient = _getRecipient(i);
       accounts[i] = address(uint160(recipient));
       percentAllocations[i] = uint32(recipient >> ADDRESS_BITS);

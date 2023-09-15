@@ -8,6 +8,8 @@ import {ImmutableSplitController} from "./ImmutableSplitController.sol";
 /// @author Obol
 /// @dev Deploys ImmutableSplitController cheaply using cwia clones
 contract ImmutableSplitControllerFactory {
+  /// @dev invalid address
+  error Invalid_Address();
   /// @dev invalid owner address
   error Invalid_Owner();
   /// @dev invalid split address
@@ -112,8 +114,13 @@ contract ImmutableSplitControllerFactory {
   /// @dev initializes the factory
   /// @param splitMain_ Address of splitMain
   constructor(address splitMain_) {
+    if (splitMain_ == address(0)) revert Invalid_Address();
+
     splitMain = splitMain_;
     controller = new ImmutableSplitController();
+    // this is to prevent the initialization of the
+    // implementation contract by external actors
+    controller.init(address(1));
   }
 
   /// Deploys a new immutable controller
@@ -181,8 +188,8 @@ contract ImmutableSplitControllerFactory {
     uint256 recipientsSize = accounts.length;
     uint256[] memory recipients = new uint[](recipientsSize);
 
-    uint256 i;
-    for (i; i < recipientsSize;) {
+    uint256 i = 0;
+    for (; i < recipientsSize;) {
       recipients[i] = (uint256(percentAllocations[i]) << ADDRESS_BITS) | uint256(uint160(accounts[i]));
 
       unchecked {
