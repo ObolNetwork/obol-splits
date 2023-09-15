@@ -74,7 +74,6 @@ contract OptimisticWithdrawalRecipient is Clone {
 
   uint256 internal constant ONE_WORD = 32;
   uint256 internal constant ADDRESS_BITS = 160;
-  uint256 internal constant TRANCHE_SIZE = 2;
 
   /// @dev threshold for pushing balance update as reward or principal
   uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
