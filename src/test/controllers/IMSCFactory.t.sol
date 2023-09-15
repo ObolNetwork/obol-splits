@@ -9,6 +9,7 @@ import {
 import {ISplitMain} from "src/interfaces/ISplitMain.sol";
 
 contract IMSCFactory is Test {
+  error Invalid_Address();
   error Invalid_Owner();
   error InvalidSplit_Address();
   error InvalidSplit__TooFewAccounts(uint256 accountsLength);
@@ -45,6 +46,11 @@ contract IMSCFactory is Test {
     percentAllocations[1] = 600_000;
 
     owner = makeAddr("owner");
+  }
+
+  function test_RevertIfSplitMainIsInvalid() public {
+    vm.expectRevert(Invalid_Address.selector);
+    new ImmutableSplitControllerFactory(address(0));
   }
 
   function test_RevertIfAccountSizeIsOne() public {
