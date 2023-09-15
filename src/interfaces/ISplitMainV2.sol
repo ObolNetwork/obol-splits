@@ -104,8 +104,6 @@ interface ISplitMainV2 {
   /// @param tokens Addresses of ERC20s to withdraw
   function withdraw(address account, uint256 withdrawETH, ERC20[] calldata tokens) external;
 
-
-
   /**
    * EVENTS
    */
