@@ -7,7 +7,7 @@ remappings = [
     'solmate/=lib/solmate/src/',
     'splits-tests/=lib/splits-utils/test/',
 ]
-solc_version = '0.8.17'
+solc_version = '0.8.19'
 
 
 [rpc_endpoints]
