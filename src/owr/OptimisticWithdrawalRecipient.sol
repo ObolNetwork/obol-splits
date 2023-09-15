@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.17;
+pragma solidity 0.8.19;
 
 import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
@@ -287,8 +287,8 @@ contract OptimisticWithdrawalRecipient is Clone {
     (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
 
     // determine which recipeint is getting paid based on funds to be distributed
-    uint256 _principalPayout;
-    uint256 _rewardPayout;
+    uint256 _principalPayout = 0;
+    uint256 _rewardPayout = 0;
 
     unchecked {
       // _claimedPrincipalFunds should always be <= amountOfPrincipalStake
