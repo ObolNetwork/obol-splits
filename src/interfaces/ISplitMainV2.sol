@@ -12,12 +12,17 @@ struct SplitConfiguration {
 }
 
 interface ISplitMainV2 {
-  /// @notice Creates a new split with recipients `accounts` with ownerships `percentAllocations`, a
-  /// keeper fee for splitting of `distributorFee` and the controlling address `controller`
-  /// @param accounts Ordered, unique list of addresses with ownership in the split
-  /// @param percentAllocations Percent allocations associated with each address
+  /// @notice Creates a new split with recipients `accounts` with ownerships
+  /// `percentAllocations`, a
+  /// keeper fee for splitting of `distributorFee` and the controlling address
+  /// `controller`
+  /// @param accounts Ordered, unique list of addresses with ownership in the
+  /// split
+  /// @param percentAllocations Percent allocations associated with each
+  /// address
   /// @param controller Controlling address (0x0 if immutable)
-  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of
+  /// distribution
   /// @return split Address of newly created split
   function createSplit(
     address splitWalletImplementation,
@@ -28,11 +33,16 @@ interface ISplitMainV2 {
     uint32 distributorFee
   ) external returns (address);
 
-  /// @notice Predicts the address for an immutable split created with recipients `accounts` with
-  /// ownerships `percentAllocations` and a keeper fee for splitting of `distributorFee`
-  /// @param accounts Ordered, unique list of addresses with ownership in the split
-  /// @param percentAllocations Percent allocations associated with each address
-  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  /// @notice Predicts the address for an immutable split created with
+  /// recipients `accounts` with
+  /// ownerships `percentAllocations` and a keeper fee for splitting of
+  /// `distributorFee`
+  /// @param accounts Ordered, unique list of addresses with ownership in the
+  /// split
+  /// @param percentAllocations Percent allocations associated with each
+  /// address
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of
+  /// distribution
   /// @return split Predicted address of such an immutable split
   function predictImmutableSplitAddress(
     address splitWalletImplementation,
@@ -57,12 +67,16 @@ interface ISplitMainV2 {
   function makeSplitImmutable(address split) external;
 
   /// @notice Distributes the ETH balance for split `split`
-  /// @dev `accounts`, `percentAllocations`, and `distributorFee` are verified by hashing
+  /// @dev `accounts`, `percentAllocations`, and `distributorFee` are verified
+  /// by hashing
   /// & comparing to the hash in storage associated with split `split`
   /// @param split Address of split to distribute balance for
-  /// @param accounts Ordered, unique list of addresses with ownership in the split
-  /// @param percentAllocations Percent allocations associated with each address
-  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  /// @param accounts Ordered, unique list of addresses with ownership in the
+  /// split
+  /// @param percentAllocations Percent allocations associated with each
+  /// address
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of
+  /// distribution
   /// @param distributorAddress Address to pay `distributorFee` to
   function distributeETH(
     address split,
@@ -123,7 +137,8 @@ interface ISplitMainV2 {
   /**
    * @notice emitted after each initiated split control transfer
    *  @param split Address of the split control transfer was initiated for
-   *  @param newPotentialController Address of the split's new potential controller
+   *  @param newPotentialController Address of the split's new potential
+   * controller
    */
   event InitiateControlTransfer(address indexed split, address indexed newPotentialController);
 

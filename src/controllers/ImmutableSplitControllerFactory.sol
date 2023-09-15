@@ -16,11 +16,13 @@ contract ImmutableSplitControllerFactory {
   error InvalidSplit_Address();
   /// @dev invalid split accounts configuration
   error InvalidSplit__TooFewAccounts(uint256 accountsLength);
-  /// @notice Array lengths of accounts & percentAllocations don't match (`accountsLength` != `allocationsLength`)
+  /// @notice Array lengths of accounts & percentAllocations don't match
+  /// (`accountsLength` != `allocationsLength`)
   /// @param accountsLength Length of accounts array
   /// @param allocationsLength Length of percentAllocations array
   error InvalidSplit__AccountsAndAllocationsMismatch(uint256 accountsLength, uint256 allocationsLength);
-  /// @notice Invalid percentAllocations sum `allocationsSum` must equal `PERCENTAGE_SCALE`
+  /// @notice Invalid percentAllocations sum `allocationsSum` must equal
+  /// `PERCENTAGE_SCALE`
   /// @param allocationsSum Sum of percentAllocations array
   error InvalidSplit__InvalidAllocationsSum(uint32 allocationsSum);
   /// @notice Invalid accounts ordering at `index`
@@ -29,7 +31,8 @@ contract ImmutableSplitControllerFactory {
   /// @notice Invalid percentAllocation of zero at `index`
   /// @param index Index of zero percentAllocation
   error InvalidSplit__AllocationMustBePositive(uint256 index);
-  /// @notice Invalid distributorFee `distributorFee` cannot be greater than 10% (1e5)
+  /// @notice Invalid distributorFee `distributorFee` cannot be greater than
+  /// 10% (1e5)
   /// @param distributorFee Invalid distributorFee amount
   error InvalidSplit__InvalidDistributorFee(uint32 distributorFee);
 
@@ -102,7 +105,8 @@ contract ImmutableSplitControllerFactory {
         if (accounts[i] >= accounts[i + 1]) revert InvalidSplit__AccountsOutOfOrder(i);
         if (percentAllocations[i] == uint32(0)) revert InvalidSplit__AllocationMustBePositive(i);
       }
-      // overflow should be impossible in array access math with validated equal array lengths
+      // overflow should be impossible in array access math with validated
+      // equal array lengths
       if (percentAllocations[loopLength] == uint32(0)) revert InvalidSplit__AllocationMustBePositive(loopLength);
     }
 
@@ -127,8 +131,10 @@ contract ImmutableSplitControllerFactory {
   /// @dev Create a new immutable split controller
   /// @param split Address of the split to create a controller for
   /// @param owner Address that can call the updateSplit(..) function
-  /// @param accounts Ordered, unique list of addresses with ownership in the split
-  /// @param percentAllocations  Percent allocations associated with each address
+  /// @param accounts Ordered, unique list of addresses with ownership in the
+  /// split
+  /// @param percentAllocations  Percent allocations associated with each
+  /// address
   /// @param distributorFee Distributor fee share
   /// @param deploymentSalt salt to use for deterministic deploy
   function createController(
@@ -155,12 +161,16 @@ contract ImmutableSplitControllerFactory {
     emit CreateIMSC(address(controller), split, owner, accounts, percentAllocations, distributorFee);
   }
 
-  /// @notice Predicts the address for an immutable split controller created with
+  /// @notice Predicts the address for an immutable split controller created
+  /// with
   /// recipients `accounts` with ownerships `percentAllocations`
   /// and a keeper fee for splitting of `distributorFee`
-  /// @param accounts Ordered, unique list of addresses with ownership in the split
-  /// @param percentAllocations Percent allocations associated with each address
-  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  /// @param accounts Ordered, unique list of addresses with ownership in the
+  /// split
+  /// @param percentAllocations Percent allocations associated with each
+  /// address
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of
+  /// distribution
   /// @param deploymentSalt Salt to use to deploy
   /// @return splitController Predicted address of such a split controller
   function predictSplitControllerAddress(
@@ -176,9 +186,12 @@ contract ImmutableSplitControllerFactory {
   }
 
   /// @dev Packs split controller data
-  /// @param accounts Ordered, unique list of addresses with ownership in the split
-  /// @param percentAllocations Percent allocations associated with each address
-  /// @param distributorFee Keeper fee paid by split to cover gas costs of distribution
+  /// @param accounts Ordered, unique list of addresses with ownership in the
+  /// split
+  /// @param percentAllocations Percent allocations associated with each
+  /// address
+  /// @param distributorFee Keeper fee paid by split to cover gas costs of
+  /// distribution
   function _packSplitControllerData(
     address owner,
     address[] calldata accounts,
