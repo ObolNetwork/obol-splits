@@ -58,7 +58,6 @@ contract OptimisticWithdrawalRecipientFactory {
   /// -----------------------------------------------------------------------
 
   uint256 internal constant ADDRESS_BITS = 160;
-  uint256 internal constant RECIPIENT_SIZE = 2;
 
   /// OptimisticWithdrawalRecipient implementation address
   OptimisticWithdrawalRecipient public immutable owrImpl;
