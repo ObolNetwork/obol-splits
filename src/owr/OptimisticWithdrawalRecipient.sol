@@ -45,11 +45,13 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// Emitted after funds are distributed to recipients
   /// @param principalPayout Amount of principal paid out
   /// @param rewardPayout Amount of reward paid out
-  /// @param pullFlowFlag Flag for pushing funds to recipients or storing for pulling
+  /// @param pullFlowFlag Flag for pushing funds to recipients or storing for
+  /// pulling
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
 
   /// Emitted after non-OWRecipient tokens are recovered to a recipient
-  /// @param recoveryAddressToken Recovered token (cannot be OptimisticWithdrawalRecipient token)
+  /// @param recoveryAddressToken Recovered token (cannot be
+  /// OptimisticWithdrawalRecipient token)
   /// @param recipient Address receiving recovered token
   /// @param amount Amount of recovered token
   event RecoverNonOWRecipientFunds(address recoveryAddressToken, address recipient, uint256 amount);
@@ -91,7 +93,8 @@ contract OptimisticWithdrawalRecipient is Clone {
   uint256 internal constant TOKEN_OFFSET = 0;
   // 20 = token_offset (0) + token_size (address, 20 bytes)
   uint256 internal constant RECOVERY_ADDRESS_OFFSET = 20;
-  // 40 = recoveryAddress_offset (20) + recoveryAddress_size (address, 20 bytes)
+  // 40 = recoveryAddress_offset (20) + recoveryAddress_size (address, 20
+  // bytes)
   uint256 internal constant TRANCHES_OFFSET = 40;
 
   /// Address of ERC20 to distribute (0x0 used for ETH)
@@ -286,7 +289,8 @@ contract OptimisticWithdrawalRecipient is Clone {
 
     (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
 
-    // determine which recipeint is getting paid based on funds to be distributed
+    // determine which recipeint is getting paid based on funds to be
+    // distributed
     uint256 _principalPayout = 0;
     uint256 _rewardPayout = 0;
 
@@ -296,12 +300,14 @@ contract OptimisticWithdrawalRecipient is Clone {
 
       if (_fundsToBeDistributed >= BALANCE_CLASSIFICATION_THRESHOLD && principalStakeRemaining > 0) {
         if (_fundsToBeDistributed > principalStakeRemaining) {
-          // this means there is reward part of the funds to be distributed
+          // this means there is reward part of the funds to be
+          // distributed
           _principalPayout = principalStakeRemaining;
           // shouldn't underflow
           _rewardPayout = _fundsToBeDistributed - principalStakeRemaining;
         } else {
-          // this means there is no reward part of the funds to be distributed
+          // this means there is no reward part of the funds to be
+          // distributed
           _principalPayout = _fundsToBeDistributed;
         }
       } else {
@@ -320,7 +326,8 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// interactions
 
     // pay outs
-    // earlier tranche recipients may try to re-enter but will cause fn to revert
+    // earlier tranche recipients may try to re-enter but will cause fn to
+    // revert
     // when later external calls fail (bc balance is emptied early)
 
     // pay out principal

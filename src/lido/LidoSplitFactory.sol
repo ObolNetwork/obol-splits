@@ -48,7 +48,8 @@ contract LidoSplitFactory {
     lidoSplitImpl = new LidoSplit();
   }
 
-  /// Creates a wrapper for splitWallet that transforms stETH token into wstETH
+  /// Creates a wrapper for splitWallet that transforms stETH token into
+  /// wstETH
   /// @param splitWallet Address of the splitWallet to transfer wstETH to
   /// @return lidoSplit Address of the wrappper split
   function createSplit(address splitWallet) external returns (address lidoSplit) {

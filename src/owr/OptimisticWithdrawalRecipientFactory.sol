@@ -6,7 +6,8 @@ import {LibClone} from "solady/utils/LibClone.sol";
 
 /// @title OptimisticWithdrawalRecipientFactory
 /// @author Obol
-/// @notice A factory contract for cheaply deploying OptimisticWithdrawalRecipient.
+/// @notice A factory contract for cheaply deploying
+/// OptimisticWithdrawalRecipient.
 /// @dev This contract uses token = address(0) to refer to ETH.
 contract OptimisticWithdrawalRecipientFactory {
   /// -----------------------------------------------------------------------
@@ -82,11 +83,13 @@ contract OptimisticWithdrawalRecipientFactory {
   /// @param token Address of ERC20 to distribute (0x0 used for ETH)
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// If this address is 0x0, recovery of unrelated tokens can be completed by
-  /// either the principal or reward recipients.  If this address is set, only this address can recover
+  /// either the principal or reward recipients.  If this address is set, only
+  /// this address can recover
   /// tokens (or ether) that isn't the token of the OWRecipient contract
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
-  /// @param amountOfPrincipalStake Absolute amount of stake to be paid to principal recipient (multiple of 32 ETH)
+  /// @param amountOfPrincipalStake Absolute amount of stake to be paid to
+  /// principal recipient (multiple of 32 ETH)
   /// (reward recipient has no threshold & receives all residual flows)
   /// it cannot be greater than uint96
   /// @return owr Address of new OptimisticWithdrawalRecipient clone
