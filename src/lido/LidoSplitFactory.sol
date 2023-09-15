@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity =0.8.17;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity =0.8.19;
 
 import {LibClone} from "solady/utils/LibClone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";

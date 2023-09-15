@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity ^0.8.19;
 
 contract LidoSplitTestHelper {
   address internal STETH_MAINNET_ADDRESS = address(0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84);
