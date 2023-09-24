@@ -111,7 +111,7 @@ contract OptimisticWithdrawalRecipient is Clone {
 
   /// Amount of distributed OWRecipient token
   /// @dev ERC20s with very large decimals may overflow & cause issues
-  uint128 public distributedFunds;
+  // uint128 public distributedFunds;
 
   /// Amount of active balance set aside for pulls
   /// @dev ERC20s with very large decimals may overflow & cause issues
@@ -244,23 +244,12 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// effects
 
     // load storage into memory
-    // fetch the token we want to distribute
-    // address _token = token();
-    // the amount of funds distributed so far
-    uint256 _startingDistributedFunds = uint256(distributedFunds);
-    uint256 _endingDistributedFunds;
+    uint256 currentbalance = address(this).balance;
     uint256 _fundsToBeDistributed;
     uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
     unchecked {
-      // shouldn't overflow
-      _endingDistributedFunds = _startingDistributedFunds
-      // fundsPendingWithdrawal is always <= _startingDistributedFunds
-      - _memoryFundsPendingWithdrawal
-      // recognizes 0x0 as ETH
-      // shouldn't need to worry about re-entrancy from ERC20 view fn
-      + address(this).balance;
-      _fundsToBeDistributed = _endingDistributedFunds - _startingDistributedFunds;
+      _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
     }
 
     (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
@@ -292,9 +281,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     }
 
     {
-      if (_endingDistributedFunds > type(uint128).max) revert InvalidDistribution_TooLarge();
       // Write to storage
-      distributedFunds = uint128(_endingDistributedFunds);
       // the principal value
       claimedPrincipalFunds += _principalPayout;
     }
