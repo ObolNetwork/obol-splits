@@ -187,7 +187,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     // recover non-target token
     uint256 amount = ERC20(nonOWRToken).balanceOf(address(this));
     nonOWRToken.safeTransfer(recipient, amount);
-    
+
     emit RecoverNonOWRecipientFunds(nonOWRToken, recipient, amount);
   }
 
