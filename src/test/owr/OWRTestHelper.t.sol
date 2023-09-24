@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 contract OWRTestHelper {
-  address internal constant ETH_ADDRESS = address(0);
+  // address internal constant ETH_ADDRESS = address(0);
 
   uint256 internal constant MAX_TRANCHE_SIZE = 2;
 
