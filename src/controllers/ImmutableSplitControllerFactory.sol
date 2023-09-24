@@ -35,6 +35,9 @@ contract ImmutableSplitControllerFactory {
   /// 10% (1e5)
   /// @param distributorFee Invalid distributorFee amount
   error InvalidSplit__InvalidDistributorFee(uint32 distributorFee);
+  /// @notice Array of accounts size
+  /// @param size acounts size
+  error InvalidSplit__TooManyAccounts(uint256 size);
 
   /// -----------------------------------------------------------------------
   /// libraries
@@ -199,6 +202,8 @@ contract ImmutableSplitControllerFactory {
     uint32 distributorFee
   ) internal view returns (bytes memory data) {
     uint256 recipientsSize = accounts.length;
+    if (recipientsSize > type(uint8).max) revert InvalidSplit__TooManyAccounts(recipientsSize);
+
     uint256[] memory recipients = new uint[](recipientsSize);
 
     uint256 i = 0;
