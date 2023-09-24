@@ -14,6 +14,10 @@ contract ImmutableSplitController is Clone {
   /// @notice
   error Unauthorized();
 
+  /// @notice Revert if split balance is > 1
+  /// @dev Prevent distribution of current balance
+  error Invalid_SplitBalance();
+
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
@@ -64,6 +68,9 @@ contract ImmutableSplitController is Clone {
     if (msg.sender != owner()) revert Unauthorized();
 
     (address[] memory accounts, uint32[] memory percentAllocations) = getNewSplitConfiguration();
+
+    // prevent distribution of existing money
+    if (address(split).balance > 1) revert Invalid_SplitBalance();
 
     ISplitMain(splitMain()).updateSplit(split, accounts, percentAllocations, uint32(distributorFee()));
   }
