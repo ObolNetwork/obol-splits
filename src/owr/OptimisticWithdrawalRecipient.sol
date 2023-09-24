@@ -109,10 +109,6 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// storage - mutables
   /// -----------------------------------------------------------------------
 
-  /// Amount of distributed OWRecipient token
-  /// @dev ERC20s with very large decimals may overflow & cause issues
-  // uint128 public distributedFunds;
-
   /// Amount of active balance set aside for pulls
   /// @dev ERC20s with very large decimals may overflow & cause issues
   uint128 public fundsPendingWithdrawal;
