@@ -64,8 +64,6 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// storage - constants
   /// -----------------------------------------------------------------------
 
-  address internal constant ETH_ADDRESS = address(0);
-
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
 
