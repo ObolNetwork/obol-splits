@@ -10,7 +10,6 @@ import {OWRTestHelper} from "./OWRTestHelper.t.sol";
 contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   event CreateOWRecipient(
     address indexed owr,
-    address token,
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
@@ -18,7 +17,6 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   );
 
   OptimisticWithdrawalRecipientFactory owrFactoryModule;
-  MockERC20 mERC20;
 
   address public recoveryAddress;
   address public principalRecipient;
@@ -26,9 +24,6 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   uint256 public threshold;
 
   function setUp() public {
-    mERC20 = new MockERC20("Test Token", "TOK", 18);
-    mERC20.mint(type(uint256).max);
-
     owrFactoryModule = new OptimisticWithdrawalRecipientFactory();
 
     recoveryAddress = makeAddr("recoveryAddress");
@@ -37,69 +32,41 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   }
 
   function testCan_createOWRecipient() public {
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
-
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     recoveryAddress = address(0);
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
-
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 
   function testCan_emitOnCreate() public {
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
     emit CreateOWRecipient(
-      address(0xdead), ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
+      address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold
     );
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
-
-    // don't check deploy address
-    vm.expectEmit(false, true, true, true);
-    emit CreateOWRecipient(
-      address(0xdead), address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
-    );
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     recoveryAddress = address(0);
 
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
     emit CreateOWRecipient(
-      address(0xdead), ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
+      address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold
     );
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
-
-    // don't check deploy address
-    vm.expectEmit(false, true, true, true);
-    emit CreateOWRecipient(
-      address(0xdead), address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
-    );
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 
   function testCannot_createWithInvalidRecipients() public {
     (principalRecipient, rewardRecipient, threshold) = generateTranches(1, 1);
     // eth
     vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector);
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, address(0), rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, address(0), rewardRecipient, threshold);
 
     vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector);
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, address(0), address(0), threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, address(0), address(0), threshold);
 
     vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector);
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, address(0), threshold);
-
-    // erc20
-    vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector);
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, address(0), rewardRecipient, threshold);
-
-    vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector);
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, address(0), address(0), threshold);
-
-    vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector);
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, address(0), threshold);
+    owrFactoryModule.createOWRecipient( recoveryAddress, principalRecipient, address(0), threshold);
   }
 
   function testCannot_createWithInvalidThreshold() public {
@@ -107,7 +74,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     threshold = 0;
 
     vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector);
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient( recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     vm.expectRevert(
       abi.encodeWithSelector(
@@ -115,7 +82,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
       )
     );
     owrFactoryModule.createOWRecipient(
-      ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, type(uint128).max
+      recoveryAddress, principalRecipient, rewardRecipient, type(uint128).max
     );
   }
 
@@ -132,15 +99,9 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
 
     vm.expectEmit(false, true, true, true);
     emit CreateOWRecipient(
-      address(0xdead), ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold
+      address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold
     );
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
-
-    vm.expectEmit(false, true, true, true);
-    emit CreateOWRecipient(
-      address(0xdead), address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
-    );
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 
   function testFuzzCannot_CreateWithZeroThreshold(uint256 _receipientSeed) public {
@@ -149,12 +110,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
 
     // eth
     vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector);
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
-
-    // erc20
-    vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector);
-
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 
   function testFuzzCannot_CreateWithLargeThreshold(uint256 _receipientSeed, uint256 _threshold) public {
@@ -167,12 +123,6 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
       abi.encodeWithSelector(OptimisticWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
     );
 
-    owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
-
-    vm.expectRevert(
-      abi.encodeWithSelector(OptimisticWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
-    );
-
-    owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient( recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 }

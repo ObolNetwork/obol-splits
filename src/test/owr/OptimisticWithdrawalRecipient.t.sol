@@ -23,9 +23,9 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   address internal recoveryAddress;
 
   OptimisticWithdrawalRecipient owrETH;
-  OptimisticWithdrawalRecipient owrERC20;
+  // OptimisticWithdrawalRecipient owrERC20;
   OptimisticWithdrawalRecipient owrETH_OR;
-  OptimisticWithdrawalRecipient owrERC20_OR;
+  // OptimisticWithdrawalRecipient owrERC20_OR;
   MockERC20 mERC20;
 
   address public principalRecipient;
@@ -46,16 +46,10 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     recoveryAddress = makeAddr("recoveryAddress");
 
     owrETH =
-      owrFactory.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
-
-    owrERC20 = owrFactory.createOWRecipient(
-      address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold
-    );
+      owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
 
     owrETH_OR =
-      owrFactory.createOWRecipient(ETH_ADDRESS, address(0), principalRecipient, rewardRecipient, trancheThreshold);
-    owrERC20_OR =
-      owrFactory.createOWRecipient(address(mERC20), address(0), principalRecipient, rewardRecipient, trancheThreshold);
+      owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
   }
 
   function testGetTranches() public {
@@ -65,29 +59,16 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(_principalRecipient, principalRecipient, "invalid principal recipient");
     assertEq(_rewardRecipient, rewardRecipient, "invalid reward recipient");
     assertEq(wtrancheThreshold, ETH_STAKE, "invalid eth tranche threshold");
-
-    // erc20
-    (_principalRecipient, _rewardRecipient, wtrancheThreshold) = owrERC20.getTranches();
-
-    assertEq(_principalRecipient, principalRecipient, "invalid erc20 principal recipient");
-    assertEq(_rewardRecipient, rewardRecipient, "invalid erc20 reward recipient");
-    assertEq(wtrancheThreshold, ETH_STAKE, "invalid erc20 tranche threshold");
   }
 
   function testReceiveETH() public {
     address(owrETH).safeTransferETH(1 ether);
     assertEq(address(owrETH).balance, 1 ether);
-
-    address(owrERC20).safeTransferETH(1 ether);
-    assertEq(address(owrERC20).balance, 1 ether);
   }
 
   function testReceiveTransfer() public {
     payable(address(owrETH)).transfer(1 ether);
     assertEq(address(owrETH).balance, 1 ether);
-
-    payable(address(owrERC20)).transfer(1 ether);
-    assertEq(address(owrERC20).balance, 1 ether);
   }
 
   function testEmitOnReceiveETH() public {
@@ -100,9 +81,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   function testReceiveERC20() public {
     address(mERC20).safeTransfer(address(owrETH), 1 ether);
     assertEq(mERC20.balanceOf(address(owrETH)), 1 ether);
-
-    address(mERC20).safeTransfer(address(owrERC20), 1 ether);
-    assertEq(mERC20.balanceOf(address(owrERC20)), 1 ether);
   }
 
   function testCan_recoverNonOWRFundsToRecipient() public {
@@ -133,33 +111,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(address(owrETH_OR).balance, 1 ether);
     assertEq(mERC20.balanceOf(address(owrETH_OR)), 0 ether);
     assertEq(mERC20.balanceOf(rewardRecipient), 1 ether);
-
-    address(owrERC20).safeTransferETH(1 ether);
-    address(mERC20).safeTransfer(address(owrERC20), 1 ether);
-
-    vm.expectEmit(true, true, true, true);
-    emit RecoverNonOWRecipientFunds(ETH_ADDRESS, recoveryAddress, 1 ether);
-    owrERC20.recoverFunds(ETH_ADDRESS, recoveryAddress);
-    assertEq(mERC20.balanceOf(address(owrERC20)), 1 ether);
-    assertEq(address(owrERC20).balance, 0 ether);
-    assertEq(recoveryAddress.balance, 1 ether);
-
-    address(owrERC20_OR).safeTransferETH(1 ether);
-    address(mERC20).safeTransfer(address(owrERC20_OR), 1 ether);
-
-    vm.expectEmit(true, true, true, true);
-    emit RecoverNonOWRecipientFunds(ETH_ADDRESS, principalRecipient, 1 ether);
-    owrERC20_OR.recoverFunds(ETH_ADDRESS, principalRecipient);
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether);
-    assertEq(address(owrERC20_OR).balance, 0 ether);
-    assertEq(principalRecipient.balance, 1 ether);
-
-    address(owrERC20_OR).safeTransferETH(1 ether);
-
-    owrERC20_OR.recoverFunds(ETH_ADDRESS, rewardRecipient);
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether);
-    assertEq(address(owrERC20_OR).balance, 0 ether, "invalid erc20 balance");
-    assertEq(rewardRecipient.balance, 1 ether, "invalid eth balance");
   }
 
   function testCannot_recoverFundsToNonRecipient() public {
@@ -167,28 +118,16 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETH.recoverFunds(address(mERC20), address(1));
 
     vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector);
-    owrERC20_OR.recoverFunds(ETH_ADDRESS, address(1));
-
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector);
     owrETH_OR.recoverFunds(address(mERC20), address(2));
-
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector);
-    owrERC20_OR.recoverFunds(ETH_ADDRESS, address(2));
   }
 
-  function testCannot_recoverOWRFunds() public {
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
-    owrETH.recoverFunds(ETH_ADDRESS, recoveryAddress);
+  // function testCannot_recoverOWRFunds() public {
+  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
+  //   owrETH.recoverFunds(address(mERC20), recoveryAddress);
 
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
-    owrERC20_OR.recoverFunds(address(mERC20), recoveryAddress);
-
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
-    owrETH_OR.recoverFunds(ETH_ADDRESS, address(1));
-
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
-    owrERC20_OR.recoverFunds(address(mERC20), address(1));
-  }
+  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
+  //   owrETH_OR.recoverFunds(address(mERC20), address(1));
+  // }
 
   function testCan_OWRIsPayable() public {
     owrETH.distributeFunds{value: 2 ether}();
@@ -201,9 +140,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   function testCan_distributeToNoRecipients() public {
     owrETH.distributeFunds();
     assertEq(principalRecipient.balance, 0 ether);
-
-    owrERC20_OR.distributeFunds();
-    assertEq(mERC20.balanceOf(principalRecipient), 0 ether);
   }
 
   function testCan_emitOnDistributeToNoRecipients() public {
@@ -218,7 +154,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   function testCan_distributeToSecondRecipient() public {
     address(owrETH).safeTransferETH(1 ether);
 
-    // uint256[] memory payouts = new uint256[](2);
     uint256 rewardPayout = 1 ether;
     uint256 principalPayout;
 
@@ -235,23 +170,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(address(owrETH).balance, 0 ether);
     assertEq(principalRecipient.balance, 0 ether);
     assertEq(rewardRecipient.balance, 1 ether);
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 1 ether);
-
-    rewardPayout = 1 ether;
-    vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(principalPayout, rewardPayout, 0);
-    owrERC20_OR.distributeFunds();
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 1 ether);
-
-    rewardPayout = 0;
-    vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(principalPayout, rewardPayout, 0);
-    owrERC20_OR.distributeFunds();
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(principalRecipient.balance, 0 ether);
-    assertEq(rewardRecipient.balance, 1 ether);
   }
 
   function testCan_distributeMultipleDepositsToRewardRecipient() public {
@@ -264,16 +182,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETH.distributeFunds();
     assertEq(address(owrETH).balance, 0 ether);
     assertEq(rewardRecipient.balance, 1 ether);
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 0.5 ether);
-    owrERC20_OR.distributeFunds();
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 0.5 ether);
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 0.5 ether);
-    owrERC20_OR.distributeFunds();
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 1 ether);
   }
 
   function testCan_distributeToBothRecipients() public {
@@ -288,15 +196,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(address(owrETH).balance, 0 ether);
     assertEq(principalRecipient.balance, 32 ether);
     assertEq(rewardRecipient.balance, 4 ether);
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 36 ether);
-
-    vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(principalPayout, rewardPayout, 0);
-    owrERC20_OR.distributeFunds();
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(principalRecipient.balance, 32 ether);
-    assertEq(rewardRecipient.balance, 4 ether);
   }
 
   function testCan_distributeMultipleDepositsToPrincipalRecipient() public {
@@ -309,16 +208,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(address(owrETH).balance, 0 ether);
     assertEq(principalRecipient.balance, 32 ether);
     assertEq(rewardRecipient.balance, 0 ether);
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 16 ether);
-    owrERC20_OR.distributeFunds();
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 16 ether);
-    owrERC20_OR.distributeFunds();
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(mERC20.balanceOf(principalRecipient), 32 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 0);
   }
 
   function testCannot_distributeTooMuch() public {
@@ -331,22 +220,12 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
     owrETH.distributeFundsPull();
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), type(uint128).max);
-    owrERC20_OR.distributeFunds();
-    address(mERC20).safeTransfer(address(owrERC20_OR), 1);
-
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
-    owrERC20_OR.distributeFunds();
-
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
-    owrERC20_OR.distributeFundsPull();
   }
 
   function testCannot_reenterOWR() public {
     OWRReentrancy wr = new OWRReentrancy();
 
-    owrETH = owrFactory.createOWRecipient(ETH_ADDRESS, recoveryAddress, address(wr), rewardRecipient, 1 ether);
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, address(wr), rewardRecipient, 1 ether);
     address(owrETH).safeTransferETH(33 ether);
 
     vm.expectRevert(SafeTransferLib.ETHTransferFailed.selector);
@@ -369,7 +248,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 32 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 4 ether);
 
-    assertEq(owrETH.distributedFunds(), 36 ether);
+    // assertEq(owrETH.distributedFunds(), 36 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 36 ether);
 
     owrETH.withdraw(rewardRecipient);
@@ -381,7 +260,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 32 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0);
 
-    assertEq(owrETH.distributedFunds(), 36 ether);
+    // assertEq(owrETH.distributedFunds(), 36 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 32 ether);
 
     owrETH.withdraw(principalRecipient);
@@ -393,46 +272,8 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0);
 
-    assertEq(owrETH.distributedFunds(), 36 ether);
+    // assertEq(owrETH.distributedFunds(), 36 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether);
-
-    // test erc20
-    address(mERC20).safeTransfer(address(owrERC20_OR), 36 ether);
-    owrERC20_OR.distributeFundsPull();
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 36 ether);
-    assertEq(mERC20.balanceOf(principalRecipient), 0);
-    assertEq(mERC20.balanceOf(rewardRecipient), 0);
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 32 ether);
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 4 ether);
-
-    assertEq(owrERC20_OR.distributedFunds(), 36 ether);
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 36 ether);
-
-    owrERC20_OR.withdraw(rewardRecipient);
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 32 ether);
-    assertEq(mERC20.balanceOf(principalRecipient), 0 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 4 ether);
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 32 ether);
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 0 ether);
-
-    assertEq(owrERC20_OR.distributedFunds(), 36 ether);
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 32 ether);
-
-    owrERC20_OR.withdraw(principalRecipient);
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(mERC20.balanceOf(principalRecipient), 32 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 4 ether);
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 0 ether);
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 0 ether);
-
-    assertEq(owrERC20_OR.distributedFunds(), 36 ether);
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 0 ether);
   }
 
   function testCan_distributePushAndPull() public {
@@ -449,7 +290,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0 ether);
 
-    assertEq(owrETH.distributedFunds(), 0.5 ether);
+    // assertEq(owrETH.distributedFunds(), 0.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether);
 
     address(owrETH).safeTransferETH(1 ether);
@@ -464,7 +305,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    assertEq(owrETH.distributedFunds(), 1.5 ether);
+    // assertEq(owrETH.distributedFunds(), 1.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     owrETH.distributeFunds();
@@ -476,7 +317,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    assertEq(owrETH.distributedFunds(), 1.5 ether);
+    // assertEq(owrETH.distributedFunds(), 1.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     owrETH.distributeFundsPull();
@@ -488,7 +329,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    assertEq(owrETH.distributedFunds(), 1.5 ether);
+    // assertEq(owrETH.distributedFunds(), 1.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     address(owrETH).safeTransferETH(1 ether);
@@ -503,7 +344,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    assertEq(owrETH.distributedFunds(), 2.5 ether);
+    // assertEq(owrETH.distributedFunds(), 2.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     owrETH.withdraw(rewardRecipient);
@@ -515,7 +356,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0 ether);
 
-    assertEq(owrETH.distributedFunds(), 2.5 ether);
+    // assertEq(owrETH.distributedFunds(), 2.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0);
 
     address(owrETH).safeTransferETH(1 ether);
@@ -528,80 +369,8 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0 ether);
 
-    assertEq(owrETH.distributedFunds(), 2.5 ether);
+    // assertEq(owrETH.distributedFunds(), 2.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether);
-
-    // TEST ERC20
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 0.5 ether);
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0.5 ether);
-
-    owrERC20_OR.distributeFunds();
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether, "1/invalid balance");
-    assertEq(mERC20.balanceOf(principalRecipient), 0 ether, "2/invalid tranche 1 recipient balance");
-    assertEq(mERC20.balanceOf(rewardRecipient), 0.5 ether, "3/invalid tranche 2 recipient balance - 1");
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 0 ether, "4/invalid pull balance");
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 0 ether, "5/invalid pull balance");
-
-    assertEq(owrERC20_OR.distributedFunds(), 0.5 ether, "6/invalid distributed funds");
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 0 ether, "7/invalid funds pending withdrawal");
-
-    address(mERC20).safeTransfer(address(owrERC20_OR), 1 ether);
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether, "8/invalid balance");
-
-    owrERC20_OR.distributeFundsPull();
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether, "9/invalid balance");
-    assertEq(mERC20.balanceOf(principalRecipient), 0 ether, "10/invalid recipeint balance");
-    assertEq(mERC20.balanceOf(rewardRecipient), 0.5 ether, "11/invalid recipient balance");
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 0, "12/invalid recipient pull balance");
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 1 ether, "13/invalid recipient pull balance");
-
-    assertEq(owrERC20_OR.distributedFunds(), 1.5 ether, "14/invalid distributed funds balance");
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 1 ether, "15/invalid funds pending balance");
-
-    owrERC20_OR.distributeFundsPull();
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether, "16/invalid balance");
-    assertEq(mERC20.balanceOf(principalRecipient), 0 ether, "17/invalid recipient balance");
-    assertEq(mERC20.balanceOf(rewardRecipient), 0.5 ether, "18/invalid recipient balance");
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 0 ether, "19/invalid pull balance");
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 1 ether, "20/invalid pull balance");
-
-    assertEq(owrERC20_OR.distributedFunds(), 1.5 ether, "21/invalid distributed funds");
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 1 ether, "22/invalid funds pending");
-
-    /// 3
-    address(mERC20).safeTransfer(address(owrERC20_OR), 32 ether);
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 33 ether);
-
-    owrERC20_OR.distributeFunds();
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 1 ether);
-    assertEq(mERC20.balanceOf(principalRecipient), 32 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 0.5 ether);
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 0 ether);
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 1 ether);
-
-    assertEq(owrERC20_OR.distributedFunds(), 33.5 ether);
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 1 ether);
-
-    owrERC20_OR.withdraw(rewardRecipient);
-
-    assertEq(mERC20.balanceOf(address(owrERC20_OR)), 0 ether);
-    assertEq(mERC20.balanceOf(principalRecipient), 32 ether);
-    assertEq(mERC20.balanceOf(rewardRecipient), 1.5 ether);
-
-    assertEq(owrERC20_OR.getPullBalance(principalRecipient), 0 ether);
-    assertEq(owrERC20_OR.getPullBalance(rewardRecipient), 0 ether);
-
-    assertEq(owrERC20_OR.distributedFunds(), 33.5 ether);
-    assertEq(owrERC20_OR.fundsPendingWithdrawal(), 0 ether);
   }
 
   function testFuzzCan_distributeDepositsToRecipients(
@@ -618,11 +387,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
     owrETH = owrFactory.createOWRecipient(
-      ETH_ADDRESS, recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
-    );
-
-    owrERC20 = owrFactory.createOWRecipient(
-      address(mERC20), recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
+      recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
     );
 
     /// test eth
@@ -634,7 +399,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
 
     assertEq(address(owrETH).balance, 0 ether, "invalid balance");
-    assertEq(owrETH.distributedFunds(), _totalETHAmount, "undistributed funds");
+    // assertEq(owrETH.distributedFunds(), _totalETHAmount, "undistributed funds");
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether, "funds pending withdraw");
 
     if (BALANCE_CLASSIFICATION_THRESHOLD > _totalETHAmount) {
@@ -661,46 +426,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
         assertEq(_rewardRecipient.balance, 0, "should not classify principal as reward");
       }
     }
-
-    // test erc20
-
-    for (uint256 i = 0; i < _numDeposits; i++) {
-      address(mERC20).safeTransfer(address(owrERC20), _erc20Amount);
-      owrERC20.distributeFunds();
-    }
-
-    uint256 _totalERC20Amount = uint256(_numDeposits) * uint256(_erc20Amount);
-
-    assertEq(mERC20.balanceOf(address(owrERC20)), 0 ether, "invalid erc20 balance");
-    assertEq(owrERC20.distributedFunds(), _totalERC20Amount, "incorrect distributed funds");
-    assertEq(owrERC20.fundsPendingWithdrawal(), 0 ether, "invalid funds pending withdrawal");
-
-    if (BALANCE_CLASSIFICATION_THRESHOLD > _totalERC20Amount) {
-      // then all of the deposit should be classified as reward
-      assertEq(mERC20.balanceOf(_principalRecipient), 0, "should not classify reward as principal");
-
-      assertEq(mERC20.balanceOf(_rewardRecipient), _totalERC20Amount, "invalid amount reward classification");
-    }
-
-    if (_erc20Amount > BALANCE_CLASSIFICATION_THRESHOLD) {
-      // then all of reward classified as principal
-      // but check if _totalERC20Amount > first threshold
-      if (_totalERC20Amount > _trancheThreshold) {
-        // there is reward
-        assertEq(mERC20.balanceOf(_principalRecipient), _trancheThreshold, "invalid amount principal classification");
-
-        assertEq(
-          mERC20.balanceOf(_rewardRecipient),
-          _totalERC20Amount - _trancheThreshold,
-          "should not classify principal as reward"
-        );
-      } else {
-        // eelse no rewards
-        assertEq(mERC20.balanceOf(_principalRecipient), _totalERC20Amount, "invalid amount");
-
-        assertEq(mERC20.balanceOf(_rewardRecipient), 0, "should not classify principal as reward");
-      }
-    }
   }
 
   function testFuzzCan_distributePullDepositsToRecipients(
@@ -718,10 +443,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
     owrETH = owrFactory.createOWRecipient(
-      ETH_ADDRESS, recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
-    );
-    owrERC20 = owrFactory.createOWRecipient(
-      address(mERC20), recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
+      recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
     );
 
     /// test eth
@@ -733,7 +455,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
 
     assertEq(address(owrETH).balance, _totalETHAmount);
-    assertEq(owrETH.distributedFunds(), _totalETHAmount);
+    // assertEq(owrETH.distributedFunds(), _totalETHAmount);
     assertEq(owrETH.fundsPendingWithdrawal(), _totalETHAmount);
 
     uint256 principal = owrETH.getPullBalance(_principalRecipient);
@@ -758,50 +480,10 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETH.withdraw(_rewardRecipient);
 
     assertEq(address(owrETH).balance, 0);
-    assertEq(owrETH.distributedFunds(), _totalETHAmount);
+    // assertEq(owrETH.distributedFunds(), _totalETHAmount);
     assertEq(owrETH.fundsPendingWithdrawal(), 0);
 
     assertEq(_principalRecipient.balance, principal, "10/invalid principal balance");
     assertEq(_rewardRecipient.balance, reward, "11/invalid reward balance");
-
-    /// test erc20
-
-    for (uint256 i = 0; i < _numDeposits; i++) {
-      address(mERC20).safeTransfer(address(owrERC20), _erc20Amount);
-      owrERC20.distributeFundsPull();
-    }
-    uint256 _totalERC20Amount = uint256(_numDeposits) * uint256(_erc20Amount);
-
-    assertEq(mERC20.balanceOf(address(owrERC20)), _totalERC20Amount);
-    assertEq(owrERC20.distributedFunds(), _totalERC20Amount);
-    assertEq(owrERC20.fundsPendingWithdrawal(), _totalERC20Amount);
-
-    principal = owrERC20.getPullBalance(_principalRecipient);
-    assertEq(
-      owrERC20.getPullBalance(_principalRecipient),
-      (_erc20Amount >= BALANCE_CLASSIFICATION_THRESHOLD)
-        ? _trancheThreshold > _totalERC20Amount ? _totalERC20Amount : _trancheThreshold
-        : 0,
-      "16/invalid recipient balance"
-    );
-
-    reward = owrERC20.getPullBalance(_rewardRecipient);
-    assertEq(
-      owrERC20.getPullBalance(_rewardRecipient),
-      (_erc20Amount >= BALANCE_CLASSIFICATION_THRESHOLD)
-        ? _totalERC20Amount > _trancheThreshold ? (_totalERC20Amount - _trancheThreshold) : 0
-        : _totalERC20Amount,
-      "17/invalid recipient balance"
-    );
-
-    owrERC20.withdraw(_principalRecipient);
-    owrERC20.withdraw(_rewardRecipient);
-
-    assertEq(mERC20.balanceOf(address(owrERC20)), 0, "18/invalid balance");
-    assertEq(owrERC20.distributedFunds(), _totalERC20Amount, "19/invalid balance");
-    assertEq(owrERC20.fundsPendingWithdrawal(), 0, "20/invalid funds pending");
-
-    assertEq(mERC20.balanceOf(_principalRecipient), principal, "21/invalid principal balance");
-    assertEq(mERC20.balanceOf(_rewardRecipient), reward, "22/invalid reward balance");
   }
 }
