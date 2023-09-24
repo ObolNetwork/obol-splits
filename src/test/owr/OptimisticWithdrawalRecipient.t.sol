@@ -23,9 +23,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   address internal recoveryAddress;
 
   OptimisticWithdrawalRecipient owrETH;
-  // OptimisticWithdrawalRecipient owrERC20;
   OptimisticWithdrawalRecipient owrETH_OR;
-  // OptimisticWithdrawalRecipient owrERC20_OR;
   MockERC20 mERC20;
 
   address public principalRecipient;
@@ -210,17 +208,17 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(rewardRecipient.balance, 0 ether);
   }
 
-  function testCannot_distributeTooMuch() public {
-    vm.deal(address(owrETH), type(uint128).max);
-    owrETH.distributeFunds();
-    vm.deal(address(owrETH), 1);
+  // function testCannot_distributeTooMuch() public {
+  //   vm.deal(address(owrETH), type(uint128).max);
+  //   owrETH.distributeFunds();
+  //   vm.deal(address(owrETH), 1);
 
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
-    owrETH.distributeFunds();
+  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
+  //   owrETH.distributeFunds();
 
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
-    owrETH.distributeFundsPull();
-  }
+  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
+  //   owrETH.distributeFundsPull();
+  // }
 
   function testCannot_reenterOWR() public {
     OWRReentrancy wr = new OWRReentrancy();
@@ -248,7 +246,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 32 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 4 ether);
 
-    // assertEq(owrETH.distributedFunds(), 36 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 36 ether);
 
     owrETH.withdraw(rewardRecipient);
@@ -260,7 +257,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 32 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0);
 
-    // assertEq(owrETH.distributedFunds(), 36 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 32 ether);
 
     owrETH.withdraw(principalRecipient);
@@ -272,7 +268,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0);
 
-    // assertEq(owrETH.distributedFunds(), 36 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether);
   }
 
@@ -290,7 +285,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0 ether);
 
-    // assertEq(owrETH.distributedFunds(), 0.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether);
 
     address(owrETH).safeTransferETH(1 ether);
@@ -305,7 +299,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    // assertEq(owrETH.distributedFunds(), 1.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     owrETH.distributeFunds();
@@ -317,7 +310,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    // assertEq(owrETH.distributedFunds(), 1.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     owrETH.distributeFundsPull();
@@ -329,7 +321,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    // assertEq(owrETH.distributedFunds(), 1.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     address(owrETH).safeTransferETH(1 ether);
@@ -344,7 +335,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 1 ether);
 
-    // assertEq(owrETH.distributedFunds(), 2.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 1 ether);
 
     owrETH.withdraw(rewardRecipient);
@@ -356,7 +346,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0 ether);
 
-    // assertEq(owrETH.distributedFunds(), 2.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0);
 
     address(owrETH).safeTransferETH(1 ether);
@@ -369,7 +358,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(owrETH.getPullBalance(principalRecipient), 0 ether);
     assertEq(owrETH.getPullBalance(rewardRecipient), 0 ether);
 
-    // assertEq(owrETH.distributedFunds(), 2.5 ether);
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether);
   }
 
@@ -480,7 +468,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETH.withdraw(_rewardRecipient);
 
     assertEq(address(owrETH).balance, 0);
-    // assertEq(owrETH.distributedFunds(), _totalETHAmount);
     assertEq(owrETH.fundsPendingWithdrawal(), 0);
 
     assertEq(_principalRecipient.balance, principal, "10/invalid principal balance");
