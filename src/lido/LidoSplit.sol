@@ -19,6 +19,7 @@ contract LidoSplit is Clone {
   /// libraries
   /// -----------------------------------------------------------------------
   using SafeTransferLib for ERC20;
+  using SafeTransferLib for address;
 
   /// -----------------------------------------------------------------------
   /// storage - cwia offsets
@@ -61,5 +62,12 @@ contract LidoSplit is Clone {
     amount = IwSTETH(address(wstETH)).wrap(balance);
     // transfer to split wallet
     ERC20(wstETH).safeTransfer(splitWallet(), amount);
+  }
+
+  /// @notice Rescue stuck ETH
+  /// @return balance Amount of ETH rescued
+  function rescueETH() external returns (uint256 balance) {
+    balance = address(this).balance;
+    splitWallet().safeTransferETH(balance);
   }
 }
