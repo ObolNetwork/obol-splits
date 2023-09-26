@@ -11,6 +11,7 @@ import {ISplitMain} from "src/interfaces/ISplitMain.sol";
 contract IMSC is Test {
   error Initialized();
   error Unauthorized();
+  error Invalid_SplitBalance();
 
   address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
   uint256 public constant PERCENTAGE_SCALE = 1e6;
@@ -120,6 +121,13 @@ contract IMSC is Test {
 
   function testCannot_updateSplitIfNonOwner() public {
     vm.expectRevert(Unauthorized.selector);
+    controller.updateSplit();
+  }
+
+  function testCannot_updateSplitIfBalanceGreaterThanOne() public {
+    deal(address(split), 1 ether);
+    vm.expectRevert(Invalid_SplitBalance.selector);
+    vm.prank(owner);
     controller.updateSplit();
   }
 
