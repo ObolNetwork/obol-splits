@@ -5,12 +5,16 @@ import "forge-std/Test.sol";
 import {LidoSplitFactory, LidoSplit} from "src/lido/LidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {LidoSplitTestHelper} from "./LidoSplitTestHelper.sol";
+import { MockERC20 } from "src/test/utils/mocks/MockERC20.sol";
+
 
 contract LidoSplitTest is LidoSplitTestHelper, Test {
   LidoSplitFactory internal lidoSplitFactory;
   LidoSplit internal lidoSplit;
 
   address demoSplit;
+
+  MockERC20 mERC20;
 
   function setUp() public {
     uint256 mainnetBlock = 17_421_005;
@@ -24,6 +28,9 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
     demoSplit = makeAddr("demoSplit");
 
     lidoSplit = LidoSplit(lidoSplitFactory.createSplit(demoSplit));
+    
+    mERC20 = new MockERC20("Test Token", "TOK", 18);
+    mERC20.mint(type(uint256).max);
   }
 
   function test_CloneArgsIsCorrect() public {
@@ -32,10 +39,34 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
     assertEq(address(lidoSplit.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
   }
 
-  function test_CanRescueETH() public {
-    deal(lidoSplit.splitWallet(), 1 ether);
+  function test_CanRescueFunds() public {
+    // rescue ETH
+    uint256 amountOfEther = 1 ether;
+    deal(address(lidoSplit), amountOfEther);
 
-    
+    uint256 balance = lidoSplit.rescueFunds(address(0));
+    assertEq(balance, amountOfEther, "balance not rescued");
+    assertEq(address(lidoSplit).balance, 0, "balance is not zero");
+    assertEq(address(lidoSplit.splitWallet()).balance, amountOfEther, "rescue not successful");
+
+    // rescue tokens
+    mERC20.transfer(address(lidoSplit), amountOfEther);
+    uint256 tokenBalance = lidoSplit.rescueFunds(address(mERC20));
+    assertEq(tokenBalance, amountOfEther, "token - balance not rescued");
+    assertEq(mERC20.balanceOf(address(lidoSplit)), 0, "token - balance is not zero");
+    assertEq(mERC20.balanceOf(lidoSplit.splitWallet()), amountOfEther, "token - rescue not successful");
+  }
+
+  function testCannot_RescueLidoTokens() public {
+    vm.expectRevert(
+      LidoSplit.Invalid_Address.selector
+    );
+    lidoSplit.rescueFunds(address(STETH_MAINNET_ADDRESS));
+
+    vm.expectRevert(
+      LidoSplit.Invalid_Address.selector
+    );
+    lidoSplit.rescueFunds(address(WSTETH_MAINNET_ADDRESS));
   }
 
   function test_CanDistribute() public {
