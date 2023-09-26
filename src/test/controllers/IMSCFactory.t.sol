@@ -21,6 +21,7 @@ contract IMSCFactory is Test {
 
   address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
   uint32 public constant SPLIT_MAIN_PERCENTAGE_SCALE = 1e6;
+  uint256 public constant PERCENTAGE_SCALE = 1e6;
 
   ImmutableSplitControllerFactory public factory;
   ImmutableSplitController public cntrlImpl;
@@ -145,6 +146,30 @@ contract IMSCFactory is Test {
     );
   }
 
+  function test_RevertIfRecipeintSizeTooMany() public {
+    bytes32 deploymentSalt = keccak256(abi.encodePacked(uint256(1102)));
+
+    uint256 size = 400;
+    address[] memory localAccounts = _generateAddresses(1, size);
+    uint32[] memory localAllocations = _generatePercentAlloc(size);
+
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        ImmutableSplitControllerFactory.InvalidSplit__TooManyAccounts.selector,
+        size
+      )
+    );
+
+    factory.createController(
+      address(1),
+      owner,
+      localAccounts,
+      localAllocations,
+      0,
+      deploymentSalt
+    );
+  }
+
   function test_CanCreateController() public {
     bytes32 deploymentSalt = keccak256(abi.encodePacked(uint256(1102)));
 
@@ -157,5 +182,23 @@ contract IMSCFactory is Test {
       factory.createController(split, owner, accounts, percentAllocations, 0, deploymentSalt);
 
     assertEq(address(controller), predictedAddress, "predicted_address_invalid");
+  }
+
+  function _generateAddresses(uint256 _seed, uint256 size) internal pure returns (address[] memory accts) {
+    accts = new address[](size);
+    uint160 seed = uint160(uint256(keccak256(abi.encodePacked(_seed))));
+    for (uint160 i; i < size; i++) {
+      accts[i] = address(seed);
+      seed += 1;
+    }
+  }
+
+  function _generatePercentAlloc(uint256 size) internal pure returns (uint32[] memory alloc) {
+    alloc = new uint32[](size);
+    for (uint256 i; i < size; i++) {
+      alloc[i] = uint32(PERCENTAGE_SCALE / size);
+    }
+
+    if (PERCENTAGE_SCALE % size != 0) alloc[size - 1] += uint32(PERCENTAGE_SCALE % size);
   }
 }
