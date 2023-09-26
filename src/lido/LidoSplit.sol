@@ -24,17 +24,24 @@ contract LidoSplit is Clone {
   /// storage - cwia offsets
   /// -----------------------------------------------------------------------
 
-  // stETH (address, 20 bytes),
-  // 0; first item
-  uint256 internal constant ST_ETH_ADDRESS_OFFSET = 0;
-  // wstETH (address, 20 bytees)
-  // 20 = st_eth_offset(0) + st_eth_address_size(address, 20 bytes)
-  uint256 internal constant WST_ETH_ADDRESS_OFFSET = 20;
   // splitWallet (adress, 20 bytes)
-  // 40 = wst_eth_offset(20) + wst_eth_size(address, 20 bytes)
-  uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 40;
+  // 0; first item
+  uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 0;
 
-  constructor() {}
+  /// -----------------------------------------------------------------------
+  /// storage
+  /// -----------------------------------------------------------------------
+  
+  /// @notice stETH token
+  ERC20 public immutable stETH;
+
+  /// @notice wstETH token
+  ERC20 public immutable wstETH;
+
+  constructor(ERC20 _stETH, ERC20 _wstETH) {
+    stETH = _stETH;
+    wstETH = _wstETH;
+  }
 
   /// Address of split wallet to send funds to to
   /// @dev equivalent to address public immutable splitWallet
@@ -42,25 +49,10 @@ contract LidoSplit is Clone {
     return _getArgAddress(SPLIT_WALLET_ADDRESS_OFFSET);
   }
 
-  /// Address of stETH token
-  /// @dev equivalent to address public immutable stETHAddress
-  function stETHAddress() public pure returns (address) {
-    return _getArgAddress(ST_ETH_ADDRESS_OFFSET);
-  }
-
-  /// Address of wstETH token
-  /// @dev equivalent to address public immutable wstETHAddress
-  function wstETHAddress() public pure returns (address) {
-    return _getArgAddress(WST_ETH_ADDRESS_OFFSET);
-  }
-
   /// Wraps the current stETH token balance to wstETH
   /// transfers the wstETH balance to splitWallet for distribution
   /// @return amount Amount of wstETH transferred to splitWallet
   function distribute() external returns (uint256 amount) {
-    ERC20 stETH = ERC20(stETHAddress());
-    ERC20 wstETH = ERC20(wstETHAddress());
-
     // get current balance
     uint256 balance = stETH.balanceOf(address(this));
     // approve the wstETH
