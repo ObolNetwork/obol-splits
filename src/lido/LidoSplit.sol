@@ -15,11 +15,16 @@ interface IwSTETH {
 /// stETH token to wstETH token because stETH is a rebasing token
 /// @dev Wraps stETH to wstETH and transfers to defined SplitWallet address
 contract LidoSplit is Clone {
+
+  error Invalid_Address();
+  
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
   using SafeTransferLib for ERC20;
   using SafeTransferLib for address;
+
+  address internal constant ETH_ADDRESS = address(0);
 
   /// -----------------------------------------------------------------------
   /// storage - cwia offsets
@@ -28,6 +33,7 @@ contract LidoSplit is Clone {
   // splitWallet (adress, 20 bytes)
   // 0; first item
   uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 0;
+
 
   /// -----------------------------------------------------------------------
   /// storage
@@ -65,9 +71,19 @@ contract LidoSplit is Clone {
   }
 
   /// @notice Rescue stuck ETH
+  /// Uses token == address(0) to represent ETH
   /// @return balance Amount of ETH rescued
-  function rescueETH() external returns (uint256 balance) {
-    balance = address(this).balance;
-    splitWallet().safeTransferETH(balance);
+  function rescueFunds(address token) external returns (uint256 balance) {
+    if (token == address(stETH) || token == address(wstETH)) {
+      revert Invalid_Address();
+    }
+    
+    if (token == ETH_ADDRESS) {
+      balance = address(this).balance;
+      if (balance > 0) splitWallet().safeTransferETH(balance);
+    } else {
+      balance = ERC20(token).balanceOf(address(this));
+      if (balance > 0) ERC20(token).transfer(splitWallet(), balance);
+    }
   }
 }

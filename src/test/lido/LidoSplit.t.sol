@@ -32,6 +32,12 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
     assertEq(address(lidoSplit.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
   }
 
+  function test_CanRescueETH() public {
+    deal(lidoSplit.splitWallet(), 1 ether);
+
+    
+  }
+
   function test_CanDistribute() public {
     // we use a random account on Etherscan to credit the lidoSplit address
     // with 10 ether worth of stETH on mainnet
