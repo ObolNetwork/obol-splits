@@ -28,8 +28,8 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
   function test_CloneArgsIsCorrect() public {
     assertEq(lidoSplit.splitWallet(), demoSplit, "invalid address");
-    assertEq(lidoSplit.stETHAddress(), STETH_MAINNET_ADDRESS, "invalid stETH address");
-    assertEq(lidoSplit.wstETHAddress(), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
+    assertEq(address(lidoSplit.stETH()), STETH_MAINNET_ADDRESS, "invalid stETH address");
+    assertEq(address(lidoSplit.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
   }
 
   function test_CanDistribute() public {
@@ -45,10 +45,6 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
     assertTrue(amount > 0, "invalid amount");
 
     uint256 afterBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(demoSplit);
-
-    console.log("checking");
-    console.log(afterBalance);
-    console.log(prevBalance);
 
     assertGe(afterBalance, prevBalance, "after balance greater");
   }

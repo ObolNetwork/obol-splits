@@ -33,19 +33,11 @@ contract LidoSplitFactory {
   /// storage
   /// -----------------------------------------------------------------------
 
-  /// @notice stETH token address
-  ERC20 public immutable stETH;
-
-  /// @notice wstETH token address
-  ERC20 public immutable wstETH;
-
   /// @dev lido split implementation
   LidoSplit public immutable lidoSplitImpl;
 
   constructor(ERC20 _stETH, ERC20 _wstETH) {
-    stETH = _stETH;
-    wstETH = _wstETH;
-    lidoSplitImpl = new LidoSplit();
+    lidoSplitImpl = new LidoSplit(_stETH, _wstETH);
   }
 
   /// Creates a wrapper for splitWallet that transforms stETH token into
@@ -55,7 +47,7 @@ contract LidoSplitFactory {
   function createSplit(address splitWallet) external returns (address lidoSplit) {
     if (splitWallet == address(0)) revert Invalid_Wallet();
 
-    lidoSplit = address(lidoSplitImpl).clone(abi.encodePacked(stETH, wstETH, splitWallet));
+    lidoSplit = address(lidoSplitImpl).clone(abi.encodePacked(splitWallet));
 
     emit CreateLidoSplit(lidoSplit);
   }
