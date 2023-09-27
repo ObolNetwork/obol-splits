@@ -205,6 +205,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETH.distributeFunds();
     vm.deal(address(owrETH), 1);
 
+    vm.deal(address(owrETH), type(uint136).max);
     vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
     owrETH.distributeFunds();
 
