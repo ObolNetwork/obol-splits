@@ -74,9 +74,7 @@ contract LidoSplit is Clone {
   /// Uses token == address(0) to represent ETH
   /// @return balance Amount of ETH rescued
   function rescueFunds(address token) external returns (uint256 balance) {
-    if (token == address(stETH) || token == address(wstETH)) {
-      revert Invalid_Address();
-    }
+    if (token == address(stETH)) revert Invalid_Address();  
     
     if (token == ETH_ADDRESS) {
       balance = address(this).balance;
