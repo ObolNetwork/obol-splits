@@ -275,6 +275,7 @@ contract OptimisticWithdrawalRecipient is Clone {
     }
 
     {
+      if (_fundsToBeDistributed > type(uint128).max) revert InvalidDistribution_TooLarge();
       // Write to storage
       // the principal value
       claimedPrincipalFunds += _principalPayout;

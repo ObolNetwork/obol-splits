@@ -119,14 +119,6 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETH_OR.recoverFunds(address(mERC20), address(2));
   }
 
-  // function testCannot_recoverOWRFunds() public {
-  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
-  //   owrETH.recoverFunds(address(mERC20), recoveryAddress);
-
-  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_OWRToken.selector);
-  //   owrETH_OR.recoverFunds(address(mERC20), address(1));
-  // }
-
   function testCan_OWRIsPayable() public {
     owrETH.distributeFunds{value: 2 ether}();
 
@@ -208,17 +200,17 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(rewardRecipient.balance, 0 ether);
   }
 
-  // function testCannot_distributeTooMuch() public {
-  //   vm.deal(address(owrETH), type(uint128).max);
-  //   owrETH.distributeFunds();
-  //   vm.deal(address(owrETH), 1);
+  function testCannot_distributeTooMuch() public {
+    vm.deal(address(owrETH), type(uint128).max);
+    owrETH.distributeFunds();
+    vm.deal(address(owrETH), 1);
 
-  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
-  //   owrETH.distributeFunds();
+    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
+    owrETH.distributeFunds();
 
-  //   vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
-  //   owrETH.distributeFundsPull();
-  // }
+    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
+    owrETH.distributeFundsPull();
+  }
 
   function testCannot_reenterOWR() public {
     OWRReentrancy wr = new OWRReentrancy();
