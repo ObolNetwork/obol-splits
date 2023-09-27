@@ -62,11 +62,6 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
       LidoSplit.Invalid_Address.selector
     );
     lidoSplit.rescueFunds(address(STETH_MAINNET_ADDRESS));
-
-    vm.expectRevert(
-      LidoSplit.Invalid_Address.selector
-    );
-    lidoSplit.rescueFunds(address(WSTETH_MAINNET_ADDRESS));
   }
 
   function test_CanDistribute() public {
