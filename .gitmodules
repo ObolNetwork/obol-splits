@@ -8,7 +8,7 @@
 [submodule "lib/solady"]
 	path = lib/solady
 	url = https://github.com/vectorized/solady
-	branch = v0.0.92
+	branch = v0.0.123
 [submodule "lib/splits-utils"]
 	path = lib/splits-utils
 	url = https://github.com/0xSplits/splits-utils
