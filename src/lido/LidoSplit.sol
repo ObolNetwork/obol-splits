@@ -151,11 +151,18 @@ contract LidoSplit is Clone, Ownable {
     onlyOwner
     returns (uint256 blockNumber, bytes[] memory returnData)
   {
+
     blockNumber = block.number;
     uint256 length = calls.length;
     returnData = new bytes[](length);
     Call calldata call;
+    
     for (uint256 i = 0; i < length;) {
+
+      // prevent calls to stETH address
+      // to prevent stealing of user funds
+      if (call.target == address(stETH)) revert Invalid_Address();
+
       bool success;
       call = calls[i];
       (success, returnData[i]) = call.target.call(call.callData);
