@@ -61,7 +61,7 @@ contract LidoSplit is Clone, Ownable {
   constructor(ERC20 _stETH, ERC20 _wstETH, address _nosRegistry, address _etMotion) {
     stETH = _stETH;
     wstETH = _wstETH;
-    nosRegistry = _INodeOperatorRegistry(_nosRegistry);
+    nosRegistry = INodeOperatorRegistry(_nosRegistry);
     easyTrackMotion = IEasyTrackMotion(_etMotion);
   }
 
