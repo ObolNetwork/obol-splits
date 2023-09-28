@@ -58,11 +58,11 @@ contract LidoSplit is Clone, Ownable {
   /// @notice Easy track motion contract
   IEasyTrackMotion public immutable easyTrackMotion;
 
-  constructor(ERC20 _stETH, ERC20 _wstETH, address _nosRegistry, IEasyTrackMotion _etMotion) {
+  constructor(ERC20 _stETH, ERC20 _wstETH, address _nosRegistry, address _etMotion) {
     stETH = _stETH;
     wstETH = _wstETH;
     nosRegistry = _INodeOperatorRegistry(_nosRegistry);
-    easyTrackMotion = _etMotion;
+    easyTrackMotion = IEasyTrackMotion(_etMotion);
   }
 
   function intialize(address _owner) external {
@@ -159,9 +159,9 @@ contract LidoSplit is Clone, Ownable {
     
     for (uint256 i = 0; i < length;) {
 
-      // prevent calls to stETH address
-      // to prevent stealing of user funds
-      if (call.target == address(stETH)) revert Invalid_Address();
+      // prevent calls to stETH address to prevent stealing of user funds
+      // prevent calls to self
+      if (call.target == address(stETH) || call.target == address(this)) revert Invalid_Address();
 
       bool success;
       call = calls[i];

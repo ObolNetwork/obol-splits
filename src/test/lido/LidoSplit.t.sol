@@ -66,7 +66,7 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
   function test_CanDistribute() public {
     // we use a random account on Etherscan to credit the lidoSplit address
-    // with 10 ether worth of stETH on mainnet
+    // with 10 ether worth of stETH on mainnet fork
     vm.prank(0x2bf3937b8BcccE4B65650F122Bb3f1976B937B2f);
     ERC20(STETH_MAINNET_ADDRESS).transfer(address(lidoSplit), 100 ether);
 
@@ -80,4 +80,23 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
     assertGe(afterBalance, prevBalance, "after balance greater");
   }
+
+  function test_CanAddSigningKeys() public {
+    // we use a random account on Etherscan 
+    // as the node operator on mainnet fork
+    vm.prank();
+    
+
+
+  }
+
+  function test_CanRemoveSigningKeys() public {
+
+  }
+
+  function test_CanCreateETMotions() public {
+
+  }
+
+
 }
