@@ -70,9 +70,9 @@ contract LidoSplit is Clone {
     ERC20(wstETH).safeTransfer(splitWallet(), amount);
   }
 
-  /// @notice Rescue stuck ETH
+  /// @notice Rescue stuck ETH and tokens
   /// Uses token == address(0) to represent ETH
-  /// @return balance Amount of ETH rescued
+  /// @return balance Amount of ETH or tokens rescued
   function rescueFunds(address token) external returns (uint256 balance) {
     if (token == address(stETH)) revert Invalid_Address();  
     
@@ -81,7 +81,7 @@ contract LidoSplit is Clone {
       if (balance > 0) splitWallet().safeTransferETH(balance);
     } else {
       balance = ERC20(token).balanceOf(address(this));
-      if (balance > 0) ERC20(token).transfer(splitWallet(), balance);
+      if (balance > 0) ERC20(token).safeTransfer(splitWallet(), balance);
     }
   }
 }
