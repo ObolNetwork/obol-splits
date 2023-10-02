@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import {OptimisticWithdrawalRecipient} from "./OptimisticWithdrawalRecipient.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
+import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
 
 /// @title OptimisticWithdrawalRecipientFactory
 /// @author Obol
@@ -58,8 +59,14 @@ contract OptimisticWithdrawalRecipientFactory {
   /// constructor
   /// -----------------------------------------------------------------------
 
-  constructor() {
+  constructor(
+    string memory _ensName,
+    address _ensReverseRegistrar,
+    address _ensOwner
+  ) {
     owrImpl = new OptimisticWithdrawalRecipient();
+    IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
+    IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
   }
 
   /// -----------------------------------------------------------------------
