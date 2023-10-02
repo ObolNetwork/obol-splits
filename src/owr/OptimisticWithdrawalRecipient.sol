@@ -239,12 +239,9 @@ contract OptimisticWithdrawalRecipient is Clone {
 
     // load storage into memory
     uint256 currentbalance = address(this).balance;
-    uint256 _fundsToBeDistributed;
     uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
-    unchecked {
-      _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
-    }
+    uint256 _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
 
     (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
 
