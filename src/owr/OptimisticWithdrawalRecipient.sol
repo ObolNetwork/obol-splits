@@ -114,7 +114,7 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// Amount of distributed OWRecipient token for principal
   /// @dev Would be less than or equal to amount of stake
   /// @dev ERC20s with very large decimals may overflow & cause issues
-  uint256 public claimedPrincipalFunds;
+  uint128 public claimedPrincipalFunds;
 
   /// Mapping to account balances for pulling
   mapping(address => uint256) internal pullBalances;
@@ -278,7 +278,8 @@ contract OptimisticWithdrawalRecipient is Clone {
       if (_fundsToBeDistributed > type(uint128).max) revert InvalidDistribution_TooLarge();
       // Write to storage
       // the principal value
-      claimedPrincipalFunds += _principalPayout;
+      // it cannot overflow
+      claimedPrincipalFunds += uint128(_principalPayout);
     }
 
     /// interactions
