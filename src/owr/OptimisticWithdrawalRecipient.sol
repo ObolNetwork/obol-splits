@@ -278,8 +278,8 @@ contract OptimisticWithdrawalRecipient is Clone {
       if (_fundsToBeDistributed > type(uint128).max) revert InvalidDistribution_TooLarge();
       // Write to storage
       // the principal value
-      // it cannot overflow
-      claimedPrincipalFunds += uint128(_principalPayout);
+      // it cannot overflow because _principalPayout < _fundsToBeDistributed
+      if (_principalPayout > 0) claimedPrincipalFunds += uint128(_principalPayout);
     }
 
     /// interactions
