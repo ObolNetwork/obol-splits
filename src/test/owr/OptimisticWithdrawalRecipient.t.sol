@@ -8,15 +8,16 @@ import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {OWRReentrancy} from "./OWRReentrancy.sol";
 import {OWRTestHelper} from "./OWRTestHelper.t.sol";
+import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
 contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   using SafeTransferLib for address;
 
   event ReceiveETH(uint256 amount);
-
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
-
   event RecoverNonOWRecipientFunds(address nonOWRToken, address recipient, uint256 amount);
+
+  address public ENS_REVERSE_REGISTRAR_GOERLI = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
   OptimisticWithdrawalRecipient public owrModule;
   OptimisticWithdrawalRecipientFactory public owrFactory;
@@ -31,7 +32,19 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   uint256 internal trancheThreshold;
 
   function setUp() public {
-    owrFactory = new OptimisticWithdrawalRecipientFactory();
+    owrFactory = new OptimisticWithdrawalRecipientFactory(
+      "demo.obol.eth",
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      address(this)
+    );
+
+    vm.mockCall(
+      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
+    );
+    vm.mockCall(
+      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
+    );
+    
     owrModule = owrFactory.owrImpl();
 
     mERC20 = new MockERC20("demo", "DMT", 18);
