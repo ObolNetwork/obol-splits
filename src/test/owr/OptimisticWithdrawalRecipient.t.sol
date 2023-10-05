@@ -32,17 +32,17 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   uint256 internal trancheThreshold;
 
   function setUp() public {
-    owrFactory = new OptimisticWithdrawalRecipientFactory(
-      "demo.obol.eth",
-      ENS_REVERSE_REGISTRAR_GOERLI,
-      address(this)
-    );
-
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
     );
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
+    );
+
+    owrFactory = new OptimisticWithdrawalRecipientFactory(
+      "demo.obol.eth",
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      address(this)
     );
     
     owrModule = owrFactory.owrImpl();
