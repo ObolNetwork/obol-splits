@@ -36,8 +36,8 @@ contract LidoSplitFactory {
   /// @dev lido split implementation
   LidoSplit public immutable lidoSplitImpl;
 
-  constructor(ERC20 _stETH, ERC20 _wstETH) {
-    lidoSplitImpl = new LidoSplit(_stETH, _wstETH);
+  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH) {
+    lidoSplitImpl = new LidoSplit(_feeRecipient, _feeShare, _stETH, _wstETH);
   }
 
   /// Creates a wrapper for splitWallet that transforms stETH token into
