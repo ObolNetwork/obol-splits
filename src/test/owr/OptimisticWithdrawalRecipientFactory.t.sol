@@ -27,17 +27,19 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   uint256 public threshold;
 
   function setUp() public {
-    owrFactoryModule = new OptimisticWithdrawalRecipientFactory(
-      "demo.obol.eth",
-      ENS_REVERSE_REGISTRAR_GOERLI,
-      address(this)
-    );
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
     );
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
     );
+
+    owrFactoryModule = new OptimisticWithdrawalRecipientFactory(
+      "demo.obol.eth",
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      address(this)
+    );
+
     recoveryAddress = makeAddr("recoveryAddress");
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(10);
     threshold = ETH_STAKE;
