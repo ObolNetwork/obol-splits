@@ -17,6 +17,8 @@ interface IwSTETH {
 contract LidoSplit is Clone {
 
   error Invalid_Address();
+  error Invalid_FeeShare(uint256 fee);
+  error Invalid_FeeRecipient();
   
   /// -----------------------------------------------------------------------
   /// libraries
@@ -25,6 +27,7 @@ contract LidoSplit is Clone {
   using SafeTransferLib for address;
 
   address internal constant ETH_ADDRESS = address(0);
+  uint256 internal constant PERCENTAGE_SCALE = 1e5;
 
   /// -----------------------------------------------------------------------
   /// storage - cwia offsets
@@ -45,9 +48,20 @@ contract LidoSplit is Clone {
   /// @notice wstETH token
   ERC20 public immutable wstETH;
 
-  constructor(ERC20 _stETH, ERC20 _wstETH) {
+  /// @notice fee address
+  address public immutable feeRecipient;
+
+  /// @notice fee share 
+  uint256 public immutable feeShare;
+
+  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH ) {
+    if(_feeShare >= PERCENTAGE_SCALE) revert Invalid_FeeShare(_feeShare);
+    if (_feeShare > 0 && _feeRecipient == address(0)) revert Invalid_FeeRecipient();
+
+    feeRecipient = _feeRecipient;
     stETH = _stETH;
     wstETH = _wstETH;
+    feeShare = _feeShare;
   }
 
   /// Address of split wallet to send funds to to
@@ -66,8 +80,16 @@ contract LidoSplit is Clone {
     stETH.approve(address(wstETH), balance);
     // wrap into wseth
     amount = IwSTETH(address(wstETH)).wrap(balance);
-    // transfer to split wallet
-    ERC20(wstETH).safeTransfer(splitWallet(), amount);
+    if (feeShare > 0 ) {
+      uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
+      // transfer to split wallet
+      ERC20(wstETH).safeTransfer(splitWallet(), amount - fee);
+      // transfer to fee address
+      ERC20(wstETH).safeTransfer(feeRecipient, fee);
+    } else {
+      // transfer to split wallet
+     ERC20(wstETH).safeTransfer(splitWallet(), amount);
+    }
   }
 
   /// @notice Rescue stuck ETH and tokens
