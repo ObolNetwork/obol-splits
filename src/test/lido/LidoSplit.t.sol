@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {LidoSplitFactory, LidoSplit, IwSTETH} from "src/lido/LidoSplitFactory.sol";
+import {LidoSplitFactory, LidoSplit, IwstETH} from "src/lido/LidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {LidoSplitTestHelper} from "./LidoSplitTestHelper.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
@@ -122,7 +122,7 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
     uint256 balance = ERC20(STETH_MAINNET_ADDRESS).balanceOf(address(lidoSplitWithFee));
 
-    uint256 wstETHDistributed = IwSTETH(WSTETH_MAINNET_ADDRESS).getWstETHByStETH(balance);
+    uint256 wstETHDistributed = IwstETH(WSTETH_MAINNET_ADDRESS).getWstETHByStETH(balance);
 
     uint256 amount = lidoSplitWithFee.distribute();
 
@@ -168,7 +168,7 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
     uint256 balance = ERC20(STETH_MAINNET_ADDRESS).balanceOf(address(fuzzSplitWithFee));
 
-    uint256 wstETHDistributed = IwSTETH(WSTETH_MAINNET_ADDRESS).getWstETHByStETH(balance);
+    uint256 wstETHDistributed = IwstETH(WSTETH_MAINNET_ADDRESS).getWstETHByStETH(balance);
 
     uint256 amount = fuzzSplitWithFee.distribute();
 

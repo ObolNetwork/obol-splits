@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Clone} from "solady/utils/Clone.sol";
-import {IwSTETH} from "../interfaces/IwSTETH.sol";
+import {IwstETH} from "../interfaces/IwstETH.sol";
 
 /// @title LidoSplit
 /// @author Obol
@@ -80,7 +80,7 @@ contract LidoSplit is Clone {
     stETH.approve(address(wstETH), balance);
     // wrap into wseth
     // we ignore the return value
-    IwSTETH(address(wstETH)).wrap(balance);
+    IwstETH(address(wstETH)).wrap(balance);
     // we use balanceOf here in case some wstETH is stuck in the
     // contract we would be able to rescue it
     amount = ERC20(wstETH).balanceOf(address(this));
