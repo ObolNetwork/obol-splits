@@ -8,6 +8,7 @@ import {LidoSplitTestHelper} from "./LidoSplitTestHelper.sol";
 
 contract LidoSplitFactoryTest is LidoSplitTestHelper, Test {
   LidoSplitFactory internal lidoSplitFactory;
+  LidoSplitFactory internal lidoSplitFactoryWithFee;
 
   address demoSplit;
 
@@ -18,6 +19,15 @@ contract LidoSplitFactoryTest is LidoSplitTestHelper, Test {
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
     lidoSplitFactory = new LidoSplitFactory(
+      address(0),
+      0,
+      ERC20(STETH_MAINNET_ADDRESS),
+      ERC20(WSTETH_MAINNET_ADDRESS)
+    );
+
+    lidoSplitFactoryWithFee = new LidoSplitFactory(
+      address(this),
+      1e3,
       ERC20(STETH_MAINNET_ADDRESS),
       ERC20(WSTETH_MAINNET_ADDRESS)
     );
@@ -30,10 +40,19 @@ contract LidoSplitFactoryTest is LidoSplitTestHelper, Test {
     emit CreateLidoSplit(address(0x1));
 
     lidoSplitFactory.createSplit(demoSplit);
+
+
+    vm.expectEmit(true, true, true, false, address(lidoSplitFactoryWithFee));
+    emit CreateLidoSplit(address(0x1));
+
+    lidoSplitFactoryWithFee.createSplit(demoSplit);
   }
 
   function testCannot_CreateSplitInvalidAddress() public {
     vm.expectRevert(LidoSplitFactory.Invalid_Wallet.selector);
     lidoSplitFactory.createSplit(address(0));
+
+    vm.expectRevert(LidoSplitFactory.Invalid_Wallet.selector);
+    lidoSplitFactoryWithFee.createSplit(address(0));
   }
 }
