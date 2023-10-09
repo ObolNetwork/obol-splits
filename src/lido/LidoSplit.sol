@@ -4,11 +4,7 @@ pragma solidity 0.8.19;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Clone} from "solady/utils/Clone.sol";
-
-interface IwSTETH {
-  function wrap(uint256 amount) external returns (uint256);
-  function getWstETHByStETH(uint256 _stETHAmount) external view returns (uint256);
-}
+import {IwSTETH} from "../interfaces/IwSTETH.sol";
 
 /// @title LidoSplit
 /// @author Obol
