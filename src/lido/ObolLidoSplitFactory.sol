@@ -3,13 +3,13 @@ pragma solidity 0.8.19;
 
 import {LibClone} from "solady/utils/LibClone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import "./LidoSplit.sol";
+import "./ObolLidoSplit.sol";
 
-/// @title LidoSplitFactory
+/// @title ObolLidoSplitFactory
 /// @author Obol
-/// @notice A factory contract for cheaply deploying LidoSplit.
+/// @notice A factory contract for cheaply deploying ObolLidoSplit.
 /// @dev The address returned should be used to as reward address for Lido
-contract LidoSplitFactory {
+contract ObolLidoSplitFactory {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------
@@ -27,17 +27,17 @@ contract LidoSplitFactory {
   /// -----------------------------------------------------------------------
 
   /// Emitted after lido split
-  event CreateLidoSplit(address split);
+  event CreateObolLidoSplit(address split);
 
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
 
   /// @dev lido split implementation
-  LidoSplit public immutable lidoSplitImpl;
+  ObolLidoSplit public immutable lidoSplitImpl;
 
   constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH) {
-    lidoSplitImpl = new LidoSplit(_feeRecipient, _feeShare, _stETH, _wstETH);
+    lidoSplitImpl = new ObolLidoSplit(_feeRecipient, _feeShare, _stETH, _wstETH);
   }
 
   /// Creates a wrapper for splitWallet that transforms stETH token into
@@ -49,6 +49,6 @@ contract LidoSplitFactory {
 
     lidoSplit = address(lidoSplitImpl).clone(abi.encodePacked(splitWallet));
 
-    emit CreateLidoSplit(lidoSplit);
+    emit CreateObolLidoSplit(lidoSplit);
   }
 }
