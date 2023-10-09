@@ -41,7 +41,6 @@ contract LidoSplitFactoryTest is LidoSplitTestHelper, Test {
 
     lidoSplitFactory.createSplit(demoSplit);
 
-
     vm.expectEmit(true, true, true, false, address(lidoSplitFactoryWithFee));
     emit CreateLidoSplit(address(0x1));
 
