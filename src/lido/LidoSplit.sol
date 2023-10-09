@@ -16,11 +16,10 @@ interface IwSTETH {
 /// stETH token to wstETH token because stETH is a rebasing token
 /// @dev Wraps stETH to wstETH and transfers to defined SplitWallet address
 contract LidoSplit is Clone {
-
   error Invalid_Address();
   error Invalid_FeeShare(uint256 fee);
   error Invalid_FeeRecipient();
-  
+
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -38,11 +37,10 @@ contract LidoSplit is Clone {
   // 0; first item
   uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 0;
 
-
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
-  
+
   /// @notice stETH token
   ERC20 public immutable stETH;
 
@@ -52,7 +50,7 @@ contract LidoSplit is Clone {
   /// @notice fee address
   address public immutable feeRecipient;
 
-  /// @notice fee share 
+  /// @notice fee share
   uint256 public immutable feeShare;
 
   /// @notice Constructor
@@ -60,8 +58,8 @@ contract LidoSplit is Clone {
   /// @param _feeShare fee share scaled by PERCENTAGE_SCALE
   /// @param _stETH stETH address
   /// @param _wstETH wstETH address
-  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH ) {
-    if(_feeShare >= PERCENTAGE_SCALE) revert Invalid_FeeShare(_feeShare);
+  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH) {
+    if (_feeShare >= PERCENTAGE_SCALE) revert Invalid_FeeShare(_feeShare);
     if (_feeShare > 0 && _feeRecipient == address(0)) revert Invalid_FeeRecipient();
 
     feeRecipient = _feeRecipient;
@@ -91,15 +89,16 @@ contract LidoSplit is Clone {
     // contract we would be able to rescue it
     amount = ERC20(wstETH).balanceOf(address(this));
 
-    if (feeShare > 0 ) {
+    if (feeShare > 0) {
       uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
       // transfer to split wallet
-      ERC20(wstETH).safeTransfer(splitWallet(), amount - fee);
+      // update amount to reflect fee charged
+      ERC20(wstETH).safeTransfer(splitWallet(), amount -= fee);
       // transfer to fee address
       ERC20(wstETH).safeTransfer(feeRecipient, fee);
     } else {
       // transfer to split wallet
-     ERC20(wstETH).safeTransfer(splitWallet(), amount);
+      ERC20(wstETH).safeTransfer(splitWallet(), amount);
     }
   }
 
@@ -109,8 +108,8 @@ contract LidoSplit is Clone {
   function rescueFunds(address token) external returns (uint256 balance) {
     // we check wstETH here so rescueFunds can't be used
     // to bypass fee
-    if (token == address(stETH) || token == address(wstETH)) revert Invalid_Address();  
-    
+    if (token == address(stETH) || token == address(wstETH)) revert Invalid_Address();
+
     if (token == ETH_ADDRESS) {
       balance = address(this).balance;
       if (balance > 0) splitWallet().safeTransferETH(balance);

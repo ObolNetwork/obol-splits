@@ -5,13 +5,10 @@ import "forge-std/Test.sol";
 import {LidoSplitFactory, LidoSplit, IwSTETH} from "src/lido/LidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {LidoSplitTestHelper} from "./LidoSplitTestHelper.sol";
-import { MockERC20 } from "src/test/utils/mocks/MockERC20.sol";
-
+import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 
 contract LidoSplitTest is LidoSplitTestHelper, Test {
-
   uint256 internal constant PERCENTAGE_SCALE = 1e5;
-
 
   LidoSplitFactory internal lidoSplitFactory;
   LidoSplitFactory internal lidoSplitFactoryWithFee;
@@ -50,14 +47,12 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
     lidoSplit = LidoSplit(lidoSplitFactory.createSplit(demoSplit));
     lidoSplitWithFee = LidoSplit(lidoSplitFactoryWithFee.createSplit(demoSplit));
-    
+
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
   }
 
-  function test_CannotCreateInvalidFeeRecipient() public {
-
-  }
+  function test_CannotCreateInvalidFeeRecipient() public {}
 
   function test_CloneArgsIsCorrect() public {
     assertEq(lidoSplit.splitWallet(), demoSplit, "invalid address");
@@ -65,7 +60,7 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
     assertEq(address(lidoSplit.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
     assertEq(lidoSplit.feeRecipient(), address(0), "invalid fee recipient");
     assertEq(lidoSplit.feeShare(), 0, "invalid fee amount");
-    
+
     assertEq(lidoSplitWithFee.splitWallet(), demoSplit, "invalid address");
     assertEq(address(lidoSplitWithFee.stETH()), STETH_MAINNET_ADDRESS, "invalid stETH address");
     assertEq(address(lidoSplitWithFee.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
@@ -92,14 +87,10 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
   }
 
   function testCannot_RescueLidoTokens() public {
-    vm.expectRevert(
-      LidoSplit.Invalid_Address.selector
-    );
+    vm.expectRevert(LidoSplit.Invalid_Address.selector);
     lidoSplit.rescueFunds(address(STETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(
-      LidoSplit.Invalid_Address.selector
-    );
+    vm.expectRevert(LidoSplit.Invalid_Address.selector);
     lidoSplit.rescueFunds(address(WSTETH_MAINNET_ADDRESS));
   }
 
@@ -141,30 +132,56 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
     assertGe(afterBalance, prevBalance, "after balance greater");
 
-
     uint256 expectedFee = (wstETHDistributed * feeShare) / PERCENTAGE_SCALE;
-    
-    assertEq(
-      ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(feeRecipient),
-      expectedFee,
-      "invalid fee transferred"
-    );
 
-    assertEq(
-      ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(demoSplit),
-      wstETHDistributed - expectedFee,
-      "invalid amount"
-    );
+    assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(feeRecipient), expectedFee, "invalid fee transferred");
+
+    assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(demoSplit), wstETHDistributed - expectedFee, "invalid amount");
   }
 
   function testFuzz_CanDistributeWithFee(
-    address feeRecipient,
-    uint256 feeShare
+    address anotherSplit,
+    uint256 amountToDistribute,
+    address fuzzFeeRecipient,
+    uint256 fuzzFeeShare
   ) public {
-    vm.assume(feeShare < PERCENTAGE_SCALE);
-    vm.assume(feeRecipient != address(0));
+    vm.assume(anotherSplit != address(0));
+    vm.assume(fuzzFeeShare > 0 && fuzzFeeShare < PERCENTAGE_SCALE);
+    vm.assume(fuzzFeeRecipient != address(0));
+    vm.assume(amountToDistribute > 1 ether);
+    vm.assume(amountToDistribute < 10 ether);
 
-    
+    LidoSplitFactory fuzzFactorySplitWithFee = new LidoSplitFactory(
+      fuzzFeeRecipient,
+      fuzzFeeShare,
+      ERC20(STETH_MAINNET_ADDRESS),
+      ERC20(WSTETH_MAINNET_ADDRESS)
+    );
 
+    LidoSplit fuzzSplitWithFee = LidoSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit));
+
+    vm.prank(0x2bf3937b8BcccE4B65650F122Bb3f1976B937B2f);
+
+    ERC20(STETH_MAINNET_ADDRESS).transfer(address(fuzzSplitWithFee), amountToDistribute);
+
+    uint256 prevBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit);
+
+    uint256 balance = ERC20(STETH_MAINNET_ADDRESS).balanceOf(address(fuzzSplitWithFee));
+
+    uint256 wstETHDistributed = IwSTETH(WSTETH_MAINNET_ADDRESS).getWstETHByStETH(balance);
+
+    uint256 amount = fuzzSplitWithFee.distribute();
+
+    assertTrue(amount > 0, "invalid amount");
+
+    uint256 afterBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit);
+
+    assertGe(afterBalance, prevBalance, "after balance greater");
+
+    uint256 expectedFee = (wstETHDistributed * fuzzFeeShare) / PERCENTAGE_SCALE;
+
+    assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(fuzzFeeRecipient), expectedFee, "invalid fee transferred");
+
+    assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit), wstETHDistributed - expectedFee, "invalid amount");
   }
 }
