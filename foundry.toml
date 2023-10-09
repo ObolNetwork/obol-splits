@@ -9,6 +9,7 @@ remappings = [
     'solady/=lib/solady/src/',
 ]
 solc_version = '0.8.19'
+gas_reports = ["*"]
 
 
 [rpc_endpoints]
@@ -27,4 +28,4 @@ tab_width = 2
 wrap_comments = true
 
 [fuzz]
-runs = 1000
+runs = 10

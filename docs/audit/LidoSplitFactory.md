@@ -48,7 +48,7 @@ Source Units in Scope: **`1`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
-| 📝 | src/lido/LidoSplitFactory.sol | 1 | **** | 73 | 73 | 31 | 25 | 24 | **<abbr title='create/create2'>🌀</abbr>** |
+| 📝 | src/lido/ObolLidoSplitFactory.sol | 1 | **** | 73 | 73 | 31 | 25 | 24 | **<abbr title='create/create2'>🌀</abbr>** |
 | 📝 | **Totals** | **1** | **** | **73**  | **73** | **31** | **25** | **24** | **<abbr title='create/create2'>🌀</abbr>** |
 
 <sub>
@@ -166,7 +166,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | 📤 Transfers ETH | ⚡ Low-Level Calls | 👥 DelegateCall | 🧮 Uses Hash Functions | 🔖 ECRecover | 🌀 New/Create/Create2 |
 | ---------------- | ----------------- | --------------- | ---------------------- | ------------ | --------------------- |
-| **** | **** | **** | **** | **** | `yes`<br>→ `NewContract:LidoSplit` | 
+| **** | **** | **** | **** | **** | `yes`<br>→ `NewContract:ObolLidoSplit` | 
 
 | ♻️ TryCatch | Σ Unchecked |
 | ---------- | ----------- |
@@ -236,7 +236,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| src/lido/LidoSplitFactory.sol | fbe7fc44155c90479b3d1c3f46886b2e67f0d5c0 |
+| src/lido/ObolLidoSplitFactory.sol | fbe7fc44155c90479b3d1c3f46886b2e67f0d5c0 |
 
 
  Contracts Description Table
@@ -246,7 +246,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **LidoSplitFactory** | Implementation |  |||
+| **ObolLidoSplitFactory** | Implementation |  |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
 | └ | createSplit | External ❗️ | 🛑  |NO❗️ |
 

@@ -2,19 +2,19 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {LidoSplitFactory, LidoSplit, IwstETH} from "src/lido/LidoSplitFactory.sol";
+import {ObolLidoSplitFactory, ObolLidoSplit, IwstETH} from "src/lido/ObolLidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {LidoSplitTestHelper} from "./LidoSplitTestHelper.sol";
+import {ObolLidoSplitTestHelper} from "./ObolLidoSplitTestHelper.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 
-contract LidoSplitTest is LidoSplitTestHelper, Test {
+contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
   uint256 internal constant PERCENTAGE_SCALE = 1e5;
 
-  LidoSplitFactory internal lidoSplitFactory;
-  LidoSplitFactory internal lidoSplitFactoryWithFee;
+  ObolLidoSplitFactory internal lidoSplitFactory;
+  ObolLidoSplitFactory internal lidoSplitFactoryWithFee;
 
-  LidoSplit internal lidoSplit;
-  LidoSplit internal lidoSplitWithFee;
+  ObolLidoSplit internal lidoSplit;
+  ObolLidoSplit internal lidoSplitWithFee;
 
   address demoSplit;
   address feeRecipient;
@@ -29,14 +29,14 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
     feeRecipient = makeAddr("feeRecipient");
     feeShare = 1e4;
 
-    lidoSplitFactory = new LidoSplitFactory(
+    lidoSplitFactory = new ObolLidoSplitFactory(
       address(0),
       0,
       ERC20(STETH_MAINNET_ADDRESS),
       ERC20(WSTETH_MAINNET_ADDRESS)
     );
 
-    lidoSplitFactoryWithFee = new LidoSplitFactory(
+    lidoSplitFactoryWithFee = new ObolLidoSplitFactory(
       feeRecipient,
       feeShare,
       ERC20(STETH_MAINNET_ADDRESS),
@@ -45,14 +45,31 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
 
     demoSplit = makeAddr("demoSplit");
 
-    lidoSplit = LidoSplit(lidoSplitFactory.createSplit(demoSplit));
-    lidoSplitWithFee = LidoSplit(lidoSplitFactoryWithFee.createSplit(demoSplit));
+    lidoSplit = ObolLidoSplit(lidoSplitFactory.createSplit(demoSplit));
+    lidoSplitWithFee = ObolLidoSplit(lidoSplitFactoryWithFee.createSplit(demoSplit));
 
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
   }
 
-  function test_CannotCreateInvalidFeeRecipient() public {}
+  function test_CannotCreateInvalidFeeRecipient() public {
+    vm.expectRevert(
+      ObolLidoSplit.Invalid_FeeRecipient.selector
+    );
+    new ObolLidoSplit(address(0), 10, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
+  }
+
+  function test_CannotCreateInvalidFeeShare() public {
+    vm.expectRevert(
+      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1)
+    );
+    new ObolLidoSplit(address(1), PERCENTAGE_SCALE + 1, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
+
+    vm.expectRevert(
+      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE)
+    );
+    new ObolLidoSplit(address(1), PERCENTAGE_SCALE, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
+  }
 
   function test_CloneArgsIsCorrect() public {
     assertEq(lidoSplit.splitWallet(), demoSplit, "invalid address");
@@ -87,10 +104,10 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
   }
 
   function testCannot_RescueLidoTokens() public {
-    vm.expectRevert(LidoSplit.Invalid_Address.selector);
+    vm.expectRevert(ObolLidoSplit.Invalid_Address.selector);
     lidoSplit.rescueFunds(address(STETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(LidoSplit.Invalid_Address.selector);
+    vm.expectRevert(ObolLidoSplit.Invalid_Address.selector);
     lidoSplit.rescueFunds(address(WSTETH_MAINNET_ADDRESS));
   }
 
@@ -151,14 +168,14 @@ contract LidoSplitTest is LidoSplitTestHelper, Test {
     vm.assume(amountToDistribute > 1 ether);
     vm.assume(amountToDistribute < 10 ether);
 
-    LidoSplitFactory fuzzFactorySplitWithFee = new LidoSplitFactory(
+    ObolLidoSplitFactory fuzzFactorySplitWithFee = new ObolLidoSplitFactory(
       fuzzFeeRecipient,
       fuzzFeeShare,
       ERC20(STETH_MAINNET_ADDRESS),
       ERC20(WSTETH_MAINNET_ADDRESS)
     );
 
-    LidoSplit fuzzSplitWithFee = LidoSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit));
+    ObolLidoSplit fuzzSplitWithFee = ObolLidoSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit));
 
     vm.prank(0x2bf3937b8BcccE4B65650F122Bb3f1976B937B2f);
 
