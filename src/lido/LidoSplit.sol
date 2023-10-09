@@ -79,7 +79,12 @@ contract LidoSplit is Clone {
     // approve the wstETH
     stETH.approve(address(wstETH), balance);
     // wrap into wseth
-    amount = IwSTETH(address(wstETH)).wrap(balance);
+    // we ignore the return value
+    IwSTETH(address(wstETH)).wrap(balance);
+    // we use balanceOf here in case some wstETH is stuck in the
+    // contract we would be able to rescue it
+    amount = ERC20(wstETH).balanceOf(address(this));
+
     if (feeShare > 0 ) {
       uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
       // transfer to split wallet
@@ -96,7 +101,9 @@ contract LidoSplit is Clone {
   /// Uses token == address(0) to represent ETH
   /// @return balance Amount of ETH or tokens rescued
   function rescueFunds(address token) external returns (uint256 balance) {
-    if (token == address(stETH)) revert Invalid_Address();  
+    // we check wstETH here so rescueFunds can't be used
+    // to bypass fee
+    if (token == address(stETH) || token == address(wstETH)) revert Invalid_Address();  
     
     if (token == ETH_ADDRESS) {
       balance = address(this).balance;
