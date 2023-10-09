@@ -7,6 +7,7 @@ import {Clone} from "solady/utils/Clone.sol";
 
 interface IwSTETH {
   function wrap(uint256 amount) external returns (uint256);
+  function getWstETHByStETH(uint256 _stETHAmount) external view returns (uint256);
 }
 
 /// @title LidoSplit
@@ -54,6 +55,11 @@ contract LidoSplit is Clone {
   /// @notice fee share 
   uint256 public immutable feeShare;
 
+  /// @notice Constructor
+  /// @param _feeRecipient address to receive fee
+  /// @param _feeShare fee share scaled by PERCENTAGE_SCALE
+  /// @param _stETH stETH address
+  /// @param _wstETH wstETH address
   constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH ) {
     if(_feeShare >= PERCENTAGE_SCALE) revert Invalid_FeeShare(_feeShare);
     if (_feeShare > 0 && _feeRecipient == address(0)) revert Invalid_FeeRecipient();
