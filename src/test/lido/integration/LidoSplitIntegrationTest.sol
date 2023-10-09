@@ -2,14 +2,14 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {LidoSplitFactory, LidoSplit} from "src/lido/LidoSplitFactory.sol";
+import {ObolLidoSplitFactory, ObolLidoSplit} from "src/lido/ObolLidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {LidoSplitTestHelper} from "../LidoSplitTestHelper.sol";
+import {ObolLidoSplitTestHelper} from "../ObolLidoSplitTestHelper.sol";
 import {ISplitMain} from "src/interfaces/ISplitMain.sol";
 
-contract LidoSplitIntegrationTest is LidoSplitTestHelper, Test {
-  LidoSplitFactory internal lidoSplitFactory;
-  LidoSplit internal lidoSplit;
+contract ObolLidoSplitIntegrationTest is ObolLidoSplitTestHelper, Test {
+  ObolLidoSplitFactory internal lidoSplitFactory;
+  ObolLidoSplit internal lidoSplit;
 
   address splitter;
 
@@ -22,7 +22,7 @@ contract LidoSplitIntegrationTest is LidoSplitTestHelper, Test {
     uint256 mainnetBlock = 17_421_005;
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
-    lidoSplitFactory = new LidoSplitFactory(
+    lidoSplitFactory = new ObolLidoSplitFactory(
       address(0),
       0,
       ERC20(STETH_MAINNET_ADDRESS),
@@ -39,7 +39,7 @@ contract LidoSplitIntegrationTest is LidoSplitTestHelper, Test {
 
     splitter = ISplitMain(SPLIT_MAIN_MAINNET).createSplit(accounts, percentAllocations, 0, address(0));
 
-    lidoSplit = LidoSplit(lidoSplitFactory.createSplit(splitter));
+    lidoSplit = ObolLidoSplit(lidoSplitFactory.createSplit(splitter));
   }
 
   function test_CanDistribute() public {

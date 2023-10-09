@@ -6,12 +6,12 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Clone} from "solady/utils/Clone.sol";
 import {IwstETH} from "src/interfaces/IwstETH.sol";
 
-/// @title LidoSplit
+/// @title ObolLidoSplit
 /// @author Obol
 /// @notice A wrapper for 0xsplits/split-contracts SplitWallet that transforms
 /// stETH token to wstETH token because stETH is a rebasing token
 /// @dev Wraps stETH to wstETH and transfers to defined SplitWallet address
-contract LidoSplit is Clone {
+contract ObolLidoSplit is Clone {
   error Invalid_Address();
   error Invalid_FeeShare(uint256 fee);
   error Invalid_FeeRecipient();

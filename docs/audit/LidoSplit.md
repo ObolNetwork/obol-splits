@@ -48,7 +48,7 @@ Source Units in Scope: **`1`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
-| 📝🔍 | src/lido/LidoSplit.sol | 1 | 1 | 72 | 64 | 29 | 31 | 34 | **** |
+| 📝🔍 | src/lido/ObolLidoSplit.sol | 1 | 1 | 72 | 64 | 29 | 31 | 34 | **** |
 | 📝🔍 | **Totals** | **1** | **1** | **72**  | **64** | **29** | **31** | **34** | **** |
 
 <sub>
@@ -237,7 +237,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| src/lido/LidoSplit.sol | a6d06d355c3e9abd9b6674b54a0b9b9960d3da33 |
+| src/lido/ObolLidoSplit.sol | a6d06d355c3e9abd9b6674b54a0b9b9960d3da33 |
 
 
  Contracts Description Table
@@ -250,7 +250,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | **IwSTETH** | Interface |  |||
 | └ | wrap | External ❗️ | 🛑  |NO❗️ |
 ||||||
-| **LidoSplit** | Implementation | Clone |||
+| **ObolLidoSplit** | Implementation | Clone |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
 | └ | splitWallet | Public ❗️ |   |NO❗️ |
 | └ | stETHAddress | Public ❗️ |   |NO❗️ |
