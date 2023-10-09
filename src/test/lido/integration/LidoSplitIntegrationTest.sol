@@ -23,9 +23,11 @@ contract LidoSplitIntegrationTest is LidoSplitTestHelper, Test {
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
     lidoSplitFactory = new LidoSplitFactory(
-            ERC20(STETH_MAINNET_ADDRESS),
-            ERC20(WSTETH_MAINNET_ADDRESS)
-        );
+      address(0),
+      0,
+      ERC20(STETH_MAINNET_ADDRESS),
+      ERC20(WSTETH_MAINNET_ADDRESS)
+    );
 
     accounts = new address[](2);
     accounts[0] = makeAddr("accounts0");
