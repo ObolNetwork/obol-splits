@@ -163,6 +163,7 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     uint256 fuzzFeeShare
   ) public {
     vm.assume(anotherSplit != address(0));
+    vm.assume(fuzzFeeRecipient != anotherSplit);
     vm.assume(fuzzFeeShare > 0 && fuzzFeeShare < PERCENTAGE_SCALE);
     vm.assume(fuzzFeeRecipient != address(0));
     vm.assume(amountToDistribute > 1 ether);
