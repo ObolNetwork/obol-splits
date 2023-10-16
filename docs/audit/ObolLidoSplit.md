@@ -48,8 +48,8 @@ Source Units in Scope: **`1`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
-| 📝🔍 | src/lido/ObolLidoSplit.sol | 1 | 1 | 72 | 64 | 29 | 31 | 34 | **** |
-| 📝🔍 | **Totals** | **1** | **1** | **72**  | **64** | **29** | **31** | **34** | **** |
+| 📝 | src/lido/ObolLidoSplit.sol | 1 | **** | 117 | 117 | 53 | 46 | 59 | **** |
+| 📝 | **Totals** | **1** | **** | **117**  | **117** | **53** | **46** | **59** | **** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -131,14 +131,14 @@ The analysis finished with **`0`** errors and **`0`** duplicate files.
 
 #### <span id=t-inline-documentation>Inline Documentation</span>
 
-- **Comment-to-Source Ratio:** On average there are`1` code lines per comment (lower=better).
+- **Comment-to-Source Ratio:** On average there are`1.15` code lines per comment (lower=better).
 - **ToDo's:** `0` 
 
 #### <span id=t-components>Components</span>
 
 | 📝Contracts   | 📚Libraries | 🔍Interfaces | 🎨Abstract |
 | ------------- | ----------- | ------------ | ---------- |
-| 1 | 0  | 1  | 0 |
+| 1 | 0  | 0  | 0 |
 
 #### <span id=t-exposed-functions>Exposed Functions</span>
 
@@ -146,23 +146,23 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | 🌐Public   | 💰Payable |
 | ---------- | --------- |
-| 5 | 0  | 
+| 3 | 0  | 
 
 | External   | Internal | Private | Pure | View |
 | ---------- | -------- | ------- | ---- | ---- |
-| 2 | 3  | 0 | 3 | 0 |
+| 2 | 3  | 0 | 1 | 0 |
 
 #### <span id=t-statevariables>StateVariables</span>
 
 | Total      | 🌐Public  |
 | ---------- | --------- |
-| 3  | 0 |
+| 7  | 4 |
 
 #### <span id=t-capabilities>Capabilities</span>
 
 | Solidity Versions observed | 🧪 Experimental Features | 💰 Can Receive Funds | 🖥 Uses Assembly | 💣 Has Destroyable Contracts | 
 | -------------------------- | ------------------------ | -------------------- | ---------------- | ---------------------------- |
-| `=0.8.17` |  | **** | **** | **** | 
+| `0.8.19` |  | **** | **** | **** | 
 
 | 📤 Transfers ETH | ⚡ Low-Level Calls | 👥 DelegateCall | 🧮 Uses Hash Functions | 🔖 ECRecover | 🌀 New/Create/Create2 |
 | ---------------- | ----------------- | --------------- | ---------------------- | ------------ | --------------------- |
@@ -179,6 +179,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | solady/utils/Clone.sol | 1 |
 | solmate/tokens/ERC20.sol | 1 |
 | solmate/utils/SafeTransferLib.sol | 1 |
+| src/interfaces/IwstETH.sol | 1 |
 
 #### <span id=t-totals>Totals</span>
 
@@ -237,7 +238,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| src/lido/ObolLidoSplit.sol | a6d06d355c3e9abd9b6674b54a0b9b9960d3da33 |
+| src/lido/ObolLidoSplit.sol | e60ac5c37593dd7b11dc04af62baa7b122e98ed5 |
 
 
  Contracts Description Table
@@ -247,15 +248,11 @@ This section lists functions that are explicitly declared public or payable. Ple
 |:----------:|:-------------------:|:----------------:|:----------------:|:---------------:|
 |     └      |  **Function Name**  |  **Visibility**  |  **Mutability**  |  **Modifiers**  |
 ||||||
-| **IwSTETH** | Interface |  |||
-| └ | wrap | External ❗️ | 🛑  |NO❗️ |
-||||||
 | **ObolLidoSplit** | Implementation | Clone |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
 | └ | splitWallet | Public ❗️ |   |NO❗️ |
-| └ | stETHAddress | Public ❗️ |   |NO❗️ |
-| └ | wstETHAddress | Public ❗️ |   |NO❗️ |
 | └ | distribute | External ❗️ | 🛑  |NO❗️ |
+| └ | rescueFunds | External ❗️ | 🛑  |NO❗️ |
 
 
  Legend

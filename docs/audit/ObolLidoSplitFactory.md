@@ -48,8 +48,8 @@ Source Units in Scope: **`1`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
-| 📝 | src/lido/ObolLidoSplitFactory.sol | 1 | **** | 73 | 73 | 31 | 25 | 24 | **<abbr title='create/create2'>🌀</abbr>** |
-| 📝 | **Totals** | **1** | **** | **73**  | **73** | **31** | **25** | **24** | **<abbr title='create/create2'>🌀</abbr>** |
+| 📝 | src/lido/ObolLidoSplitFactory.sol | 1 | **** | 54 | 54 | 18 | 24 | 22 | **<abbr title='create/create2'>🌀</abbr>** |
+| 📝 | **Totals** | **1** | **** | **54**  | **54** | **18** | **24** | **22** | **<abbr title='create/create2'>🌀</abbr>** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -131,7 +131,7 @@ The analysis finished with **`0`** errors and **`0`** duplicate files.
 
 #### <span id=t-inline-documentation>Inline Documentation</span>
 
-- **Comment-to-Source Ratio:** On average there are`1.24` code lines per comment (lower=better).
+- **Comment-to-Source Ratio:** On average there are`0.75` code lines per comment (lower=better).
 - **ToDo's:** `0` 
 
 #### <span id=t-components>Components</span>
@@ -156,13 +156,13 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | Total      | 🌐Public  |
 | ---------- | --------- |
-| 3  | 3 |
+| 1  | 1 |
 
 #### <span id=t-capabilities>Capabilities</span>
 
 | Solidity Versions observed | 🧪 Experimental Features | 💰 Can Receive Funds | 🖥 Uses Assembly | 💣 Has Destroyable Contracts | 
 | -------------------------- | ------------------------ | -------------------- | ---------------- | ---------------------------- |
-| `=0.8.17` |  | **** | **** | **** | 
+| `0.8.19` |  | **** | **** | **** | 
 
 | 📤 Transfers ETH | ⚡ Low-Level Calls | 👥 DelegateCall | 🧮 Uses Hash Functions | 🔖 ECRecover | 🌀 New/Create/Create2 |
 | ---------------- | ----------------- | --------------- | ---------------------- | ------------ | --------------------- |
@@ -236,7 +236,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 |  File Name  |  SHA-1 Hash  |
 |-------------|--------------|
-| src/lido/ObolLidoSplitFactory.sol | fbe7fc44155c90479b3d1c3f46886b2e67f0d5c0 |
+| src/lido/ObolLidoSplitFactory.sol | 39e631fd6416d7ab96b78b1b26855fda259dff64 |
 
 
  Contracts Description Table
