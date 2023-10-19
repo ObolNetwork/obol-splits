@@ -22,22 +22,6 @@ Then install the contract dependencies:
 forge install
 ```
 
-### Obol protocol contracts
-
-- factory/ValidatorRewardSplitFactory.sol
-
-
-- splitter/SplitFactory
-
-- splitter/SplitMainV2.sol
-
-- splitter/SplitWallet.sol
-
-- waterfall/token/LW1155.sol
-
-- waterfall/LWFactory.sol
-
-
 ### Local Development
 
 To test your changes to the codebase run the unit tests with:
