@@ -10,7 +10,7 @@ contract OWRFactoryScript is Script {
     address _ensReverseRegistrar,
     address _ensOwner
   ) external {
-    uint256 privKey = vm.envUint("MAINNET_PRIVATE_KEY");
+    uint256 privKey = vm.envUint("PRIVATE_KEY");
     
     vm.startBroadcast(privKey);
     
