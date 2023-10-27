@@ -86,6 +86,13 @@ OptimisticWithdrawalRecipientFactory: https://etherscan.io/address/0x119acd7844c
 
 OptimisticWithdrawalRecipient: https://etherscan.io/address/0xe11eabf19a49c389d3e8735c35f8f34f28bdcb22
 
+ObolLidoSplitFactory: https://etherscan.io/address/0xA9d94139A310150Ca1163b5E23f3E1dbb7D9E2A6
+
+ObolLidoSplit: https://etherscan.io/address/0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3
+
+ImmutableSplitControllerFactory: https://etherscan.io/address/0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4
+
+ImmutableSplitController: https://etherscan.io/address/0xaF129979b773374dD3025d3F97353e73B0A6Cc8d
 
 ### Versioning
 
