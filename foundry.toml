@@ -10,7 +10,7 @@ remappings = [
 ]
 solc_version = '0.8.19'
 gas_reports = ["*"]
-
+fs_permissions = [{ access = "read-write", path = "./"}]
 
 [rpc_endpoints]
 goerli = "${GOERLI_RPC_URL}"
