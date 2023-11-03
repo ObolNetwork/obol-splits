@@ -1,16 +1,16 @@
 ![Obol Logo](https://obol.tech/obolnetwork.png)
 
-<h1 align="center">Obol Manager Contracts</h1>
+<h1 align="center">Obol Splits</h1>
 
-This repo contains Obol Manager smart contracts. This suite of smart contracts and associated tests are intended to serve as a public good to to enable the safe and secure creation of Distributed Validators for Ethereum Consensus-based networks.
+This repo contains Obol Splits smart contracts. This suite of smart contracts and associated tests are intended to serve as a public good to to enable the safe and secure creation of Distributed Validators for Ethereum Consensus-based networks.
 
 ### Disclaimer
 
-The following smart contracts are provided as is, without warranty. Details of their audit can be consulted [here](https://docs.obol.tech/docs/next/sec/smart_contract_audit). 
+The following smart contracts are provided as is, without warranty. Details of their audit can be consulted [here](https://docs.obol.tech/docs/sec/smart_contract_audit). 
 
 ## Quickstart
 
-This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.tech/docs/sc/introducing-obol-managers) for more information on what Distributed Validators are, and their smart contract lifecycle.
+This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.tech/docs/next/sc/introducing-obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
 
 ### Installation
 
