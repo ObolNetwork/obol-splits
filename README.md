@@ -26,6 +26,10 @@ forge install
 
 To test your changes to the codebase run the unit tests with:
 
+```
+cp .env.sample .env
+```
+
 ```sh
 forge test
 ```
