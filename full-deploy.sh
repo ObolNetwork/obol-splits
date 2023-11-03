@@ -1,5 +1,5 @@
 # This is designed to be used to do a full deployment of the contracts on a network
-# Copy .env.sample to .env and fill variables
+# Copy .env.deployment to .env and fill variables
 # This script will skip a deployment if the variables are not set properly
 
 set -e

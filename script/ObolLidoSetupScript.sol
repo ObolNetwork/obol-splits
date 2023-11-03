@@ -22,7 +22,7 @@ import { ObolLidoSplitFactory } from "src/lido/ObolLidoSplitFactory.sol";
 /// To Run
 /// 
 /// Step 1 fill in the appropriate details for env vars
-/// > cp .env.sample .env
+/// > cp .env.deployment .env
 ///
 /// Step 2 add to environment
 /// > source .env
