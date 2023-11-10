@@ -3,8 +3,10 @@ pragma solidity 0.8.19;
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {IETH2DepositContract} from "../interfaces/IETH2DepositContract.sol";
+import { HandlerContext } from "safe-contracts/handler/HandlerContext.sol";
 
-contract ETHVaultSafeModule is ERC20 {
+
+contract ETHVaultSafeModule is ERC20, HandlerContext {
     using SafeTransferLib for address;
 
     IETH2DepositContract immutable public depositContract;
@@ -21,10 +23,6 @@ contract ETHVaultSafeModule is ERC20 {
 
     }
 
-    function setup() external {
-
-    }
-
     function depositValidator(
         bytes calldata pubkey,
         bytes calldata withdrawal_credentials,
@@ -32,6 +30,7 @@ contract ETHVaultSafeModule is ERC20 {
         bytes32 deposit_data_root,
         uint256 amount
     ) external payable {
+        bytes memory data = abi.encodeCall(depositContract.deposit, )
         depositContract.deposit{value: amount}(
             pubkey,
             withdrawal_credentials,
