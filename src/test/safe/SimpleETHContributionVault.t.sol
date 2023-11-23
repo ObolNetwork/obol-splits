@@ -50,7 +50,8 @@ contract SimpleETHContributionVaultTest is Test {
     emit Deposit(user1, ETH_STAKE);
 
     vm.prank(user1);
-    payable(contributionVault).call{value: ETH_STAKE}("");
+    (bool _success,) = payable(contributionVault).call{value: ETH_STAKE}("");
+    assertTrue(_success, "call failed");
 
     assertEq(contributionVault.userBalances(user1), ETH_STAKE, "failed to credit user balance");
   }
@@ -65,7 +66,8 @@ contract SimpleETHContributionVaultTest is Test {
     emit Deposit(user, amount);
 
     vm.prank(user);
-    payable(contributionVault).call{value: amount}("");
+    (bool _success,) = payable(contributionVault).call{value: amount}("");
+    assertTrue(_success, "call failed");
 
     assertEq(contributionVault.userBalances(user), amount);
   }
@@ -74,7 +76,8 @@ contract SimpleETHContributionVaultTest is Test {
     vm.deal(user1, ETH_STAKE);
     
     vm.prank(user1);
-    (bool _result, bytes memory _data) = payable(contributionVault).call{value: ETH_STAKE}("");
+    (bool _success,) = payable(contributionVault).call{value: ETH_STAKE}("");
+    assertTrue(_success, "call failed");
 
 
     vm.expectEmit(false, false, false, true);
@@ -91,7 +94,8 @@ contract SimpleETHContributionVaultTest is Test {
     vm.deal(user, amount);
 
     vm.prank(user);
-    payable(contributionVault).call{value: amount}("");
+    (bool _success,) = payable(contributionVault).call{value: amount}("");
+    assertTrue(_success, "call failed");
 
     vm.expectEmit(false, false, false, true);
     emit RageQuit(user, amount);
@@ -104,7 +108,8 @@ contract SimpleETHContributionVaultTest is Test {
     vm.deal(user1, ETH_STAKE);
 
     vm.prank(user1);
-    payable(contributionVault).call{value: ETH_STAKE}("");
+    (bool _success,) = payable(contributionVault).call{value: ETH_STAKE}("");
+    assertTrue(_success, "call failed");
 
     (
       bytes[] memory pubkeys,
@@ -126,7 +131,8 @@ contract SimpleETHContributionVaultTest is Test {
     vm.deal(user1, ETH_STAKE);
 
     vm.prank(user1);
-    payable(contributionVault).call{value: ETH_STAKE}("");
+    (bool _success,) = payable(contributionVault).call{value: ETH_STAKE}("");
+    assertTrue(_success, "call failed");
 
     (
       bytes[] memory pubkeys,

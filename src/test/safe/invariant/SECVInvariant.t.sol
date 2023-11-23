@@ -4,11 +4,11 @@ pragma solidity ^0.8.19;
 contract SECVInvariant {
 
     function setUp() public {
-        
+
     }
 
-    function testInvariant_deposit() {
+    // function testInvariant_deposit() {
         
-    }
+    // }
 
 }
