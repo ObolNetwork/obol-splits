@@ -20,7 +20,7 @@ contract ETHVaultSafeModuleTest is Test {
     event RageQuit(address to, uint256 amount);
     event RescueFunds(uint256 amount);
 
-    address constant ETH_DEPOSIT_CONTRACT = address(0x0);
+    address constant ETH_DEPOSIT_CONTRACT = 0x00000000219ab540356cBB839Cbe05303d7705Fa;
     uint256 internal constant ETH_STAKE = 32 ether;
     
     SimpleETHContributionVault contributionVault;
@@ -32,6 +32,9 @@ contract ETHVaultSafeModuleTest is Test {
     MockERC20 mERC20;
 
     function setUp() public {
+        uint256 mainnetBlock = 17_421_005;
+        vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
+
         safe = makeAddr("safe");
         contributionVault = new SimpleETHContributionVault(
             safe,
@@ -108,14 +111,12 @@ contract ETHVaultSafeModuleTest is Test {
         vm.prank(user1);
         payable(contributionVault).transfer(ETH_STAKE);
 
-        bytes[] memory pubkeys = new bytes[](1);
-        pubkeys[0] = bytes("");
-        bytes[] memory withdrawal_credentials = new bytes[](1);
-        withdrawal_credentials[0] = bytes("");
-        bytes[] memory signatures = new bytes[](1);
-        signatures[0] = bytes("");
-        bytes32[] memory deposit_data_roots = new bytes32[](1);
-        deposit_data_roots[0] = bytes32(0);
+        (
+            bytes[] memory pubkeys,
+            bytes[] memory withdrawal_credentials,
+            bytes[] memory signatures,
+            bytes32[] memory deposit_data_roots
+        ) = getETHValidatorData();
 
         contributionVault.depositValidator(
             pubkeys,
@@ -198,16 +199,15 @@ function getETHValidatorData() pure returns (
     bytes[] memory signatures,
     bytes32[] memory deposit_data_roots
 ) {
-
     pubkeys = new bytes[](1);
-    pubkeys[0] = bytes("");
+    pubkeys[0] = bytes("0x83fa9495bb0944a74fc6a66e699039b66134b22a52a710f8d0f7cde318a2db3da40081a5867667389d206e21b5e37e52");
 
     withdrawal_credentials = new bytes[](1);
-    withdrawal_credentials[0] = bytes("");
+    withdrawal_credentials[0] = bytes("0x010000000000000000000000e839a3e9efb32c6a56ab7128e51056585275506c");
 
     signatures = new bytes[](1);
-    signatures[0] = bytes("");
+    signatures[0] = bytes("0x95f00435e80e59a8fed41581e2050a3fe56272d6be845686ef014a57909c6621d7847fa550b77cb8e541b955f3c2ea031983d9e4336f215e75c8ba75d94e05f1e23460de6611a980ef629d3e32ca09cffaf2a63372496079b1ee22310d336ded");
     
     deposit_data_roots = new bytes32[](1);
-    deposit_data_roots[0] = bytes32(0);
+    deposit_data_roots[0] = bytes32(0x2d33b096d02f7a53dbbdaf840755dfc6b9269be39cff6b0d2701d15b4c1b639c);
 }
