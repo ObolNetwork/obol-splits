@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 import {SimpleETHContributionVault} from "src/safe-modules/SimpleETHContributionVault.sol";
 
-contract ETHVaultSafeModuleTest is Test {
+contract SimpleETHContributionVaultTest is Test {
   error CannotRageQuit();
   error Unauthorized(address user);
 
