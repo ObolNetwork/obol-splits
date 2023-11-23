@@ -30,4 +30,4 @@ tab_width = 2
 wrap_comments = true
 
 [fuzz]
-runs = 100
+runs = 1

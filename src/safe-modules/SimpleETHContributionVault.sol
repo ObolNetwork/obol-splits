@@ -21,22 +21,44 @@ contract SimpleETHContributionVault {
   /// @notice Amount of ETH validator stake
   uint256 internal constant ETH_STAKE = 32 ether;
 
+  /// @notice Emitted on deposit ETH
+  /// @param to address the credited ETH
+  /// @param amount Amount of ETH deposit
   event Deposit(address to, uint256 amount);
 
+  /// @notice Emitted on validator deposit
+  /// @param pubkeys array of validator pubkeys
+  /// @param withdrawal_credentials array of validator 0x1 withdrawal credentials
+  /// @param signatures array of validator signatures
+  /// @param deposit_data_roots array of deposit data roots
   event DepositValidator(
-    bytes[] pubkeys, bytes[] withdrawal_credentials, bytes[] signatures, bytes32[] deposit_data_roots
+    bytes[] pubkeys, 
+    bytes[] withdrawal_credentials,
+    bytes[] signatures,
+    bytes32[] deposit_data_roots
   );
+
+  /// @notice Emitted on user rage quit
+  /// @param to address that received amount
+  /// @param amount amount rage quitted
   event RageQuit(address to, uint256 amount);
+
+  /// @notice Emitted on rescue funds
+  /// @param amount amount of funds rescued
   event RescueFunds(uint256 amount);
 
-  /// @notice
-  mapping(address => uint256) public userBalances;
-
+  /// @notice ETH2 deposit contract
   IETH2DepositContract public immutable depositContract;
-
+  
+  /// @notice Address of gnosis safe
   address public immutable safe;
 
+  /// @notice adress => amount deposited
+  mapping(address => uint256) public userBalances;
+
+  /// @notice tracks if validator have been activated
   bool public activated;
+
 
   modifier onlySafe() {
     if (msg.sender != safe) revert Unauthorized(msg.sender);
@@ -106,6 +128,9 @@ contract SimpleETHContributionVault {
     emit RescueFunds(amount);
   }
 
+  /// @notice a user deposit
+  /// @param to address to receive the deposit
+  /// @param amount amount of deposit
   function _deposit(address to, uint256 amount) internal {
     userBalances[to] += amount;
     emit Deposit(to, amount);
