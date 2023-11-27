@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {Test} from "forge-std/Test.sol";
+import "forge-std/console.sol";
 import {StdInvariant} from "forge-std/StdInvariant.sol";
 import {SimpleETHContributionVault} from "src/safe-modules/SimpleETHContributionVault.sol";
 import {CommonBase} from "forge-std/Base.sol";
@@ -12,9 +13,9 @@ import {getETHValidatorData} from "../SimpleETHContributionVault.t.sol";
 contract MockDepositContract {
   uint256 public ghost_depositSum;
 
-  event Deposit(bytes[] pubkeys, bytes[] withdrawal_credentials, bytes[] signatures, bytes32[] deposit_data_roots);
+  receive() external payable {}
 
-  function deposit(bytes[] calldata, bytes[] calldata, bytes[] calldata, bytes32[] calldata) external payable {
+  function deposit(bytes calldata, bytes calldata, bytes calldata, bytes32) external payable {
     ghost_depositSum += msg.value;
   }
 }
@@ -28,9 +29,9 @@ contract SECVMock is SimpleETHContributionVault {
     bytes[] calldata withdrawal_credentials,
     bytes[] calldata signatures,
     bytes32[] calldata deposit_data_roots
-  ) external payable {
+  ) external {
     for (uint256 i = 0; i < 1;) {
-      depositContract.deposit{value: msg.value}(
+      depositContract.deposit{value: address(this).balance}(
         pubkeys[i], withdrawal_credentials[i], signatures[i], deposit_data_roots[i]
       );
       unchecked {
@@ -70,8 +71,7 @@ contract SECVBoundedHandler is CommonBase, StdCheats, StdUtils {
     ghost_rageQuitSum += amount;
   }
 
-  function depositValidator(uint256 amount) external payable {
-    amount = bound(amount, 0, address(contributionVault).balance);
+  function depositValidator() external payable {
     (
       bytes[] memory pubkeys,
       bytes[] memory withdrawal_credentials,
@@ -79,9 +79,8 @@ contract SECVBoundedHandler is CommonBase, StdCheats, StdUtils {
       bytes32[] memory deposit_data_roots
     ) = getETHValidatorData();
 
-    contributionVault.depositValidatorMock{value: amount}(
-      pubkeys, withdrawal_credentials, signatures, deposit_data_roots
-    );
+    // use entire vault balance
+    contributionVault.depositValidatorMock(pubkeys, withdrawal_credentials, signatures, deposit_data_roots);
   }
 }
 
@@ -110,16 +109,16 @@ contract SECVInvariant is Test {
   function invariant_balanceEqual() public {
     assertEq(
       handler.ETH_SUPPLY(),
-      address(handler).balance + contributionVault.userBalances(address(handler)) + address(mockDepositContract).balance
+      address(handler).balance + address(contributionVault).balance + address(mockDepositContract).balance
     );
   }
 
   /// @notice This invariant checks that the vault is
-  /// always solvent when a user ragequits.
+  /// always solvent
   function invariant_vaultIsSolvent() public {
     assertEq(
       address(contributionVault).balance,
-      handler.ghost_depositSum() + mockDepositContract.ghost_depositSum() - handler.ghost_rageQuitSum()
+      handler.ghost_depositSum() - mockDepositContract.ghost_depositSum() - handler.ghost_rageQuitSum()
     );
   }
 }

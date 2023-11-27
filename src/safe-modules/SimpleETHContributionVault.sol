@@ -80,7 +80,7 @@ contract SimpleETHContributionVault {
     bytes[] calldata withdrawal_credentials,
     bytes[] calldata signatures,
     bytes32[] calldata deposit_data_roots
-  ) external payable onlySafe {
+  ) external onlySafe {
     uint256 size = pubkeys.length;
 
     if (address(this).balance < size * ETH_STAKE) {
