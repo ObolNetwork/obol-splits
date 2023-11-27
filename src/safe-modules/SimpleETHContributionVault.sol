@@ -74,7 +74,7 @@ contract SimpleETHContributionVault {
     _deposit(msg.sender, msg.value);
   }
 
-  /// Deposit ETH into ETH2 deposit contract
+  /// @notice Deposit ETH into ETH2 deposit contract
   /// @param pubkeys Array of validator pub keys
   /// @param withdrawal_credentials Array of validator withdrawal credentials
   /// @param signatures Array of validator signatures
@@ -106,8 +106,8 @@ contract SimpleETHContributionVault {
     emit DepositValidator(pubkeys, withdrawal_credentials, signatures, deposit_data_roots);
   }
 
-  /// Exit contribution vault prior to deposit starts
-  /// It allows a contributor to exit the vault before the validators are
+  /// @notice Exit contribution vault prior to deposit starts
+  /// It allows a contributor to exit the vault before any validator is
   /// activated
   /// @param to Address to send funds to
   /// @param amount balance to withdraw
@@ -120,7 +120,7 @@ contract SimpleETHContributionVault {
     emit RageQuit(to, amount);
   }
 
-  /// Rescue non-ETH tokens stuck to the safe
+  /// @notice Rescue non-ETH tokens stuck to the safe
   /// @param token Token address
   /// @param amount amount of balance to transfer to Safe
   function rescueFunds(address token, uint256 amount) external {
