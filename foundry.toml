@@ -7,7 +7,6 @@ remappings = [
     'solmate/=lib/solmate/src/',
     'splits-tests/=lib/splits-utils/test/',
     'solady/=lib/solady/src/',
-    'safe-contracts/=lib/safe-contracts/contracts',
 ]
 solc_version = '0.8.19'
 gas_reports = ["*"]
