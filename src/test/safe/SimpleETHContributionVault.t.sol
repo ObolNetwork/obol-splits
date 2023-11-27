@@ -5,9 +5,7 @@ import "forge-std/Test.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 import {SimpleETHContributionVault} from "src/safe-modules/SimpleETHContributionVault.sol";
 
-
 contract SimpleETHContributionVaultTest is Test {
-
   error CannotRageQuit();
   error Unauthorized(address user);
 
@@ -74,11 +72,10 @@ contract SimpleETHContributionVaultTest is Test {
 
   function test_rageQuit() external {
     vm.deal(user1, ETH_STAKE);
-    
+
     vm.prank(user1);
     (bool _success,) = payable(contributionVault).call{value: ETH_STAKE}("");
     assertTrue(_success, "call failed");
-
 
     vm.expectEmit(false, false, false, true);
     emit RageQuit(user1, ETH_STAKE);
@@ -188,15 +185,21 @@ function getETHValidatorData()
   )
 {
   pubkeys = new bytes[](1);
-  pubkeys[0] =
-    bytes(abi.encodePacked(hex"83fa9495bb0944a74fc6a66e699039b66134b22a52a710f8d0f7cde318a2db3da40081a5867667389d206e21b5e37e52"));
+  pubkeys[0] = bytes(
+    abi.encodePacked(
+      hex"83fa9495bb0944a74fc6a66e699039b66134b22a52a710f8d0f7cde318a2db3da40081a5867667389d206e21b5e37e52"
+    )
+  );
 
   withdrawal_credentials = new bytes[](1);
-  withdrawal_credentials[0] = bytes(abi.encodePacked(hex"010000000000000000000000e839a3e9efb32c6a56ab7128e51056585275506c"));
+  withdrawal_credentials[0] =
+    bytes(abi.encodePacked(hex"010000000000000000000000e839a3e9efb32c6a56ab7128e51056585275506c"));
 
   signatures = new bytes[](1);
   signatures[0] = bytes(
-    abi.encodePacked(hex"95f00435e80e59a8fed41581e2050a3fe56272d6be845686ef014a57909c6621d7847fa550b77cb8e541b955f3c2ea031983d9e4336f215e75c8ba75d94e05f1e23460de6611a980ef629d3e32ca09cffaf2a63372496079b1ee22310d336ded")
+    abi.encodePacked(
+      hex"95f00435e80e59a8fed41581e2050a3fe56272d6be845686ef014a57909c6621d7847fa550b77cb8e541b955f3c2ea031983d9e4336f215e75c8ba75d94e05f1e23460de6611a980ef629d3e32ca09cffaf2a63372496079b1ee22310d336ded"
+    )
   );
 
   deposit_data_roots = new bytes32[](1);

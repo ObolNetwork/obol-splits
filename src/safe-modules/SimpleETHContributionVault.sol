@@ -32,10 +32,7 @@ contract SimpleETHContributionVault {
   /// @param signatures array of validator signatures
   /// @param deposit_data_roots array of deposit data roots
   event DepositValidator(
-    bytes[] pubkeys, 
-    bytes[] withdrawal_credentials,
-    bytes[] signatures,
-    bytes32[] deposit_data_roots
+    bytes[] pubkeys, bytes[] withdrawal_credentials, bytes[] signatures, bytes32[] deposit_data_roots
   );
 
   /// @notice Emitted on user rage quit
@@ -49,7 +46,7 @@ contract SimpleETHContributionVault {
 
   /// @notice ETH2 deposit contract
   IETH2DepositContract public immutable depositContract;
-  
+
   /// @notice Address of gnosis safe
   address public immutable safe;
 
@@ -58,7 +55,6 @@ contract SimpleETHContributionVault {
 
   /// @notice tracks if validator have been activated
   bool public activated;
-
 
   modifier onlySafe() {
     if (msg.sender != safe) revert Unauthorized(msg.sender);
