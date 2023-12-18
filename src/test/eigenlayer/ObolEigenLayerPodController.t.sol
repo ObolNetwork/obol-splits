@@ -16,6 +16,7 @@ interface IDepositContract {
     ) external payable;
 
 }
+
 contract ObolEigenLayerPodControllerTest is Test {
     error Unauthorized();
     error NewOwnerIsZeroAddress();
