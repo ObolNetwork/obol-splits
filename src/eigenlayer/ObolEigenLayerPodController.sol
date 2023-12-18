@@ -158,10 +158,10 @@ contract ObolEigenLayerPodController {
     }
 
     /// @notice Rescue stuck tokens
-    /// @return balance Amount of tokens rescued
-    function rescueFunds(address token) external returns (uint256 balance) {
-        balance = ERC20(token).balanceOf(address(this));
-        if (balance > 0) ERC20(token).safeTransfer(split, balance);
+    /// @param token address of token
+    /// @param amount amount of token to rescue
+    function rescueFunds(address token, uint256 amount) external {
+        if (amount > 0) ERC20(token).safeTransfer(split, amount);
     }
 
     /// @notice Execute a low level call

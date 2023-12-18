@@ -166,7 +166,7 @@ contract ObolEigenLayerPodControllerTest is Test {
         uint256 amount = 1e18;
         mERC20.transfer(address(controller), amount);
         
-        controller.rescueFunds(address(mERC20));
+        controller.rescueFunds(address(mERC20), amount);
 
         assertEq(
             mERC20.balanceOf(splitter),
