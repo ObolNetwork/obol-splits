@@ -19,8 +19,7 @@ interface IDepositContract {
 
 contract ObolEigenLayerPodControllerTest is Test {
     error Unauthorized();
-    error NewOwnerIsZeroAddress();
-    error NoHandoverRequest();
+    error AlreadyInitialized();
 
     address constant DEPOSIT_CONTRACT_GOERLI = 0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b;
     address constant DELEGATION_MANAGER_GOERLI = 0x1b7b8F6b258f95Cf9596EabB9aa18B62940Eb0a8;
@@ -79,6 +78,15 @@ contract ObolEigenLayerPodControllerTest is Test {
         vm.expectRevert(Unauthorized.selector);
         controller.callEigenPod(
             encodeEigenPodCall(user1, 1 ether)
+        );
+    }
+
+    function test_RevertIfDoubleInitialize() external {
+        vm.prank(user1);
+        vm.expectRevert(AlreadyInitialized.selector);
+        controller.initialize(
+            owner,
+            splitter
         );
     }
 
