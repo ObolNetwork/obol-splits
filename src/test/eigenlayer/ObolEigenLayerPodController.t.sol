@@ -21,6 +21,9 @@ contract ObolEigenLayerPodControllerTest is Test {
     error Unauthorized();
     error AlreadyInitialized();
 
+    uint256 internal constant PERCENTAGE_SCALE = 1e5;
+
+
     address constant DEPOSIT_CONTRACT_GOERLI = 0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b;
     address constant DELEGATION_MANAGER_GOERLI = 0x1b7b8F6b258f95Cf9596EabB9aa18B62940Eb0a8;
     address constant POD_MANAGER_GOERLI = 0xa286b84C96aF280a49Fe1F40B9627C2A2827df41;
@@ -171,6 +174,43 @@ contract ObolEigenLayerPodControllerTest is Test {
         );
     }
 
+    function testFuzz_ClaimDelayedWithdrawals(uint256 amount) external {
+        amount = bound(amount, _min(amount, address(this).balance), type(uint96).max);
+
+        address DELAY_ROUTER_OWNER = 0x37bAFb55BC02056c5fD891DFa503ee84a97d89bF ;
+        vm.prank(DELAY_ROUTER_OWNER);
+        // set the delay withdrawal duration to zero
+        IDelayedWithdrawalRouter(DELAY_ROUTER_GOERLI).setWithdrawalDelayBlocks(0);
+
+        // transfer unstake beacon eth to eigenPod
+        (bool success, ) = address(controller.eigenPod()).call{value: amount}("");
+        require(success, "call failed");
+
+        vm.startPrank(owner);
+        {
+            controller.callEigenPod(
+                encodeEigenPodCall(address(controller), amount)
+            );
+            controller.claimDelayedWithdrawals(1);
+        }
+        vm.stopPrank();
+
+        uint256 fee = amount * feeShare / PERCENTAGE_SCALE;
+
+        assertEq(
+            address(feeRecipient).balance,
+            fee,
+            "invalid fee"
+        );
+
+        assertEq(
+            address(splitter).balance,
+            amount -= fee,
+            "invalid splitter balance"
+        );
+
+    }
+
     function test_RescueFunds() external {
         uint256 amount = 1e18;
         mERC20.transfer(address(controller), amount);
@@ -201,6 +241,14 @@ contract ObolEigenLayerPodControllerTest is Test {
         bytes32 dataRoot = bytes32(0);
 
         callData = abi.encodeCall(IEigenPodManager.stake, (pubkey, signature, dataRoot));
+    }
+
+    function _min(uint256 a, uint256 b) internal pure returns (uint256 min) {
+        min = a > b ? b : a;
+    }
+
+    function _max(uint256 a, uint256 b) internal pure returns (uint256 max) {
+        max = a > b ? a : b;
     }
 
 }
