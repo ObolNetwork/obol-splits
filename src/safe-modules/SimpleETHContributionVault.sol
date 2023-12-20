@@ -18,6 +18,9 @@ contract SimpleETHContributionVault {
   /// @notice incomplete contribution
   error IncompleteContribution(uint256 actual, uint256 expected);
 
+  /// @notice invalid deposit data 
+  error InvalidDepositData();
+
   /// @notice Amount of ETH validator stake
   uint256 internal constant ETH_STAKE = 32 ether;
 
@@ -83,9 +86,20 @@ contract SimpleETHContributionVault {
   ) external onlySafe {
     uint256 size = pubkeys.length;
 
+    if (
+      (withdrawal_credentials.length != size) ||
+      (signatures.length != size) ||
+      (deposit_data_roots.length != size)
+    ) {
+      revert InvalidDepositData();
+    }
+    
+
     if (address(this).balance < size * ETH_STAKE) {
       revert IncompleteContribution(address(this).balance, ETH_STAKE * size);
     }
+
+    activated = true;
 
     for (uint256 i = 0; i < size;) {
       depositContract.deposit{value: ETH_STAKE}(
@@ -96,8 +110,6 @@ contract SimpleETHContributionVault {
         i++;
       }
     }
-
-    activated = true;
 
     emit DepositValidator(pubkeys, withdrawal_credentials, signatures, deposit_data_roots);
   }
