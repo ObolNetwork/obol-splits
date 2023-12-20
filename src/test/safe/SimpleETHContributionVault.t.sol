@@ -7,7 +7,8 @@ import {SimpleETHContributionVault} from "src/safe-modules/SimpleETHContribution
 
 contract SimpleETHContributionVaultTest is Test {
   error CannotRageQuit();
-  error Invalid_Address();
+  error Invalid__Address();
+  error Invalid__DepositData();
   error Unauthorized(address user);
 
   event Deposit(address to, uint256 amount);
@@ -106,7 +107,7 @@ contract SimpleETHContributionVaultTest is Test {
   }
 
   function test_cannotDepositInvalidZero() external {
-    vm.expectRevert(Invalid_Address.selector);
+    vm.expectRevert(Invalid__Address.selector);
     contributionVault.deposit{value: ETH_STAKE}(address(0));    
   }
 
@@ -164,8 +165,19 @@ contract SimpleETHContributionVaultTest is Test {
     contributionVault.rageQuit(user1, ETH_STAKE);
   }
 
+  function test_invalidDepositData() external {
+    (
+      bytes[] memory pubkeys,
+      bytes[] memory withdrawal_credentials,,
+    ) = getETHValidatorData();
+
+    vm.prank(safe);
+    vm.expectRevert(Invalid__DepositData.selector);
+    contributionVault.depositValidator(pubkeys, withdrawal_credentials, new bytes[](0), new bytes32[](0));
+  }
+
   function test_cannotRageQuitIfZeroAddress() external {
-    vm.expectRevert(Invalid_Address.selector);
+    vm.expectRevert(Invalid__Address.selector);
     contributionVault.rageQuit(
       address(0),
       1

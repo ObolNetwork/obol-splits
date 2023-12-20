@@ -19,10 +19,10 @@ contract SimpleETHContributionVault {
   error IncompleteContribution(uint256 actual, uint256 expected);
 
   /// @notice invalid deposit data 
-  error InvalidDepositData();
+  error Invalid__DepositData();
 
   /// @notice Invalid Address 
-  error Invalid_Address();
+  error Invalid__Address();
 
   /// @notice Emitted on deposit ETH
   /// @param to address the credited ETH
@@ -72,7 +72,7 @@ contract SimpleETHContributionVault {
   function deposit(
     address to
   ) external payable {
-    if (to == address(0)) revert Invalid_Address();
+    if (to == address(0)) revert Invalid__Address();
     _deposit(to, msg.value);
   }
 
@@ -94,7 +94,7 @@ contract SimpleETHContributionVault {
       (signatures.length != size) ||
       (deposit_data_roots.length != size)
     ) {
-      revert InvalidDepositData();
+      revert Invalid__DepositData();
     }
     
 
@@ -121,7 +121,7 @@ contract SimpleETHContributionVault {
   /// @param to Address to send funds to
   /// @param amount balance to withdraw
   function rageQuit(address to, uint256 amount) external {
-    if (to == address(0)) revert Invalid_Address();
+    if (to == address(0)) revert Invalid__Address();
     if (activated == true) revert CannotRageQuit();
 
     userBalances[msg.sender] -= amount;
