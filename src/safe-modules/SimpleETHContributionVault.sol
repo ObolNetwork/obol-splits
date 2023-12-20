@@ -21,6 +21,9 @@ contract SimpleETHContributionVault {
   /// @notice invalid deposit data 
   error InvalidDepositData();
 
+  /// @notice Invalid Address 
+  error Invalid_Address();
+
   /// @notice Amount of ETH validator stake
   uint256 internal constant ETH_STAKE = 32 ether;
 
@@ -120,6 +123,7 @@ contract SimpleETHContributionVault {
   /// @param to Address to send funds to
   /// @param amount balance to withdraw
   function rageQuit(address to, uint256 amount) external {
+    if (to == address(0)) revert Invalid_Address();
     if (activated == true) revert CannotRageQuit();
 
     userBalances[msg.sender] -= amount;
