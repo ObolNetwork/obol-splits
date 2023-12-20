@@ -128,6 +128,7 @@ contract SimpleETHContributionVaultTest is Test {
   function testFuzz_rageQuit(address user, uint256 amount) external {
     vm.assume(amount > 0);
     vm.assume(user != address(0));
+    amount = bound(amount, 0, address(this).balance);
 
     vm.deal(user, amount);
 
@@ -225,7 +226,7 @@ contract SimpleETHContributionVaultTest is Test {
     contributionVault.rescueFunds(address(mERC20), amount);
   }
 
-  function testFuzz_rescueFundETH(uint256 amount) external {
+  function testFuzz_rescueFunds(uint256 amount) external {
     vm.assume(amount > 0);
 
     mERC20.transfer(address(contributionVault), amount);
