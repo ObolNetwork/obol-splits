@@ -29,10 +29,15 @@ contract SimpleETHContributionVaultTest is Test {
   MockERC20 mERC20;
 
   function setUp() public {
+    safe = makeAddr("safe");
+    user1 = makeAddr("user1");
+    user2 = makeAddr("user2");
+    user3 = makeAddr("user3");
+
     uint256 mainnetBlock = 17_421_005;
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
-    safe = makeAddr("safe");
+
     contributionVault = new SimpleETHContributionVault(
             safe,
             ETH_DEPOSIT_CONTRACT
@@ -55,6 +60,23 @@ contract SimpleETHContributionVaultTest is Test {
     assertEq(contributionVault.userBalances(user1), ETH_STAKE, "failed to credit user balance");
   }
 
+  function testFuzz_receive(address user, uint256 amount) external {
+    vm.assume(amount > 0);
+    vm.assume(user != address(0));
+    amount = bound(amount, 0, address(this).balance);
+
+    vm.deal(user, amount);
+
+    vm.expectEmit(false, false, false, true);
+    emit Deposit(user, amount);
+
+    vm.prank(user);
+    (bool _success,) = payable(contributionVault).call{value: amount}("");
+    assertTrue(_success, "call failed");
+
+    assertEq(contributionVault.userBalances(user), amount);
+  }
+
   function test_deposit() external {
     vm.deal(user1, ETH_STAKE);
 
@@ -67,14 +89,10 @@ contract SimpleETHContributionVaultTest is Test {
     assertEq(contributionVault.userBalances(user1), ETH_STAKE, "failed to credit user balance");
   }
 
-  function test_cannotDepositInvalidZero() external {
-    vm.expectRevert(Invalid_Address.selector);
-    contributionVault.deposit{value: ETH_STAKE}(address(0));    
-  }
-
   function testFuzz_deposit(address user, uint256 amount) external {
     vm.assume(amount > 0);
     vm.assume(user != address(0));
+    amount = bound(amount, 0, address(this).balance);
 
     vm.deal(user, amount);
 
@@ -82,10 +100,14 @@ contract SimpleETHContributionVaultTest is Test {
     emit Deposit(user, amount);
 
     vm.prank(user);
-    (bool _success,) = payable(contributionVault).call{value: amount}("");
-    assertTrue(_success, "call failed");
+    contributionVault.deposit{value: amount}(user);
 
     assertEq(contributionVault.userBalances(user), amount);
+  }
+
+  function test_cannotDepositInvalidZero() external {
+    vm.expectRevert(Invalid_Address.selector);
+    contributionVault.deposit{value: ETH_STAKE}(address(0));    
   }
 
   function test_rageQuit() external {
