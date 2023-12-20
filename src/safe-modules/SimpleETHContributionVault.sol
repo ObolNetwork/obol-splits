@@ -24,9 +24,6 @@ contract SimpleETHContributionVault {
   /// @notice Invalid Address 
   error Invalid_Address();
 
-  /// @notice Amount of ETH validator stake
-  uint256 internal constant ETH_STAKE = 32 ether;
-
   /// @notice Emitted on deposit ETH
   /// @param to address the credited ETH
   /// @param amount Amount of ETH deposit
@@ -49,6 +46,9 @@ contract SimpleETHContributionVault {
   /// @notice Emitted on rescue funds
   /// @param amount amount of funds rescued
   event RescueFunds(uint256 amount);
+
+  /// @notice Amount of ETH validator stake
+  uint256 internal constant ETH_STAKE = 32 ether;
 
   /// @notice ETH2 deposit contract
   IETH2DepositContract public immutable depositContract;
