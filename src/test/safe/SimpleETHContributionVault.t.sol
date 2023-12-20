@@ -42,7 +42,7 @@ contract SimpleETHContributionVaultTest is Test {
     mERC20.mint(type(uint256).max);
   }
 
-  function test_deposit() external {
+  function test_receive() external {
     vm.deal(user1, ETH_STAKE);
 
     vm.expectEmit(false, false, false, true);
@@ -53,6 +53,23 @@ contract SimpleETHContributionVaultTest is Test {
     assertTrue(_success, "call failed");
 
     assertEq(contributionVault.userBalances(user1), ETH_STAKE, "failed to credit user balance");
+  }
+
+  function test_deposit() external {
+    vm.deal(user1, ETH_STAKE);
+
+    vm.expectEmit(false, false, false, true);
+    emit Deposit(user1, ETH_STAKE);
+
+    vm.prank(user1);
+    contributionVault.deposit{value: ETH_STAKE}(user1);
+
+    assertEq(contributionVault.userBalances(user1), ETH_STAKE, "failed to credit user balance");
+  }
+
+  function test_cannotDepositInvalidZero() external {
+    vm.expectRevert(Invalid_Address.selector);
+    contributionVault.deposit{value: ETH_STAKE}(address(0));    
   }
 
   function testFuzz_deposit(address user, uint256 amount) external {
