@@ -157,7 +157,7 @@ contract ObolEigenLayerPodController {
         }
     }
 
-    /// @notice Rescue stuck tokens
+    /// @notice Rescue stuck tokens by sending them to the split contract.
     /// @param token address of token
     /// @param amount amount of token to rescue
     function rescueFunds(address token, uint256 amount) external {
