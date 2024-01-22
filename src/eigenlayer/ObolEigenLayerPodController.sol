@@ -11,10 +11,10 @@ import {
 } from "../interfaces/IEigenLayer.sol";
 
 
-/// @title ObolEigenLayerFactory
-/// @author Obol
-/// @notice A factory contract for cheaply deploying ObolLidoEigenLayer.
-/// @dev The address returned should be used to as reward address for Lido
+/// @title ObolEigenLayerPodController
+/// @author Obol Labs
+/// @notice A contract for controlling an Eigenpod and withdrawing the balance into an Obol Split
+/// @dev The address returned should be used as the EigenPodController address
 contract ObolEigenLayerPodController {
 
     /// @dev returned on failed call
