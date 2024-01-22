@@ -55,7 +55,7 @@ contract ObolEigenLayerPodController {
     /// @notice fee address
     address public immutable feeRecipient;
 
-    /// @notice fee share
+    /// @notice fee share. Represented as an integer from 1->10000 (100%)
     uint256 public immutable feeShare;
 
     /// -----------------------------------------------------------------------
