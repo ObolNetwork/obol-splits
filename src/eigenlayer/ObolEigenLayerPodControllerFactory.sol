@@ -6,7 +6,7 @@ import {LibClone} from "solady/utils/LibClone.sol";
 /// @title ObolEigenLayerFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying ObolLidoEigenLayer.
-/// @dev The address returned should be used to as reward address for Lido
+/// @dev The address returned should be used to as the EigenPod address
 contract ObolEigenLayerPodControllerFactory {
 
     error Invalid_Owner();
