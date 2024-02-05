@@ -146,7 +146,7 @@ contract ObolEigenLayerPodController {
             numberOfDelayedWithdrawalsToClaim
         );
 
-        // transfer eth to split
+        // transfer eth to owr
         uint256 balance = address(this).balance;
         if (feeShare > 0) {
             uint256 fee =  (balance * feeShare) / PERCENTAGE_SCALE;
