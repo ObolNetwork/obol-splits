@@ -65,8 +65,8 @@ contract ObolEigenLayerPodController {
     /// @notice address of deployed Eigen pod
     address public eigenPod;
 
-    /// @notice address of a splitter
-    address public split;
+    /// @notice address of a OWR
+    address public owr;
 
     /// @notice address of owner
     address public owner;
@@ -101,13 +101,13 @@ contract ObolEigenLayerPodController {
 
     /// @notice initializes the controller
     /// @param _owner address of the controller owner
-    /// @param splitter address of splitter
-    function initialize(address _owner, address splitter) external {
+    /// @param _owr address to receive funds
+    function initialize(address _owner, address _owr) external {
         if (owner != address(0)) revert AlreadyInitialized();
 
         eigenPod = eigenLayerPodManager.createPod();
         owner = _owner;
-        split = splitter;
+        owr = _owr;
 
         emit Initialized(eigenPod, _owner);
     }
@@ -151,9 +151,9 @@ contract ObolEigenLayerPodController {
         if (feeShare > 0) {
             uint256 fee =  (balance * feeShare) / PERCENTAGE_SCALE;
             feeRecipient.safeTransferETH(fee);
-            split.safeTransferETH(balance -= fee);
+            owr.safeTransferETH(balance -= fee);
         } else {
-            split.safeTransferETH(address(this).balance);
+            owr.safeTransferETH(address(this).balance);
         }
     }
 
@@ -161,7 +161,7 @@ contract ObolEigenLayerPodController {
     /// @param token address of token
     /// @param amount amount of token to rescue
     function rescueFunds(address token, uint256 amount) external {
-        if (amount > 0) ERC20(token).safeTransfer(split, amount);
+        if (amount > 0) ERC20(token).safeTransfer(owr, amount);
     }
 
     /// @notice Execute a low level call
