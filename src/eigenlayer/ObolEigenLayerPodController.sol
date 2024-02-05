@@ -25,7 +25,6 @@ contract ObolEigenLayerPodController {
     error Unauthorized();
     /// @dev contract already initialized
     error AlreadyInitialized();
-
     /// @dev Emiited on intialize
     event Initialized(address eigenPod, address owner);
     

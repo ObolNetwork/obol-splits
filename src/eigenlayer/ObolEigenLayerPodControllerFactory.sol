@@ -8,9 +8,8 @@ import {LibClone} from "solady/utils/LibClone.sol";
 /// @notice A factory contract for cheaply deploying ObolLidoEigenLayer.
 /// @dev The address returned should be used to as the EigenPod address
 contract ObolEigenLayerPodControllerFactory {
-
     error Invalid_Owner();
-    error Invalid_Split();
+    error Invalid_OWR();
     error Invalid_DelegationManager();
     error Invalid_EigenPodManaager();
     error Invalid_WithdrawalRouter();
@@ -19,7 +18,7 @@ contract ObolEigenLayerPodControllerFactory {
 
     event CreatePodController(
         address indexed controller,
-        address indexed split,
+        address indexed owr,
         address owner
     );
     
@@ -43,7 +42,7 @@ contract ObolEigenLayerPodControllerFactory {
             eigenPodManager,
             withdrawalRouter
         );
-
+        // initialize implementation
         controllerImplementation.initialize(
             feeRecipient,
             feeRecipient
@@ -52,26 +51,52 @@ contract ObolEigenLayerPodControllerFactory {
 
     /// Creates a minimal proxy clone of implementation
     /// @param owner address of owner
-    /// @param split address of split
+    /// @param owr address of owr
     /// @return controller Deployed obol eigen layer controller
-    function createPodController(address owner, address split)
+    function createPodController(address owner, address owr)
         external
         returns (address controller) 
     {
         if (owner == address(0)) revert Invalid_Owner();
-        if (split == address(0)) revert Invalid_Split();
+        if (owr == address(0)) revert Invalid_OWR();
 
-        controller = address(controllerImplementation).clone("");
+        bytes32 salt = _createSalt(
+            owner, owr
+        );
+
+        controller = address(controllerImplementation).cloneDeterministic("", salt);
 
         ObolEigenLayerPodController(controller).initialize(
             owner,
-            split
+            owr
         );
 
         emit CreatePodController(
             controller,
-            split,
+            owr,
             owner
+        );
+    }
+
+
+    function predictControllerAddress(
+        address owner,
+        address owr
+    ) external view returns (address controller) {
+        bytes32 salt = _createSalt(owner, owr);
+        controller = address(controllerImplementation).predictDeterministicAddress(
+            "",
+            salt,
+            address(this)
+        );
+    }
+
+    function _createSalt(
+        address owner,
+        address owr
+    ) internal pure returns (bytes32 salt) {
+        return keccak256(
+            abi.encode(owner, owr)
         );
     }
 

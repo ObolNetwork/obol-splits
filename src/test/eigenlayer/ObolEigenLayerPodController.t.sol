@@ -5,6 +5,7 @@ import { ObolEigenLayerPodController } from "src/eigenlayer/ObolEigenLayerPodCon
 import { ObolEigenLayerPodControllerFactory } from "src/eigenlayer/ObolEigenLayerPodControllerFactory.sol";
 import { IEigenPod, IDelegationManager, IEigenPodManager, IEigenLayerUtils, IDelayedWithdrawalRouter } from "src/interfaces/IEigenLayer.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
+import {OptimisticWithdrawalRecipientFactory, OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
 
 interface IDepositContract {
 
@@ -36,7 +37,8 @@ contract ObolEigenLayerPodControllerTest is Test {
     address owner;
     address user1;
     address user2;
-    address splitter;
+    address owr;
+    address principalRecipient;
     address feeRecipient;
 
     uint256 feeShare;
@@ -48,13 +50,16 @@ contract ObolEigenLayerPodControllerTest is Test {
         vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
 
         vm.mockCall(
-            DEPOSIT_CONTRACT_GOERLI, abi.encodeWithSelector(IDepositContract.deposit.selector), bytes.concat(bytes32(0))
+            DEPOSIT_CONTRACT_GOERLI,
+            abi.encodeWithSelector(IDepositContract.deposit.selector),
+            bytes.concat(bytes32(0))
         );
 
         owner = makeAddr("owner");
         user1 = makeAddr("user1");
         user1 = makeAddr("user2");
-        splitter = makeAddr("splitter");
+        principalRecipient = makeAddr("principalRecipient");
+        owr = makeAddr("owr");
         feeRecipient = makeAddr("feeRecipient");
         feeShare = 1e3;
 
@@ -68,12 +73,11 @@ contract ObolEigenLayerPodControllerTest is Test {
 
         controller = ObolEigenLayerPodController(factory.createPodController(
             owner,
-            splitter
+            owr
         ));
         
         mERC20 = new MockERC20("Test Token", "TOK", 18);
         mERC20.mint(type(uint256).max);
-
     }
 
     function test_RevertIfNotOwnerCallEigenPod() external {
@@ -89,7 +93,7 @@ contract ObolEigenLayerPodControllerTest is Test {
         vm.expectRevert(AlreadyInitialized.selector);
         controller.initialize(
             owner,
-            splitter
+            owr
         );
     }
 
@@ -168,7 +172,7 @@ contract ObolEigenLayerPodControllerTest is Test {
             "user balance increased"
         );
         assertEq(
-            address(splitter).balance,
+            address(owr).balance,
             1980000000000000000,
             "user balance increased"
         );
@@ -204,9 +208,9 @@ contract ObolEigenLayerPodControllerTest is Test {
         );
 
         assertEq(
-            address(splitter).balance,
+            address(owr).balance,
             amount -= fee,
-            "invalid splitter balance"
+            "invalid owr balance"
         );
 
     }
@@ -218,7 +222,7 @@ contract ObolEigenLayerPodControllerTest is Test {
         controller.rescueFunds(address(mERC20), amount);
 
         assertEq(
-            mERC20.balanceOf(splitter),
+            mERC20.balanceOf(owr),
             amount,
             "could not rescue funds"
         );

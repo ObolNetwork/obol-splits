@@ -5,7 +5,7 @@ import { ObolEigenLayerPodControllerFactory } from "src/eigenlayer/ObolEigenLaye
 
 contract ObolEigenLayerPodControllerFactoryTest is Test {
     error Invalid_Owner();
-    error Invalid_Split();
+    error Invalid_OWR();
     error Invalid_DelegationManager();
     error Invalid_EigenPodManaager();
     error Invalid_WithdrawalRouter();
@@ -89,8 +89,8 @@ contract ObolEigenLayerPodControllerFactoryTest is Test {
         );
     }
 
-    function test_RevertIfSplitIsZero() external {
-        vm.expectRevert(Invalid_Split.selector);
+    function test_RevertIfOWRIsZero() external {
+        vm.expectRevert(Invalid_OWR.selector);
         factory.createPodController(
             user1,
             address(0)
