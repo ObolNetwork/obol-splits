@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 import {ObolEigenLayerPodControllerFactory} from "src/eigenlayer/ObolEigenLayerPodControllerFactory.sol";
-import {EigenLayerTestBase} from "./EigenLayerTestBase.t.sol";
+import {EigenLayerTestBase} from "src/test/eigenlayer/EigenLayerTestBase.t.sol";
 
 contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
   error Invalid_Owner();
