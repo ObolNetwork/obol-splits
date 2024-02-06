@@ -18,7 +18,7 @@ import {
   OptimisticWithdrawalRecipient
 } from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
 import {IENSReverseRegistrar} from "../../../interfaces/IENSReverseRegistrar.sol";
-import {EigenLayerTestBase} from "src/test/eigenlayer/EigenLayerTestBase.t.sol";
+import {EigenLayerTestBase} from "src/test/eigenlayer/EigenLayerTestBase.sol";
 
 contract OELPCIntegration is EigenLayerTestBase {
   ObolEigenLayerPodControllerFactory factory;

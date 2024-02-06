@@ -16,7 +16,7 @@ import {
   OptimisticWithdrawalRecipientFactory,
   OptimisticWithdrawalRecipient
 } from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
-import {EigenLayerTestBase} from "src/test/eigenlayer/EigenLayerTestBase.t.sol";
+import {EigenLayerTestBase} from "src/test/eigenlayer/EigenLayerTestBase.sol";
 
 interface IDepositContract {
   function deposit(
