@@ -55,6 +55,9 @@ contract ObolEigenLayerPodControllerFactory {
     emit CreatePodController(controller, withdrawalAddress, owner);
   }
 
+  /// Predict the controller address
+  /// @param owner address of owner
+  /// @param withdrawalAddress address to withdraw funds to
   function predictControllerAddress(address owner, address withdrawalAddress)
     external
     view
