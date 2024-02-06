@@ -31,9 +31,14 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
   error Unauthorized();
   error AlreadyInitialized();
   error Invalid_FeeShare();
+  error CallFailed(bytes);
 
   ObolEigenLayerPodControllerFactory factory;
+  ObolEigenLayerPodControllerFactory zeroFeeFactory;
+
   ObolEigenLayerPodController controller;
+  ObolEigenLayerPodController zeroFeeController;
+
   address owner;
   address user1;
   address user2;
@@ -65,10 +70,19 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
       feeRecipient, feeShare, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
     );
 
+    zeroFeeFactory = new ObolEigenLayerPodControllerFactory(
+        address(0), 0, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
+    );
+
     controller = ObolEigenLayerPodController(factory.createPodController(owner, withdrawalAddress));
+    zeroFeeController = ObolEigenLayerPodController(zeroFeeFactory.createPodController(owner, withdrawalAddress));
 
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
+
+    vm.prank(DELAY_ROUTER_OWNER_GOERLI);
+    // set the delay withdrawal duration to zero
+    IDelayedWithdrawalRouter(DELAY_ROUTER_GOERLI).setWithdrawalDelayBlocks(0);
   }
 
   function test_RevertIfInvalidFeeShare() external {
@@ -126,11 +140,6 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
   }
 
   function test_ClaimDelayedWithdrawals() external {
-    address DELAY_ROUTER_OWNER = 0x37bAFb55BC02056c5fD891DFa503ee84a97d89bF;
-    vm.prank(DELAY_ROUTER_OWNER);
-    // set the delay withdrawal duration to zero
-    IDelayedWithdrawalRouter(DELAY_ROUTER_GOERLI).setWithdrawalDelayBlocks(0);
-
     uint256 amountToDeposit = 2 ether;
 
     // transfer unstake beacon eth to eigenPod
@@ -144,8 +153,34 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
     }
     vm.stopPrank();
 
-    assertEq(address(feeRecipient).balance, 20_000_000_000_000_000, "user balance increased");
-    assertEq(address(withdrawalAddress).balance, 1_980_000_000_000_000_000, "user balance increased");
+    assertEq(address(feeRecipient).balance, 20_000_000_000_000_000, "fee recipient balance increased");
+    assertEq(address(withdrawalAddress).balance, 1_980_000_000_000_000_000, "withdrawal balance increased");
+  }
+
+  function test_ClaimDelayedWithdrawalsZeroFee() external {
+    uint256 amountToDeposit = 20 ether;
+
+    // transfer unstake beacon eth to eigenPod
+    (bool success,) = address(zeroFeeController.eigenPod()).call{value: amountToDeposit}("");
+    require(success, "call failed");
+
+    vm.startPrank(owner);
+    {
+      zeroFeeController.callEigenPod(encodeEigenPodCall(address(zeroFeeController), amountToDeposit));
+      zeroFeeController.claimDelayedWithdrawals(1);
+    }
+    vm.stopPrank();
+
+    assertEq(address(withdrawalAddress).balance, amountToDeposit, "withdrawal balance increased");
+  }
+
+  function test_InvalidCallReverts() external {
+    uint256 amountToDeposit = 20 ether;
+    bytes memory data = encodeEigenPodCall(address(0x2), amountToDeposit);
+    vm.expectRevert(abi.encodeWithSelector(CallFailed.selector, data));
+    vm.prank(owner);
+    zeroFeeController.callEigenPod(data);
+    vm.stopPrank();
   }
 
   function testFuzz_ClaimDelayedWithdrawals(uint256 amount) external {
@@ -181,5 +216,12 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
     controller.rescueFunds(address(mERC20), amount);
 
     assertEq(mERC20.balanceOf(withdrawalAddress), amount, "could not rescue funds");
+  }
+
+  function test_RescueFundsZero() external {
+    uint256 amount = 0;
+    controller.rescueFunds(address(mERC20), amount);
+
+    assertEq(mERC20.balanceOf(withdrawalAddress), amount, "balance should be zero");
   }
 }
