@@ -6,6 +6,7 @@ import { ObolEigenLayerPodControllerFactory } from "src/eigenlayer/ObolEigenLaye
 import { IEigenPod, IDelegationManager, IEigenPodManager, IEigenLayerUtils, IDelayedWithdrawalRouter } from "src/interfaces/IEigenLayer.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 import {OptimisticWithdrawalRecipientFactory, OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
+import { EigenLayerTestBase } from "./EigenLayerTestBase.t.sol";
 
 interface IDepositContract {
 
@@ -18,26 +19,16 @@ interface IDepositContract {
 
 }
 
-contract ObolEigenLayerPodControllerTest is Test {
+contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
     error Unauthorized();
     error AlreadyInitialized();
-
-    uint256 internal constant PERCENTAGE_SCALE = 1e5;
-
-
-    address constant DEPOSIT_CONTRACT_GOERLI = 0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b;
-    address constant DELEGATION_MANAGER_GOERLI = 0x1b7b8F6b258f95Cf9596EabB9aa18B62940Eb0a8;
-    address constant POD_MANAGER_GOERLI = 0xa286b84C96aF280a49Fe1F40B9627C2A2827df41;
-    address constant DELAY_ROUTER_GOERLI = 0x89581561f1F98584F88b0d57c2180fb89225388f;
-
-    address constant EIGEN_LAYER_OPERATOR_GOERLI = 0x3DeD1CB5E25FE3eC9811B918A809A371A4965A5D;
 
     ObolEigenLayerPodControllerFactory factory;
     ObolEigenLayerPodController controller;
     address owner;
     address user1;
     address user2;
-    address owr;
+    address withdrawalAddress;
     address principalRecipient;
     address feeRecipient;
 
@@ -59,7 +50,7 @@ contract ObolEigenLayerPodControllerTest is Test {
         user1 = makeAddr("user1");
         user1 = makeAddr("user2");
         principalRecipient = makeAddr("principalRecipient");
-        owr = makeAddr("owr");
+        withdrawalAddress = makeAddr("withdrawalAddress");
         feeRecipient = makeAddr("feeRecipient");
         feeShare = 1e3;
 
@@ -73,7 +64,7 @@ contract ObolEigenLayerPodControllerTest is Test {
 
         controller = ObolEigenLayerPodController(factory.createPodController(
             owner,
-            owr
+            withdrawalAddress
         ));
         
         mERC20 = new MockERC20("Test Token", "TOK", 18);
@@ -93,7 +84,7 @@ contract ObolEigenLayerPodControllerTest is Test {
         vm.expectRevert(AlreadyInitialized.selector);
         controller.initialize(
             owner,
-            owr
+            withdrawalAddress
         );
     }
 
@@ -172,7 +163,7 @@ contract ObolEigenLayerPodControllerTest is Test {
             "user balance increased"
         );
         assertEq(
-            address(owr).balance,
+            address(withdrawalAddress).balance,
             1980000000000000000,
             "user balance increased"
         );
@@ -208,9 +199,9 @@ contract ObolEigenLayerPodControllerTest is Test {
         );
 
         assertEq(
-            address(owr).balance,
+            address(withdrawalAddress).balance,
             amount -= fee,
-            "invalid owr balance"
+            "invalid withdrawalAddress balance"
         );
 
     }
@@ -222,37 +213,10 @@ contract ObolEigenLayerPodControllerTest is Test {
         controller.rescueFunds(address(mERC20), amount);
 
         assertEq(
-            mERC20.balanceOf(owr),
+            mERC20.balanceOf(withdrawalAddress),
             amount,
             "could not rescue funds"
         );
-    }
-
-    function encodeEigenPodCall(address recipient, uint256 amount) internal pure returns (bytes memory callData) {
-        callData = abi.encodeCall(IEigenPod.withdrawNonBeaconChainETHBalanceWei, (recipient, amount));
-    }
-
-    function encodeDelegationManagerCall(address operator) internal pure returns (bytes memory callData) {
-        IEigenLayerUtils.SignatureWithExpiry memory signature = IEigenLayerUtils.SignatureWithExpiry(
-            bytes(""), 0
-        );
-        callData = abi.encodeCall(IDelegationManager.delegateTo, (operator, signature, bytes32(0)));
-    }
-
-    function encodeEigenPodManagerCall(uint256) internal pure returns (bytes memory callData) {
-        bytes memory pubkey = bytes("");
-        bytes memory signature = bytes("");
-        bytes32 dataRoot = bytes32(0);
-
-        callData = abi.encodeCall(IEigenPodManager.stake, (pubkey, signature, dataRoot));
-    }
-
-    function _min(uint256 a, uint256 b) internal pure returns (uint256 min) {
-        min = a > b ? b : a;
-    }
-
-    function _max(uint256 a, uint256 b) internal pure returns (uint256 max) {
-        max = a > b ? a : b;
     }
 
 }

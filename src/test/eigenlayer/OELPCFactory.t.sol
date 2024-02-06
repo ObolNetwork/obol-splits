@@ -2,10 +2,11 @@
 pragma solidity 0.8.19;
 import "forge-std/Test.sol";
 import { ObolEigenLayerPodControllerFactory } from "src/eigenlayer/ObolEigenLayerPodControllerFactory.sol";
+import { EigenLayerTestBase } from "./EigenLayerTestBase.t.sol";
 
-contract ObolEigenLayerPodControllerFactoryTest is Test {
+contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
     error Invalid_Owner();
-    error Invalid_OWR();
+    error Invalid_WithdrawalAddress();
     error Invalid_DelegationManager();
     error Invalid_EigenPodManaager();
     error Invalid_WithdrawalRouter();
@@ -16,15 +17,11 @@ contract ObolEigenLayerPodControllerFactoryTest is Test {
         address owner
     );
 
-    address DELEGATION_MANAGER_GOERLI = 0x1b7b8F6b258f95Cf9596EabB9aa18B62940Eb0a8;
-    address POD_MANAGER_GOERLI = 0xa286b84C96aF280a49Fe1F40B9627C2A2827df41;
-    address DELAY_ROUTER_GOERLI = 0x89581561f1F98584F88b0d57c2180fb89225388f;
-
     ObolEigenLayerPodControllerFactory factory;
 
     address owner;
     address user1;
-    address splitter;
+    address withdrawalAddress;
     address feeRecipient;
 
     uint256 feeShare;
@@ -35,7 +32,7 @@ contract ObolEigenLayerPodControllerFactoryTest is Test {
 
         owner = makeAddr("owner");
         user1 = makeAddr("user1");
-        splitter = makeAddr("splitter");
+        withdrawalAddress = makeAddr("withdrawalAddress");
         feeRecipient = makeAddr("feeRecipient");
         feeShare = 1e3;
 
@@ -85,12 +82,12 @@ contract ObolEigenLayerPodControllerFactoryTest is Test {
         vm.expectRevert(Invalid_Owner.selector);
         factory.createPodController(
             address(0),
-            splitter
+            withdrawalAddress
         );
     }
 
     function test_RevertIfOWRIsZero() external {
-        vm.expectRevert(Invalid_OWR.selector);
+        vm.expectRevert(Invalid_WithdrawalAddress.selector);
         factory.createPodController(
             user1,
             address(0)
@@ -107,13 +104,13 @@ contract ObolEigenLayerPodControllerFactoryTest is Test {
 
         emit CreatePodController(
             address(0),
-            splitter,
+            withdrawalAddress,
             user1
         );
 
         factory.createPodController(
             user1,
-            splitter
+            withdrawalAddress
         );
     }
 }
