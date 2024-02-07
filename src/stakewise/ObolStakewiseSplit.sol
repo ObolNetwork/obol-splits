@@ -62,7 +62,39 @@ contract ObolStakewiseSplit is Clone {
     return _getArgAddress(SPLIT_WALLET_ADDRESS_OFFSET);
   }
 
-  function distribute() external returns (uint256 amount) {}
+  /// Transfers the vault token balance to splitWallet for distribution
+  /// @return amount Amount of vault token transferred to splitWallet
+  function distribute() external returns (uint256 amount) {
+    // get current balance
+    amount = vaultToken.balanceOf(address(this));
 
-  function rescueFunds(address token) external returns (uint256 balance) {}
+    if (feeShare > 0) {
+      uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
+      // transfer to split wallet
+      // update amount to reflect fee charged
+      vaultToken.safeTransfer(splitWallet(), amount -= fee);
+      // transfer to fee address
+      vaultToken.safeTransfer(feeRecipient, fee);
+    } else {
+      // transfer to split wallet
+      vaultToken.safeTransfer(splitWallet(), amount);
+    }
+  }
+
+  /// @notice Rescue stuck ETH and tokens
+  /// Uses token == address(0) to represent ETH
+  /// @return balance Amount of ETH or tokens rescued
+  function rescueFunds(address token) external returns (uint256 balance) {
+    // we check wstETH here so rescueFunds can't be used
+    // to bypass fee
+    if (token == address(vaultToken)) revert Invalid_Address();
+
+    if (token == ETH_ADDRESS) {
+      balance = address(this).balance;
+      if (balance > 0) splitWallet().safeTransferETH(balance);
+    } else {
+      balance = ERC20(token).balanceOf(address(this));
+      if (balance > 0) ERC20(token).safeTransfer(splitWallet(), balance);
+    }
+  }
 }
