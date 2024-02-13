@@ -29,19 +29,11 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     feeRecipient = makeAddr("feeRecipient");
     feeShare = 1e4;
 
-    lidoSplitFactory = new ObolLidoSplitFactory(
-      address(0),
-      0,
-      ERC20(STETH_MAINNET_ADDRESS),
-      ERC20(WSTETH_MAINNET_ADDRESS)
-    );
+    lidoSplitFactory =
+      new ObolLidoSplitFactory(address(0), 0, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
 
-    lidoSplitFactoryWithFee = new ObolLidoSplitFactory(
-      feeRecipient,
-      feeShare,
-      ERC20(STETH_MAINNET_ADDRESS),
-      ERC20(WSTETH_MAINNET_ADDRESS)
-    );
+    lidoSplitFactoryWithFee =
+      new ObolLidoSplitFactory(feeRecipient, feeShare, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
 
     demoSplit = makeAddr("demoSplit");
 
@@ -53,21 +45,15 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
   }
 
   function test_CannotCreateInvalidFeeRecipient() public {
-    vm.expectRevert(
-      ObolLidoSplit.Invalid_FeeRecipient.selector
-    );
+    vm.expectRevert(ObolLidoSplit.Invalid_FeeRecipient.selector);
     new ObolLidoSplit(address(0), 10, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
   }
 
   function test_CannotCreateInvalidFeeShare() public {
-    vm.expectRevert(
-      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1)
-    );
+    vm.expectRevert(abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1));
     new ObolLidoSplit(address(1), PERCENTAGE_SCALE + 1, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(
-      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE)
-    );
+    vm.expectRevert(abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE));
     new ObolLidoSplit(address(1), PERCENTAGE_SCALE, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
   }
 
@@ -170,10 +156,7 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     vm.assume(amountToDistribute < 10 ether);
 
     ObolLidoSplitFactory fuzzFactorySplitWithFee = new ObolLidoSplitFactory(
-      fuzzFeeRecipient,
-      fuzzFeeShare,
-      ERC20(STETH_MAINNET_ADDRESS),
-      ERC20(WSTETH_MAINNET_ADDRESS)
+      fuzzFeeRecipient, fuzzFeeShare, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS)
     );
 
     ObolLidoSplit fuzzSplitWithFee = ObolLidoSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit));
