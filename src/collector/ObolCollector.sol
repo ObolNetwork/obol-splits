@@ -6,9 +6,13 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Clone} from "solady/utils/Clone.sol";
 
 
+/// @title ObolCollector
+/// @author Obol
+/// @notice An contract used to receive and distribute rewards minus fees
 contract ObolCollector is Clone {
     
     error Invalid_Address();
+    error Invalid_FeeShare();
     
     /// -----------------------------------------------------------------------
     /// libraries
@@ -25,13 +29,15 @@ contract ObolCollector is Clone {
     /// @notice fee address
     address public immutable feeRecipient;
 
-    // splitWallet (adress, 20 bytes)
+    // withdrawal (adress, 20 bytes)
     // 0; first item
-    uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 0;
-    // 20 = splitwallet_offset (0) + splitwallet_size (address, 20 bytes)
+    uint256 internal constant WITHDRAWAL_ADDRESS_OFFSET = 0;
+    // 20 = withdrawalAddress_offset (0) + withdrawalAddress_size (address, 20 bytes)
     uint256 internal constant TOKEN_ADDRESS_OFFSET = 20;
 
     constructor(address _feeRecipient, uint256 _feeShare) {
+        if (_feeShare == 0 || _feeShare > PERCENTAGE_SCALE) revert Invalid_FeeShare();
+
         feeShare = _feeShare;
         feeRecipient = _feeRecipient;
     }
@@ -46,19 +52,15 @@ contract ObolCollector is Clone {
             amount = ERC20(tokenAddress).balanceOf(address(this));
         }
 
-        if (feeShare > 0) {
-            uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
-            _transfer(tokenAddress, feeRecipient, fee);
-            _transfer(tokenAddress, splitWallet(), amount -= fee);
-        } else {
-             _transfer(tokenAddress, splitWallet(), amount);
-        }
+        uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
+        _transfer(tokenAddress, feeRecipient, fee);
+        _transfer(tokenAddress, withdrawalAddress(), amount -= fee);
     }
 
-    /// Address of split wallet to send funds to to
-    /// @dev equivalent to address public immutable splitWallet
-    function splitWallet() public pure returns (address) {
-        return _getArgAddress(SPLIT_WALLET_ADDRESS_OFFSET);
+    /// Address to send funds to to
+    /// @dev equivalent to address public immutable withdrawalAddress
+    function withdrawalAddress() public pure returns (address) {
+        return _getArgAddress(WITHDRAWAL_ADDRESS_OFFSET);
     }
 
     function token() public pure returns (address) {
@@ -70,11 +72,11 @@ contract ObolCollector is Clone {
         if (tokenAddress == token()) revert Invalid_Address();
 
         if (tokenAddress == ETH_ADDRESS) {
-        balance = address(this).balance;
-        if (balance > 0) splitWallet().safeTransferETH(balance);
+            balance = address(this).balance;
+            if (balance > 0) withdrawalAddress().safeTransferETH(balance);
         } else {
-        balance = ERC20(tokenAddress).balanceOf(address(this));
-        if (balance > 0) ERC20(tokenAddress).safeTransfer(splitWallet(), balance);
+            balance = ERC20(tokenAddress).balanceOf(address(this));
+            if (balance > 0) ERC20(tokenAddress).safeTransfer(withdrawalAddress(), balance);
         }
     }
 

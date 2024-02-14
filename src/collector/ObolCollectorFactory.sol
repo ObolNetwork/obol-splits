@@ -12,8 +12,8 @@ contract ObolCollectorFactory {
     /// errors
     /// -----------------------------------------------------------------------
 
-    /// Invalid wallet
-    error Invalid_Wallet();
+    /// @dev Invalid address
+    error Invalid_Address();
 
     /// -----------------------------------------------------------------------
     /// libraries
@@ -39,15 +39,17 @@ contract ObolCollectorFactory {
         collectorImpl = new ObolCollector(_feeRecipient, _feeShare);
     }
 
-
-
-    function createCollector(address token, address splitWallet) external  returns (address collector) {
-        if (splitWallet == address(0)) revert Invalid_Wallet();
+    /// @dev Create a new collector
+    /// @dev address(0) is used to represent ETH
+    /// @param token collector token address
+    /// @param withdrawalAddress withdrawalAddress to receive tokens
+    function createCollector(address token, address withdrawalAddress) external  returns (address collector) {
+        if (withdrawalAddress == address(0)) revert Invalid_Address();
 
         collector = address(collectorImpl).clone(
-            abi.encodePacked(splitWallet, token)
+            abi.encodePacked(withdrawalAddress, token)
         );
 
-        emit CreateCollector(token, splitWallet);
+        emit CreateCollector(token, withdrawalAddress);
     }
 }
