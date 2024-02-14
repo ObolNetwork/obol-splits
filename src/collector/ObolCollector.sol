@@ -42,7 +42,8 @@ contract ObolCollector is Clone {
         feeRecipient = _feeRecipient;
     }
     
-    function distribute() external {
+    /// @notice distribute funds to withdrawal address
+    function distribute() external virtual {
         uint256 amount = 0;
         address tokenAddress = token();
 
@@ -63,10 +64,15 @@ contract ObolCollector is Clone {
         return _getArgAddress(WITHDRAWAL_ADDRESS_OFFSET);
     }
 
+    /// Token addresss
+    /// @dev equivalent to address public immutable token
     function token() public pure returns (address) {
         return _getArgAddress(TOKEN_ADDRESS_OFFSET);
     }
 
+    /// @notice Rescue stuck ETH and tokens
+    /// Uses token == address(0) to represent ETH
+    /// @return balance Amount of ETH or tokens rescued
     function rescueFunds(address tokenAddress) external returns (uint256 balance) {
         // prevent bypass
         if (tokenAddress == token()) revert Invalid_Address();

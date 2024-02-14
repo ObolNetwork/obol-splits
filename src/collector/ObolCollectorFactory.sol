@@ -24,8 +24,8 @@ contract ObolCollectorFactory {
     /// events
     /// -----------------------------------------------------------------------
 
-    /// Emitted after lido split
-    event CreateCollector(address token, address split);
+    /// Emitted on createCollector
+    event CreateCollector(address token, address withdrawalAddress);
 
 
     /// -----------------------------------------------------------------------

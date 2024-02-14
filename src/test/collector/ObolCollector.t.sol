@@ -128,16 +128,19 @@ contract ObolCollectorTest is Test {
         );
     }
 
-    function testFuzz_DistributeERC20WithFee(uint256 amountToDistribute, uint256 fuzzFeeShare, address fuzzWithdrawalAddress) public {
+    function testFuzz_DistributeERC20WithFee(uint256 amountToDistribute, uint256 fuzzFeeShare, address fuzzFeeRecipient, address fuzzWithdrawalAddress) public {
         vm.assume(amountToDistribute > 0);
         vm.assume(fuzzWithdrawalAddress != address(0));
+        vm.assume(fuzzFeeRecipient != address(0));
 
-        amountToDistribute = bound(amountToDistribute, 1, type(uint96).max);
+        amountToDistribute = bound(amountToDistribute, 1, type(uint128).max);
         fuzzFeeShare = bound(fuzzFeeShare, 1 , 8 * 1e4);
 
-        ObolCollectorFactory fuzzCollectorFactoryWithFee = new ObolCollectorFactory(feeRecipient, fuzzFeeShare);
+        ObolCollectorFactory fuzzCollectorFactoryWithFee = new ObolCollectorFactory(fuzzFeeRecipient, fuzzFeeShare);
         ObolCollector fuzzCollectorWithFee = ObolCollector(fuzzCollectorFactoryWithFee.createCollector(address(mERC20), fuzzWithdrawalAddress));
 
+        uint256 feeRecipientBalancePrev = mERC20.balanceOf(fuzzFeeRecipient);
+        uint256 fuzzWithdrawalAddressBalancePrev = mERC20.balanceOf(fuzzWithdrawalAddress);
 
         mERC20.transfer(address(fuzzCollectorWithFee), amountToDistribute);
 
@@ -146,14 +149,14 @@ contract ObolCollectorTest is Test {
         uint256 fee = amountToDistribute * fuzzFeeShare / PERCENTAGE_SCALE;
         
         assertEq(
-            mERC20.balanceOf(feeRecipient),
-            fee,
+            mERC20.balanceOf(fuzzFeeRecipient),
+            feeRecipientBalancePrev + fee,
             "invalid fee share"
         );
 
         assertEq(
             mERC20.balanceOf(fuzzWithdrawalAddress),
-            amountToDistribute - fee,
+            fuzzWithdrawalAddressBalancePrev + amountToDistribute - fee,
             "invalid amount to split"
         );
     }
@@ -161,7 +164,7 @@ contract ObolCollectorTest is Test {
     function test_DistributeETHWithFee() public {
         uint256 amountToDistribute = 10 ether;
 
-        deal(address(ethCollectorWithFee), amountToDistribute);
+        vm.deal(address(ethCollectorWithFee), amountToDistribute);
 
         ethCollectorWithFee.distribute();
 
@@ -182,24 +185,24 @@ contract ObolCollectorTest is Test {
 
     function testFuzz_DistributeETHWithFee(
         uint256 amountToDistribute, 
-        uint256 fuzzFeeShare, 
-        address fuzzWithdrawalAddress,
-        address fuzzFeeRecipient
+        uint256 fuzzFeeShare
     ) public {
         vm.assume(amountToDistribute > 0);
-        vm.assume(fuzzWithdrawalAddress != address(0));
-        vm.assume(fuzzFeeRecipient != address(0));
+        vm.assume(fuzzFeeShare > 0);
+
+        address fuzzWithdrawalAddress = makeAddr("fuzzWithdrawalAddress");
+        address fuzzFeeRecipient = makeAddr("fuzzFeeRecipient");
 
         amountToDistribute = bound(amountToDistribute, 1, type(uint96).max);
         fuzzFeeShare = bound(fuzzFeeShare, 1 , 9 * 1e4);
 
-        console.logUint(fuzzFeeShare);
-        console.logBool(fuzzFeeShare > PERCENTAGE_SCALE);
-
         ObolCollectorFactory fuzzCollectorFactoryWithFee = new ObolCollectorFactory(fuzzFeeRecipient, fuzzFeeShare);
         ObolCollector fuzzETHCollectorWithFee = ObolCollector(fuzzCollectorFactoryWithFee.createCollector(address(0), fuzzWithdrawalAddress));
 
-        deal(address(fuzzETHCollectorWithFee), amountToDistribute);
+        vm.deal(address(fuzzETHCollectorWithFee), amountToDistribute);
+
+        uint256 fuzzFeeRecipientBalance = address(fuzzFeeRecipient).balance;
+        uint256 fuzzWithdrawalAddressBalance = address(fuzzWithdrawalAddress).balance;
 
         fuzzETHCollectorWithFee.distribute();
 
@@ -207,13 +210,13 @@ contract ObolCollectorTest is Test {
         
         assertEq(
             address(fuzzFeeRecipient).balance,
-            fee,
+            fuzzFeeRecipientBalance + fee,
             "invalid fee share"
         );
 
         assertEq(
             address(fuzzWithdrawalAddress).balance,
-            amountToDistribute - fee,
+            fuzzWithdrawalAddressBalance + amountToDistribute - fee,
             "invalid amount to split"
         );
     }
