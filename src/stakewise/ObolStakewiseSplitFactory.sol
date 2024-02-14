@@ -35,17 +35,18 @@ contract ObolStakewiseSplitFactory {
   /// @dev Stakewise split implementation
   ObolStakewiseSplit public immutable stakewiseSplitImpl;
 
-  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _tokenVault) {
-    stakewiseSplitImpl = new ObolStakewiseSplit(_feeRecipient, _feeShare, _tokenVault);
+  constructor(address _feeRecipient, uint256 _feeShare) {
+    stakewiseSplitImpl = new ObolStakewiseSplit(_feeRecipient, _feeShare);
   }
 
   /// Creates a wrapper for splitWallet that distributes Stakewise rewards
   /// @param splitWallet Address of the splitWallet to transfer vault tokens to
+  /// @param vaultToken Address of the Stakewise Vault token
   /// @return stakewiseSplit Address of the wrappper split
-  function createSplit(address splitWallet) external returns (address stakewiseSplit) {
+  function createSplit(address splitWallet, address vaultToken) external returns (address stakewiseSplit) {
     if (splitWallet == address(0)) revert Invalid_Wallet();
 
-    stakewiseSplit = address(stakewiseSplitImpl).clone(abi.encodePacked(splitWallet));
+    stakewiseSplit = address(stakewiseSplitImpl).clone(abi.encodePacked(splitWallet, vaultToken));
 
     emit CreateObolStakewiseSplit(stakewiseSplit);
   }

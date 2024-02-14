@@ -28,28 +28,28 @@ contract ObolStakewiseSplitFactoryTest is Test {
 
     vaultToken = new MockERC20("Test", "TST", uint8(18));
 
-    stakewiseSplitFactory = new ObolStakewiseSplitFactory(address(0), 0, ERC20(vaultToken));
+    stakewiseSplitFactory = new ObolStakewiseSplitFactory(address(0), 0);
 
-    stakewiseSplitFactoryWithFee = new ObolStakewiseSplitFactory(feeRecipient, feeShare, ERC20(vaultToken));
+    stakewiseSplitFactoryWithFee = new ObolStakewiseSplitFactory(feeRecipient, feeShare);
   }
 
   function test_stakewise_canCreateSplit() public {
     vm.expectEmit(true, true, true, false, address(stakewiseSplitFactory));
     emit CreateObolStakewiseSplit(address(0x1));
 
-    stakewiseSplitFactory.createSplit(demoSplit);
+    stakewiseSplitFactory.createSplit(demoSplit, address(vaultToken));
 
     vm.expectEmit(true, true, true, false, address(stakewiseSplitFactoryWithFee));
     emit CreateObolStakewiseSplit(address(0x1));
 
-    stakewiseSplitFactoryWithFee.createSplit(demoSplit);
+    stakewiseSplitFactoryWithFee.createSplit(demoSplit, address(vaultToken));
   }
 
   function test_stakewise_cannotCreateSplitInvalidAddress() public {
     vm.expectRevert(ObolStakewiseSplitFactory.Invalid_Wallet.selector);
-    stakewiseSplitFactory.createSplit(address(0));
+    stakewiseSplitFactory.createSplit(address(0), address(vaultToken));
 
     vm.expectRevert(ObolStakewiseSplitFactory.Invalid_Wallet.selector);
-    stakewiseSplitFactoryWithFee.createSplit(address(0));
+    stakewiseSplitFactoryWithFee.createSplit(address(0), address(vaultToken));
   }
 }

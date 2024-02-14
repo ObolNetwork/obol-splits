@@ -29,13 +29,13 @@ contract ObolStakewiseSplit is Clone {
   // splitWallet (adress, 20 bytes)
   // 0; first item
   uint256 internal constant SPLIT_WALLET_ADDRESS_OFFSET = 0;
+  // vaultToken (adress, 20 bytes)
+  // 1; second item
+  uint256 internal constant VAULT_TOKEN_ADDRESS_OFFSET = 20;
 
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
-
-  /// @notice Stakewise vault token token
-  ERC20 public immutable vaultToken;
 
   /// @notice fee address
   address public immutable feeRecipient;
@@ -46,13 +46,11 @@ contract ObolStakewiseSplit is Clone {
   /// @notice Constructor
   /// @param _feeRecipient address to receive fee
   /// @param _feeShare fee share scaled by PERCENTAGE_SCALE
-  /// @param _vaultToken Stakewise vault token token
-  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _vaultToken) {
+  constructor(address _feeRecipient, uint256 _feeShare) {
     if (_feeShare >= PERCENTAGE_SCALE) revert Invalid_FeeShare(_feeShare);
     if (_feeShare > 0 && _feeRecipient == address(0)) revert Invalid_FeeRecipient();
 
     feeRecipient = _feeRecipient;
-    vaultToken = _vaultToken;
     feeShare = _feeShare;
   }
 
@@ -62,22 +60,29 @@ contract ObolStakewiseSplit is Clone {
     return _getArgAddress(SPLIT_WALLET_ADDRESS_OFFSET);
   }
 
+  /// Stakewise Vault token address
+  /// @dev equivalent to address public immutable vaultToken
+  function vaultToken() public pure returns (address) {
+    return _getArgAddress(VAULT_TOKEN_ADDRESS_OFFSET);
+  }
+
   /// Transfers the vault token balance to splitWallet for distribution
   /// @return amount Amount of vault token transferred to splitWallet
   function distribute() external returns (uint256 amount) {
+    ERC20 _vaultToken = ERC20(vaultToken());
     // get current balance
-    amount = vaultToken.balanceOf(address(this));
+    amount = _vaultToken.balanceOf(address(this));
 
     if (feeShare > 0) {
       uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
       // transfer to split wallet
       // update amount to reflect fee charged
-      vaultToken.safeTransfer(splitWallet(), amount -= fee);
+      _vaultToken.safeTransfer(splitWallet(), amount -= fee);
       // transfer to fee address
-      vaultToken.safeTransfer(feeRecipient, fee);
+      _vaultToken.safeTransfer(feeRecipient, fee);
     } else {
       // transfer to split wallet
-      vaultToken.safeTransfer(splitWallet(), amount);
+      _vaultToken.safeTransfer(splitWallet(), amount);
     }
   }
 
@@ -87,7 +92,7 @@ contract ObolStakewiseSplit is Clone {
   function rescueFunds(address token) external returns (uint256 balance) {
     // we check wstETH here so rescueFunds can't be used
     // to bypass fee
-    if (token == address(vaultToken)) revert Invalid_Address();
+    if (token == vaultToken()) revert Invalid_Address();
 
     if (token == ETH_ADDRESS) {
       balance = address(this).balance;

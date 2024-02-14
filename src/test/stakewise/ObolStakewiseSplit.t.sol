@@ -34,27 +34,26 @@ contract ObolStakewiseSplitTest is Test {
     vaultToken = new MockERC20("Test", "TST", uint8(18));
     canRescueToken = new MockERC20("Test2", "TST2", uint8(18));
 
-    stakewiseSplitFactory = new ObolStakewiseSplitFactory(address(0), 0, ERC20(vaultToken));
+    stakewiseSplitFactory = new ObolStakewiseSplitFactory(address(0), 0);
+    stakewiseSplitFactoryWithFee = new ObolStakewiseSplitFactory(feeRecipient, feeShare);
 
-    stakewiseSplitFactoryWithFee = new ObolStakewiseSplitFactory(feeRecipient, feeShare, ERC20(vaultToken));
-
-    stakewiseSplit = ObolStakewiseSplit(stakewiseSplitFactory.createSplit(demoSplit));
-    stakewiseSplitWithFee = ObolStakewiseSplit(stakewiseSplitFactoryWithFee.createSplit(demoSplit));
+    stakewiseSplit = ObolStakewiseSplit(stakewiseSplitFactory.createSplit(demoSplit, address(vaultToken)));
+    stakewiseSplitWithFee = ObolStakewiseSplit(stakewiseSplitFactoryWithFee.createSplit(demoSplit, address(vaultToken)));
 
     tokenAmount = 1000 * 1e18;
   }
 
   function test_stakewise_CannotCreateInvalidFeeRecipient() public {
     vm.expectRevert(ObolStakewiseSplit.Invalid_FeeRecipient.selector);
-    new ObolStakewiseSplit(address(0), 1, ERC20(vaultToken));
+    new ObolStakewiseSplit(address(0), 1);
   }
 
   function test_stakewise_cannotCreateInvalidFeeShare() public {
     vm.expectRevert(abi.encodeWithSelector(ObolStakewiseSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1));
-    new ObolStakewiseSplit(address(1), PERCENTAGE_SCALE + 1, ERC20(vaultToken));
+    new ObolStakewiseSplit(address(1), PERCENTAGE_SCALE + 1);
 
     vm.expectRevert(abi.encodeWithSelector(ObolStakewiseSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE));
-    new ObolStakewiseSplit(address(1), PERCENTAGE_SCALE, ERC20(vaultToken));
+    new ObolStakewiseSplit(address(1), PERCENTAGE_SCALE);
   }
 
   function test_stakewise_cloneArgsAreCorrect() public {
@@ -122,8 +121,8 @@ contract ObolStakewiseSplitTest is Test {
     vm.assume(amountToDistribute < 10 ether);
 
     ObolStakewiseSplitFactory fuzzFactorySplitWithFee =
-      new ObolStakewiseSplitFactory(fuzzFeeRecipient, fuzzFeeShare, ERC20(vaultToken));
-    ObolStakewiseSplit fuzzSplitWithFee = ObolStakewiseSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit));
+      new ObolStakewiseSplitFactory(fuzzFeeRecipient, fuzzFeeShare);
+    ObolStakewiseSplit fuzzSplitWithFee = ObolStakewiseSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit, address(vaultToken)));
 
     deal(address(vaultToken), address(fuzzSplitWithFee), amountToDistribute);
 
