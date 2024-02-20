@@ -1,5 +1,6 @@
 [profile.default]
 src = 'src'
+test = 'src/test'
 out = 'out'
 libs = ['lib']
 remappings = [
