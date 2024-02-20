@@ -15,6 +15,8 @@ contract ObolEigenLayerPodController {
   error CallFailed(bytes data);
   /// @dev If Invalid fee setup
   error Invalid_FeeSetup();
+  /// @dev Invalid fee share
+  error Invalid_FeeShare();
   /// @dev user unauthorized
   error Unauthorized();
   /// @dev contract already initialized
@@ -59,8 +61,8 @@ contract ObolEigenLayerPodController {
   /// @notice address of deployed Eigen pod
   address public eigenPod;
 
-  /// @notice address of a splitter
-  address public split;
+  /// @notice address of a withdrawalAddress
+  address public withdrawalAddress;
 
   /// @notice address of owner
   address public owner;
@@ -78,6 +80,7 @@ contract ObolEigenLayerPodController {
     address withdrawalRouter
   ) {
     if (recipient != address(0) && share == 0) revert Invalid_FeeSetup();
+    if (share > PERCENTAGE_SCALE) revert Invalid_FeeShare();
 
     feeRecipient = recipient;
     feeShare = share;
@@ -92,13 +95,13 @@ contract ObolEigenLayerPodController {
 
   /// @notice initializes the controller
   /// @param _owner address of the controller owner
-  /// @param splitter address of splitter
-  function initialize(address _owner, address splitter) external {
+  /// @param _withdrawalAddress address to receive funds
+  function initialize(address _owner, address _withdrawalAddress) external {
     if (owner != address(0)) revert AlreadyInitialized();
 
     eigenPod = eigenLayerPodManager.createPod();
     owner = _owner;
-    split = splitter;
+    withdrawalAddress = _withdrawalAddress;
 
     emit Initialized(eigenPod, _owner);
   }
@@ -126,14 +129,14 @@ contract ObolEigenLayerPodController {
   function claimDelayedWithdrawals(uint256 numberOfDelayedWithdrawalsToClaim) external {
     delayedWithdrawalRouter.claimDelayedWithdrawals(address(this), numberOfDelayedWithdrawalsToClaim);
 
-    // transfer eth to split
+    // transfer eth to withdrawalAddress
     uint256 balance = address(this).balance;
     if (feeShare > 0) {
       uint256 fee = (balance * feeShare) / PERCENTAGE_SCALE;
       feeRecipient.safeTransferETH(fee);
-      split.safeTransferETH(balance -= fee);
+      withdrawalAddress.safeTransferETH(balance -= fee);
     } else {
-      split.safeTransferETH(address(this).balance);
+      withdrawalAddress.safeTransferETH(balance);
     }
   }
 
@@ -141,7 +144,7 @@ contract ObolEigenLayerPodController {
   /// @param token address of token
   /// @param amount amount of token to rescue
   function rescueFunds(address token, uint256 amount) external {
-    if (amount > 0) ERC20(token).safeTransfer(split, amount);
+    if (amount > 0) ERC20(token).safeTransfer(withdrawalAddress, amount);
   }
 
   /// @notice Execute a low level call

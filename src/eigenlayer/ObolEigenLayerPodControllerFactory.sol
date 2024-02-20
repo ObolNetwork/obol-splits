@@ -10,14 +10,14 @@ import {LibClone} from "solady/utils/LibClone.sol";
 /// @dev The address returned should be used to as the EigenPod address
 contract ObolEigenLayerPodControllerFactory {
   error Invalid_Owner();
-  error Invalid_Split();
+  error Invalid_WithdrawalAddress();
   error Invalid_DelegationManager();
   error Invalid_EigenPodManaager();
   error Invalid_WithdrawalRouter();
 
   using LibClone for address;
 
-  event CreatePodController(address indexed controller, address indexed split, address owner);
+  event CreatePodController(address indexed controller, address indexed withdrawalAddress, address owner);
 
   ObolEigenLayerPodController public immutable controllerImplementation;
 
@@ -34,22 +34,40 @@ contract ObolEigenLayerPodControllerFactory {
 
     controllerImplementation =
       new ObolEigenLayerPodController(feeRecipient, feeShare, delegationManager, eigenPodManager, withdrawalRouter);
-
+    // initialize implementation
     controllerImplementation.initialize(feeRecipient, feeRecipient);
   }
 
   /// Creates a minimal proxy clone of implementation
   /// @param owner address of owner
-  /// @param split address of split
+  /// @param withdrawalAddress address of withdrawalAddress
   /// @return controller Deployed obol eigen layer controller
-  function createPodController(address owner, address split) external returns (address controller) {
+  function createPodController(address owner, address withdrawalAddress) external returns (address controller) {
     if (owner == address(0)) revert Invalid_Owner();
-    if (split == address(0)) revert Invalid_Split();
+    if (withdrawalAddress == address(0)) revert Invalid_WithdrawalAddress();
 
-    controller = address(controllerImplementation).clone("");
+    bytes32 salt = _createSalt(owner, withdrawalAddress);
 
-    ObolEigenLayerPodController(controller).initialize(owner, split);
+    controller = address(controllerImplementation).cloneDeterministic("", salt);
 
-    emit CreatePodController(controller, split, owner);
+    ObolEigenLayerPodController(controller).initialize(owner, withdrawalAddress);
+
+    emit CreatePodController(controller, withdrawalAddress, owner);
+  }
+
+  /// Predict the controller address
+  /// @param owner address of owner
+  /// @param withdrawalAddress address to withdraw funds to
+  function predictControllerAddress(address owner, address withdrawalAddress)
+    external
+    view
+    returns (address controller)
+  {
+    bytes32 salt = _createSalt(owner, withdrawalAddress);
+    controller = address(controllerImplementation).predictDeterministicAddress("", salt, address(this));
+  }
+
+  function _createSalt(address owner, address withdrawalAddress) internal pure returns (bytes32 salt) {
+    return keccak256(abi.encode(owner, withdrawalAddress));
   }
 }
