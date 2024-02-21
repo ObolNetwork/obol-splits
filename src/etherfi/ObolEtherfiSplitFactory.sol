@@ -3,13 +3,13 @@ pragma solidity 0.8.19;
 
 import {LibClone} from "solady/utils/LibClone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import "./ObolEthersfiSplit.sol";
+import "./ObolEtherfiSplit.sol";
 
-/// @title ObolEthersfiSplitFactory
+/// @title ObolEtherfiSplitFactory
 /// @author Obol
-/// @notice A factory contract for cheaply deploying ObolEthersfiSplit.
-/// @dev The address returned should be used to as reward address for EthersFi
-contract ObolEthersfiSplitFactory {
+/// @notice A factory contract for cheaply deploying ObolEtherfiSplit.
+/// @dev The address returned should be used to as reward address for EtherFi
+contract ObolEtherfiSplitFactory {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------
@@ -26,18 +26,18 @@ contract ObolEthersfiSplitFactory {
   /// events
   /// -----------------------------------------------------------------------
 
-  /// Emitted after Ethersfi split
-  event CreateObolEthersfiSplit(address split);
+  /// Emitted after Etherfi split
+  event CreateObolEtherfiSplit(address split);
 
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
 
   /// @dev Ethersfi split implementation
-  ObolEthersfiSplit public immutable ethersfiSplitImpl;
+  ObolEtherfiSplit public immutable etherfiSplitImpl;
 
   constructor(address _feeRecipient, uint256 _feeShare, ERC20 _eETH, ERC20 _weETH) {
-    ethersfiSplitImpl = new ObolEthersfiSplit(_feeRecipient, _feeShare, _eETH, _weETH);
+    etherfiSplitImpl = new ObolEtherfiSplit(_feeRecipient, _feeShare, _eETH, _weETH);
   }
 
   /// Creates a wrapper for splitWallet that transforms eETH token into
@@ -47,8 +47,8 @@ contract ObolEthersfiSplitFactory {
   function createSplit(address splitWallet) external returns (address ethersfiSplit) {
     if (splitWallet == address(0)) revert Invalid_Wallet();
 
-    ethersfiSplit = address(ethersfiSplitImpl).clone(abi.encodePacked(splitWallet));
+    ethersfiSplit = address(etherfiSplitImpl).clone(abi.encodePacked(splitWallet));
 
-    emit CreateObolEthersfiSplit(ethersfiSplit);
+    emit CreateObolEtherfiSplit(ethersfiSplit);
   }
 }

@@ -2,14 +2,14 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {ObolEthersfiSplitFactory, ObolEthersfiSplit} from "src/ethersfi/ObolEthersfiSplitFactory.sol";
+import {ObolEtherfiSplitFactory, ObolEtherfiSplit} from "src/etherfi/ObolEtherfiSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {ObolEthersfiSplitTestHelper} from "../ObolEthersfiSplitTestHelper.sol";
+import {ObolEtherfiSplitTestHelper} from "../ObolEtherfiSplitTestHelper.sol";
 import {ISplitMain} from "src/interfaces/ISplitMain.sol";
 
-contract ObolEthersfiSplitIntegrationTest is ObolEthersfiSplitTestHelper, Test {
-  ObolEthersfiSplitFactory internal ethersfiSplitFactory;
-  ObolEthersfiSplit internal ethersfiSplit;
+contract ObolEtherfiSplitIntegrationTest is ObolEtherfiSplitTestHelper, Test {
+  ObolEtherfiSplitFactory internal etherfiSplitFactory;
+  ObolEtherfiSplit internal etherfiSplit;
 
   address splitter;
 
@@ -22,8 +22,8 @@ contract ObolEthersfiSplitIntegrationTest is ObolEthersfiSplitTestHelper, Test {
     uint256 mainnetBlock = 19_228_949;
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
-    ethersfiSplitFactory =
-      new ObolEthersfiSplitFactory(address(0), 0, ERC20(EETH_MAINNET_ADDRESS), ERC20(WEETH_MAINNET_ADDRESS));
+    etherfiSplitFactory =
+      new ObolEtherfiSplitFactory(address(0), 0, ERC20(EETH_MAINNET_ADDRESS), ERC20(WEETH_MAINNET_ADDRESS));
 
     accounts = new address[](2);
     accounts[0] = makeAddr("accounts0");
@@ -35,14 +35,14 @@ contract ObolEthersfiSplitIntegrationTest is ObolEthersfiSplitTestHelper, Test {
 
     splitter = ISplitMain(SPLIT_MAIN_MAINNET).createSplit(accounts, percentAllocations, 0, address(0));
 
-    ethersfiSplit = ObolEthersfiSplit(ethersfiSplitFactory.createSplit(splitter));
+    etherfiSplit = ObolEtherfiSplit(etherfiSplitFactory.createSplit(splitter));
   }
 
-  function test_ethersfi_integration_CanDistribute() public {
+  function test_etherfi_integration_CanDistribute() public {
     vm.prank(RANDOM_EETH_ACCOUNT_ADDRESS);
-    ERC20(EETH_MAINNET_ADDRESS).transfer(address(ethersfiSplit), 100 ether);
+    ERC20(EETH_MAINNET_ADDRESS).transfer(address(etherfiSplit), 100 ether);
 
-    ethersfiSplit.distribute();
+    etherfiSplit.distribute();
 
     ISplitMain(SPLIT_MAIN_MAINNET).distributeERC20(
       splitter, ERC20(WEETH_MAINNET_ADDRESS), accounts, percentAllocations, 0, address(0)

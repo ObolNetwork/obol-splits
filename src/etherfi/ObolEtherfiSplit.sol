@@ -6,12 +6,12 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Clone} from "solady/utils/Clone.sol";
 import {IweETH} from "src/interfaces/IweETH.sol"; 
 
-/// @title ObolEthersfiSplit
+/// @title ObolEtherfiSplit
 /// @author Obol
 /// @notice A wrapper for 0xsplits/split-contracts SplitWallet that transforms
 /// eEth token to weETH token because eEth is a rebasing token
 /// @dev Wraps eETH to weETH and
-contract ObolEthersfiSplit is Clone {
+contract ObolEtherfiSplit is Clone {
   error Invalid_Address();
   error Invalid_FeeShare(uint256 fee);
   error Invalid_FeeRecipient();
