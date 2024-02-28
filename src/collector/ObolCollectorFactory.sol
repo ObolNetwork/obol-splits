@@ -2,31 +2,17 @@
 pragma solidity 0.8.19;
 import {LibClone} from "solady/utils/LibClone.sol";
 import {ObolCollector} from "./ObolCollector.sol";
+import {BaseSplitFactory} from "../base/BaseSplitFactory.sol";
 
 /// @title ObolCollector
 /// @author Obol
 /// @notice A factory contract for cheaply deploying ObolCollector.
 /// @dev The address returned should be used to as reward address collecting rewards
-contract ObolCollectorFactory {
-    /// -----------------------------------------------------------------------
-    /// errors
-    /// -----------------------------------------------------------------------
-
-    /// @dev Invalid address
-    error Invalid_Address();
-
+contract ObolCollectorFactory is BaseSplitFactory{
     /// -----------------------------------------------------------------------
     /// libraries
     /// -----------------------------------------------------------------------
     using LibClone for address;
-
-    /// -----------------------------------------------------------------------
-    /// events
-    /// -----------------------------------------------------------------------
-
-    /// Emitted on createCollector
-    event CreateCollector(address token, address withdrawalAddress);
-
 
     /// -----------------------------------------------------------------------
     /// storage
@@ -43,13 +29,13 @@ contract ObolCollectorFactory {
     /// @dev address(0) is used to represent ETH
     /// @param token collector token address
     /// @param withdrawalAddress withdrawalAddress to receive tokens
-    function createCollector(address token, address withdrawalAddress) external  returns (address collector) {
+    function createCollector(address token, address withdrawalAddress) external override returns (address collector) {
         if (withdrawalAddress == address(0)) revert Invalid_Address();
 
         collector = address(collectorImpl).clone(
             abi.encodePacked(withdrawalAddress, token)
         );
 
-        emit CreateCollector(token, withdrawalAddress);
+        emit CreateSplit(token, withdrawalAddress);
     }
 }
