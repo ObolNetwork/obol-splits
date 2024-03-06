@@ -4,30 +4,17 @@ pragma solidity 0.8.19;
 import {LibClone} from "solady/utils/LibClone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import "./ObolEtherfiSplit.sol";
+import {BaseSplitFactory} from "../base/BaseSplitFactory.sol";
 
 /// @title ObolEtherfiSplitFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying ObolEtherfiSplit.
 /// @dev The address returned should be used to as reward address for EtherFi
-contract ObolEtherfiSplitFactory {
-  /// -----------------------------------------------------------------------
-  /// errors
-  /// -----------------------------------------------------------------------
-
-  /// Invalid wallet
-  error Invalid_Wallet();
-
+contract ObolEtherfiSplitFactory is BaseSplitFactory {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
   using LibClone for address;
-
-  /// -----------------------------------------------------------------------
-  /// events
-  /// -----------------------------------------------------------------------
-
-  /// Emitted after Etherfi split
-  event CreateObolEtherfiSplit(address split);
 
   /// -----------------------------------------------------------------------
   /// storage
@@ -42,13 +29,15 @@ contract ObolEtherfiSplitFactory {
 
   /// Creates a wrapper for splitWallet that transforms eETH token into
   /// weETH
-  /// @param splitWallet Address of the splitWallet to transfer weETH to
-  /// @return ethersfiSplit Address of the wrappper split
-  function createSplit(address splitWallet) external returns (address ethersfiSplit) {
-    if (splitWallet == address(0)) revert Invalid_Wallet();
+  /// @dev Create a new collector
+  /// @dev address(0) is used to represent ETH
+  /// @param withdrawalAddress Address of the splitWallet to transfer weETH to
+  /// @return collector Address of the wrappper split
+  function createCollector(address, address withdrawalAddress) external override returns (address collector) {
+    if (withdrawalAddress == address(0)) revert Invalid_Address();
 
-    ethersfiSplit = address(etherfiSplitImpl).clone(abi.encodePacked(splitWallet));
+    collector = address(etherfiSplitImpl).clone(abi.encodePacked(withdrawalAddress));
 
-    emit CreateObolEtherfiSplit(ethersfiSplit);
+    emit CreateSplit(address(0), collector);
   }
 }

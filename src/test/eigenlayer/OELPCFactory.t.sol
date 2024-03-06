@@ -72,17 +72,10 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
 
     emit CreatePodController(address(0), withdrawalAddress, user1);
 
-    address predictedAddress = factory.predictControllerAddress(
-        user1,
-        withdrawalAddress
-    );
+    address predictedAddress = factory.predictControllerAddress(user1, withdrawalAddress);
 
     address createdAddress = factory.createPodController(user1, withdrawalAddress);
 
-    assertEq(
-        predictedAddress,
-        createdAddress,
-        "predicted address is equivalent"
-    );
+    assertEq(predictedAddress, createdAddress, "predicted address is equivalent");
   }
 }

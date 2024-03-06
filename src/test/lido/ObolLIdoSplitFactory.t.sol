@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import {ObolLidoSplitFactory} from "src/lido/ObolLidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {BaseSplitFactory} from "src/base/BaseSplitFactory.sol";
 import {ObolLidoSplitTestHelper} from "./ObolLidoSplitTestHelper.sol";
 
 contract ObolLidoSplitFactoryTest is ObolLidoSplitTestHelper, Test {
@@ -12,7 +13,7 @@ contract ObolLidoSplitFactoryTest is ObolLidoSplitTestHelper, Test {
 
   address demoSplit;
 
-  event CreateObolLidoSplit(address split);
+  event CreateSplit(address token, address split);
 
   function setUp() public {
     uint256 mainnetBlock = 17_421_005;
@@ -29,21 +30,21 @@ contract ObolLidoSplitFactoryTest is ObolLidoSplitTestHelper, Test {
 
   function testCan_CreateSplit() public {
     vm.expectEmit(true, true, true, false, address(lidoSplitFactory));
-    emit CreateObolLidoSplit(address(0x1));
+    emit CreateSplit(address(0), address(0x1));
 
-    lidoSplitFactory.createSplit(demoSplit);
+    lidoSplitFactory.createCollector(address(0), demoSplit);
 
     vm.expectEmit(true, true, true, false, address(lidoSplitFactoryWithFee));
-    emit CreateObolLidoSplit(address(0x1));
+    emit CreateSplit(address(0), address(0x1));
 
-    lidoSplitFactoryWithFee.createSplit(demoSplit);
+    lidoSplitFactoryWithFee.createCollector(address(0), demoSplit);
   }
 
   function testCannot_CreateSplitInvalidAddress() public {
-    vm.expectRevert(ObolLidoSplitFactory.Invalid_Wallet.selector);
-    lidoSplitFactory.createSplit(address(0));
+    vm.expectRevert(BaseSplitFactory.Invalid_Address.selector);
+    lidoSplitFactory.createCollector(address(0), address(0));
 
-    vm.expectRevert(ObolLidoSplitFactory.Invalid_Wallet.selector);
-    lidoSplitFactoryWithFee.createSplit(address(0));
+    vm.expectRevert(BaseSplitFactory.Invalid_Address.selector);
+    lidoSplitFactoryWithFee.createCollector(address(0), address(0));
   }
 }

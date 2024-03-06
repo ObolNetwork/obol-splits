@@ -71,7 +71,7 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
     );
 
     zeroFeeFactory = new ObolEigenLayerPodControllerFactory(
-        address(0), 0, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
+      address(0), 0, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
     );
 
     controller = ObolEigenLayerPodController(factory.createPodController(owner, withdrawalAddress));

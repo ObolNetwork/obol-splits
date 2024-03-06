@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import {ObolEtherfiSplitFactory} from "src/etherfi/ObolEtherfiSplitFactory.sol";
+import {BaseSplitFactory} from "src/base/BaseSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ObolEtherfiSplitTestHelper} from "./ObolEtherfiSplitTestHelper.sol";
 
@@ -12,10 +13,10 @@ contract ObolEtherfiSplitFactoryTest is ObolEtherfiSplitTestHelper, Test {
 
   address demoSplit;
 
-  event CreateObolEtherfiSplit(address split);
+  event CreateSplit(address token, address split);
 
   function setUp() public {
-    uint256 mainnetBlock = 19_228_949; 
+    uint256 mainnetBlock = 19_228_949;
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
     etherfiSplitFactory =
@@ -29,21 +30,21 @@ contract ObolEtherfiSplitFactoryTest is ObolEtherfiSplitTestHelper, Test {
 
   function testCan_CreateSplit() public {
     vm.expectEmit(true, true, true, false, address(etherfiSplitFactory));
-    emit CreateObolEtherfiSplit(address(0x1));
+    emit CreateSplit(address(0), address(0x1));
 
-    etherfiSplitFactory.createSplit(demoSplit);
+    etherfiSplitFactory.createCollector(address(0), demoSplit);
 
     vm.expectEmit(true, true, true, false, address(etherfiSplitFactoryWithFee));
-    emit CreateObolEtherfiSplit(address(0x1));
+    emit CreateSplit(address(0), address(0x1));
 
-    etherfiSplitFactoryWithFee.createSplit(demoSplit);
+    etherfiSplitFactoryWithFee.createCollector(address(0), demoSplit);
   }
 
   function testCannot_CreateSplitInvalidAddress() public {
-    vm.expectRevert(ObolEtherfiSplitFactory.Invalid_Wallet.selector);
-    etherfiSplitFactory.createSplit(address(0));
+    vm.expectRevert(BaseSplitFactory.Invalid_Address.selector);
+    etherfiSplitFactory.createCollector(address(0), address(0));
 
-    vm.expectRevert(ObolEtherfiSplitFactory.Invalid_Wallet.selector);
-    etherfiSplitFactoryWithFee.createSplit(address(0));
+    vm.expectRevert(BaseSplitFactory.Invalid_Address.selector);
+    etherfiSplitFactoryWithFee.createCollector(address(0), address(0));
   }
 }

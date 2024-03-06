@@ -3,31 +3,19 @@ pragma solidity 0.8.19;
 
 import {LibClone} from "solady/utils/LibClone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {BaseSplitFactory} from "../base/BaseSplitFactory.sol";
 import "./ObolLidoSplit.sol";
 
 /// @title ObolLidoSplitFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying ObolLidoSplit.
 /// @dev The address returned should be used to as reward address for Lido
-contract ObolLidoSplitFactory {
-  /// -----------------------------------------------------------------------
-  /// errors
-  /// -----------------------------------------------------------------------
-
-  /// Invalid wallet
-  error Invalid_Wallet();
+contract ObolLidoSplitFactory is BaseSplitFactory {
 
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
   using LibClone for address;
-
-  /// -----------------------------------------------------------------------
-  /// events
-  /// -----------------------------------------------------------------------
-
-  /// Emitted after lido split
-  event CreateObolLidoSplit(address split);
 
   /// -----------------------------------------------------------------------
   /// storage
@@ -40,15 +28,17 @@ contract ObolLidoSplitFactory {
     lidoSplitImpl = new ObolLidoSplit(_feeRecipient, _feeShare, _stETH, _wstETH);
   }
 
-  /// Creates a wrapper for splitWallet that transforms stETH token into
+  // Creates a wrapper for splitWallet that transforms stETH token into
   /// wstETH
-  /// @param splitWallet Address of the splitWallet to transfer wstETH to
-  /// @return lidoSplit Address of the wrappper split
-  function createSplit(address splitWallet) external returns (address lidoSplit) {
-    if (splitWallet == address(0)) revert Invalid_Wallet();
+  /// @dev Create a new collector
+  /// @dev address(0) is used to represent ETH
+  /// @param withdrawalAddress Address of the splitWallet to transfer wstETH to
+  /// @return collector Address of the wrappper split
+  function createCollector(address, address withdrawalAddress) external override returns (address collector) {
+    if (withdrawalAddress == address(0)) revert Invalid_Address();
 
-    lidoSplit = address(lidoSplitImpl).clone(abi.encodePacked(splitWallet));
+    collector = address(lidoSplitImpl).clone(abi.encodePacked(withdrawalAddress));
 
-    emit CreateObolLidoSplit(lidoSplit);
+    emit CreateSplit(address(0), collector);
   }
 }

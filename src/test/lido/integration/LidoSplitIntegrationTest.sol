@@ -35,7 +35,7 @@ contract ObolLidoSplitIntegrationTest is ObolLidoSplitTestHelper, Test {
 
     splitter = ISplitMain(SPLIT_MAIN_MAINNET).createSplit(accounts, percentAllocations, 0, address(0));
 
-    lidoSplit = ObolLidoSplit(lidoSplitFactory.createSplit(splitter));
+    lidoSplit = ObolLidoSplit(lidoSplitFactory.createCollector(address(0), splitter));
   }
 
   function test_CanDistribute() public {

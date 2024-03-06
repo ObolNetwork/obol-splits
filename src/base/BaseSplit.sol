@@ -8,6 +8,7 @@ import {Clone} from "solady/utils/Clone.sol";
 abstract contract BaseSplit is Clone {
   error Invalid_Address();
   error Invalid_FeeShare();
+  error Invalid_FeeRecipient();
 
   /// -----------------------------------------------------------------------
   /// libraries
@@ -32,6 +33,7 @@ abstract contract BaseSplit is Clone {
 
   constructor(address _feeRecipient, uint256 _feeShare) {
     if (_feeShare == 0 || _feeShare > PERCENTAGE_SCALE) revert Invalid_FeeShare();
+    if (_feeShare > 0 && _feeRecipient == address(0)) revert Invalid_FeeRecipient();
 
     feeShare = _feeShare;
     feeRecipient = _feeRecipient;
@@ -73,28 +75,27 @@ abstract contract BaseSplit is Clone {
   }
 
   /// @notice distribute funds to withdrawal address
-  function distribute() external virtual {
-    uint256 amount = 0;
-    address tokenAddress = token();
-
-    if (tokenAddress == ETH_ADDRESS) amount = address(this).balance;
-    else amount = ERC20(tokenAddress).balanceOf(address(this));
+  function distribute() external virtual returns (uint256) {
+    (address tokenAddress, uint256 amount) = _beforeDistribute();
 
     if (feeShare > 0) {
-      //TODO check if feeShares > 0
       uint256 fee = (amount * feeShare) / PERCENTAGE_SCALE;
       _transfer(tokenAddress, feeRecipient, fee);
       _transfer(tokenAddress, withdrawalAddress(), amount -= fee);
     } else {
       _transfer(tokenAddress, withdrawalAddress(), amount);
     }
+
+    return amount;
   }
 
   /// -----------------------------------------------------------------------
   /// Internal
   /// -----------------------------------------------------------------------
 
-  function _beforeRescueFunds(address tokenAddress) internal virtual {}
+  function _beforeRescueFunds(address tokenAddress) internal virtual;
+
+  function _beforeDistribute() internal virtual returns (address tokenAddress, uint256 amount);
 
   function _transfer(address tokenAddress, address receiver, uint256 amount) internal {
     if (tokenAddress == ETH_ADDRESS) receiver.safeTransferETH(amount);

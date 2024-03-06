@@ -97,7 +97,7 @@ contract ObolLidoSetupScript is Script {
       );
 
       // create obol split
-      address obolLidoSplitAdress = ObolLidoSplitFactory(obolLidoSplitFactory).createSplit(split);
+      address obolLidoSplitAdress = ObolLidoSplitFactory(obolLidoSplitFactory).createCollector(address(0), split);
 
       vm.stopBroadcast();
 

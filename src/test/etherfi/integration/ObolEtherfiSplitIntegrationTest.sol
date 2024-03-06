@@ -35,7 +35,7 @@ contract ObolEtherfiSplitIntegrationTest is ObolEtherfiSplitTestHelper, Test {
 
     splitter = ISplitMain(SPLIT_MAIN_MAINNET).createSplit(accounts, percentAllocations, 0, address(0));
 
-    etherfiSplit = ObolEtherfiSplit(etherfiSplitFactory.createSplit(splitter));
+    etherfiSplit = ObolEtherfiSplit(etherfiSplitFactory.createCollector(address(0), splitter));
   }
 
   function test_etherfi_integration_CanDistribute() public {

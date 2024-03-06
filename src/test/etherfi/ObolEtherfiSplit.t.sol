@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import {ObolEtherfiSplitFactory, ObolEtherfiSplit, IweETH} from "src/etherfi/ObolEtherfiSplitFactory.sol";
+import {BaseSplit} from "src/base/BaseSplit.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ObolEtherfiSplitTestHelper} from "./ObolEtherfiSplitTestHelper.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
@@ -37,34 +38,34 @@ contract ObolEtherfiSplitTest is ObolEtherfiSplitTestHelper, Test {
 
     demoSplit = makeAddr("demoSplit");
 
-    etherfiSplit = ObolEtherfiSplit(etherfiSplitFactory.createSplit(demoSplit));
-    etherfiSplitWithFee = ObolEtherfiSplit(etherfiSplitFactoryWithFee.createSplit(demoSplit));
+    etherfiSplit = ObolEtherfiSplit(etherfiSplitFactory.createCollector(address(0), demoSplit));
+    etherfiSplitWithFee = ObolEtherfiSplit(etherfiSplitFactoryWithFee.createCollector(address(0), demoSplit));
 
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
   }
 
   function test_etherfi_CannotCreateInvalidFeeRecipient() public {
-    vm.expectRevert(ObolEtherfiSplit.Invalid_FeeRecipient.selector);
+    vm.expectRevert(BaseSplit.Invalid_FeeRecipient.selector);
     new ObolEtherfiSplit(address(0), 10, ERC20(EETH_MAINNET_ADDRESS), ERC20(WEETH_MAINNET_ADDRESS));
   }
 
   function test_etherfi_CannotCreateInvalidFeeShare() public {
-    vm.expectRevert(abi.encodeWithSelector(ObolEtherfiSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1));
+    vm.expectRevert(abi.encodeWithSelector(BaseSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1));
     new ObolEtherfiSplit(address(1), PERCENTAGE_SCALE + 1, ERC20(EETH_MAINNET_ADDRESS), ERC20(WEETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(abi.encodeWithSelector(ObolEtherfiSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE));
+    vm.expectRevert(abi.encodeWithSelector(BaseSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE));
     new ObolEtherfiSplit(address(1), PERCENTAGE_SCALE, ERC20(EETH_MAINNET_ADDRESS), ERC20(WEETH_MAINNET_ADDRESS));
   }
 
   function test_etherfi_CloneArgsIsCorrect() public {
-    assertEq(etherfiSplit.splitWallet(), demoSplit, "invalid address");
+    assertEq(etherfiSplit.withdrawalAddress(), demoSplit, "invalid address");
     assertEq(address(etherfiSplit.eETH()), EETH_MAINNET_ADDRESS, "invalid eETH address");
     assertEq(address(etherfiSplit.weETH()), WEETH_MAINNET_ADDRESS, "invalid weETH address");
     assertEq(etherfiSplit.feeRecipient(), address(0), "invalid fee recipient");
     assertEq(etherfiSplit.feeShare(), 0, "invalid fee amount");
 
-    assertEq(etherfiSplitWithFee.splitWallet(), demoSplit, "invalid address");
+    assertEq(etherfiSplitWithFee.withdrawalAddress(), demoSplit, "invalid address");
     assertEq(address(etherfiSplitWithFee.eETH()), EETH_MAINNET_ADDRESS, "invalid eETH address");
     assertEq(address(etherfiSplitWithFee.weETH()), WEETH_MAINNET_ADDRESS, "invalid weETH address");
     assertEq(etherfiSplitWithFee.feeRecipient(), feeRecipient, "invalid fee recipient /2");
@@ -79,21 +80,21 @@ contract ObolEtherfiSplitTest is ObolEtherfiSplitTestHelper, Test {
     uint256 balance = etherfiSplit.rescueFunds(address(0));
     assertEq(balance, amountOfEther, "balance not rescued");
     assertEq(address(etherfiSplit).balance, 0, "balance is not zero");
-    assertEq(address(etherfiSplit.splitWallet()).balance, amountOfEther, "rescue not successful");
+    assertEq(address(etherfiSplit.withdrawalAddress()).balance, amountOfEther, "rescue not successful");
 
     // rescue tokens
     mERC20.transfer(address(etherfiSplit), amountOfEther);
     uint256 tokenBalance = etherfiSplit.rescueFunds(address(mERC20));
     assertEq(tokenBalance, amountOfEther, "token - balance not rescued");
     assertEq(mERC20.balanceOf(address(etherfiSplit)), 0, "token - balance is not zero");
-    assertEq(mERC20.balanceOf(etherfiSplit.splitWallet()), amountOfEther, "token - rescue not successful");
+    assertEq(mERC20.balanceOf(etherfiSplit.withdrawalAddress()), amountOfEther, "token - rescue not successful");
   }
 
   function test_etherfi_Cannot_RescueEtherfiTokens() public {
-    vm.expectRevert(ObolEtherfiSplit.Invalid_Address.selector);
+    vm.expectRevert(BaseSplit.Invalid_Address.selector);
     etherfiSplit.rescueFunds(address(EETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(ObolEtherfiSplit.Invalid_Address.selector);
+    vm.expectRevert(BaseSplit.Invalid_Address.selector);
     etherfiSplit.rescueFunds(address(WEETH_MAINNET_ADDRESS));
   }
 
@@ -159,7 +160,7 @@ contract ObolEtherfiSplitTest is ObolEtherfiSplitTestHelper, Test {
       fuzzFeeRecipient, fuzzFeeShare, ERC20(EETH_MAINNET_ADDRESS), ERC20(WEETH_MAINNET_ADDRESS)
     );
 
-    ObolEtherfiSplit fuzzSplitWithFee = ObolEtherfiSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit));
+    ObolEtherfiSplit fuzzSplitWithFee = ObolEtherfiSplit(fuzzFactorySplitWithFee.createCollector(address(0), anotherSplit));
 
     vm.prank(RANDOM_EETH_ACCOUNT_ADDRESS);
 
