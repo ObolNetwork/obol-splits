@@ -33,7 +33,7 @@ contract IMSCFactory is Test {
 
   function setUp() public {
     uint256 goerliBlock = 8_529_931;
-    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
+    vm.createSelectFork(getChain("goerli").rpcUrl);
 
     factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_GOERLI);
     cntrlImpl = factory.controller();

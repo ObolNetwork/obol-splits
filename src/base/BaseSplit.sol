@@ -7,7 +7,7 @@ import {Clone} from "solady/utils/Clone.sol";
 
 abstract contract BaseSplit is Clone {
   error Invalid_Address();
-  error Invalid_FeeShare();
+  error Invalid_FeeShare(uint256 val);
   error Invalid_FeeRecipient();
 
   /// -----------------------------------------------------------------------
@@ -32,7 +32,7 @@ abstract contract BaseSplit is Clone {
   uint256 internal constant TOKEN_ADDRESS_OFFSET = 20;
 
   constructor(address _feeRecipient, uint256 _feeShare) {
-    if (_feeShare == 0 || _feeShare > PERCENTAGE_SCALE) revert Invalid_FeeShare();
+    if (_feeShare >= PERCENTAGE_SCALE) revert Invalid_FeeShare(_feeShare);
     if (_feeShare > 0 && _feeRecipient == address(0)) revert Invalid_FeeRecipient();
 
     feeShare = _feeShare;

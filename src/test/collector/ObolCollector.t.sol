@@ -4,10 +4,9 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import {ObolCollectorFactory, ObolCollector} from "src/collector/ObolCollectorFactory.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
+import {BaseSplit} from "src/base/BaseSplit.sol";
 
 contract ObolCollectorTest is Test {
-  error Invalid_Address();
-  error Invalid_FeeShare();
 
   uint256 internal constant PERCENTAGE_SCALE = 1e5;
 
@@ -42,11 +41,11 @@ contract ObolCollectorTest is Test {
   }
 
   function test_InvalidFeeShare() public {
-    vm.expectRevert(Invalid_FeeShare.selector);
-    new ObolCollectorFactory(address(0), 0);
-
-    vm.expectRevert(Invalid_FeeShare.selector);
+    vm.expectRevert(abi.encodeWithSelector(BaseSplit.Invalid_FeeShare.selector, 1e10));
     new ObolCollectorFactory(address(0), 1e10);
+
+    vm.expectRevert(abi.encodeWithSelector(BaseSplit.Invalid_FeeShare.selector, 1e5));
+    new ObolCollectorFactory(address(0), 1e5);
   }
 
   function test_feeShare() public {
@@ -170,11 +169,11 @@ contract ObolCollectorTest is Test {
 
   function testCannot_RescueControllerToken() public {
     deal(address(ethCollectorWithFee), 1 ether);
-    vm.expectRevert(Invalid_Address.selector);
+    vm.expectRevert(BaseSplit.Invalid_Address.selector);
     ethCollectorWithFee.rescueFunds(address(0));
 
     mERC20.transfer(address(collectorWithFee), 1 ether);
-    vm.expectRevert(Invalid_Address.selector);
+    vm.expectRevert(BaseSplit.Invalid_Address.selector);
     collectorWithFee.rescueFunds(address(mERC20));
   }
 

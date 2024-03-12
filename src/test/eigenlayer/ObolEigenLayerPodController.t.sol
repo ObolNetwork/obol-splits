@@ -52,7 +52,7 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
 
   function setUp() public {
     uint256 goerliBlock = 10_205_449;
-    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
+    vm.createSelectFork(getChain("goerli").rpcUrl);
 
     vm.mockCall(
       DEPOSIT_CONTRACT_GOERLI, abi.encodeWithSelector(IDepositContract.deposit.selector), bytes.concat(bytes32(0))

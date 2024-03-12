@@ -24,7 +24,7 @@ contract ObolEtherfiSplitTest is ObolEtherfiSplitTestHelper, Test {
   MockERC20 mERC20;
 
   function setUp() public {
-    uint256 mainnetBlock = 19_228_949;
+    uint256 mainnetBlock = 19_393_100;
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
     feeRecipient = makeAddr("feeRecipient");
