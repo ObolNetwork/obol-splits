@@ -11,6 +11,8 @@ import {
 } from "src/interfaces/IEigenLayer.sol";
 
 abstract contract EigenLayerTestBase is Test {
+  address public constant ETH_ADDRESS = address(0);
+
   uint256 public constant PERCENTAGE_SCALE = 1e5;
 
   address public constant SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
