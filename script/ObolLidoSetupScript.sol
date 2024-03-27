@@ -95,12 +95,25 @@ contract ObolLidoSetupScript is Script {
 
             vm.startBroadcast(privKey);
 
-            address split = ISplitMain(splitMain).createSplit(
+            // predict address
+            uint256 size;
+            address split = ISplitMain(splitMain).predictImmutableSplitAddress(
                 currentConfiguration.accounts,
                 currentConfiguration.percentAllocations,
-                currentConfiguration.distributorFee,
-                currentConfiguration.controller
+                currentConfiguration.distributorFee
             );
+
+            assembly { size := extcodesize(split) }
+
+            if (size == 0) {
+                split = ISplitMain(splitMain).createSplit(
+                    currentConfiguration.accounts,
+                    currentConfiguration.percentAllocations,
+                    currentConfiguration.distributorFee,
+                    currentConfiguration.controller
+                );
+            }
+
 
             // create obol split
             address obolLidoSplitAdress = ObolLidoSplitFactory(obolLidoSplitFactory).createSplit(
@@ -119,7 +132,7 @@ contract ObolLidoSetupScript is Script {
             );
         }
 
-        vm.writeJson(finalJSON, "./result.json");
+        vm.writeJson(finalJSON, "./lido-mainnet-1-result.json");
     }
 
     function _validateInputJson(JsonSplitConfiguration[] memory configuration) internal pure {
