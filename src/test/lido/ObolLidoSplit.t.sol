@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import {ObolLidoSplitFactory, ObolLidoSplit, IwstETH} from "src/lido/ObolLidoSplitFactory.sol";
+import {BaseSplit} from "src/base/BaseSplit.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ObolLidoSplitTestHelper} from "./ObolLidoSplitTestHelper.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
@@ -29,56 +30,42 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     feeRecipient = makeAddr("feeRecipient");
     feeShare = 1e4;
 
-    lidoSplitFactory = new ObolLidoSplitFactory(
-      address(0),
-      0,
-      ERC20(STETH_MAINNET_ADDRESS),
-      ERC20(WSTETH_MAINNET_ADDRESS)
-    );
+    lidoSplitFactory =
+      new ObolLidoSplitFactory(address(0), 0, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
 
-    lidoSplitFactoryWithFee = new ObolLidoSplitFactory(
-      feeRecipient,
-      feeShare,
-      ERC20(STETH_MAINNET_ADDRESS),
-      ERC20(WSTETH_MAINNET_ADDRESS)
-    );
+    lidoSplitFactoryWithFee =
+      new ObolLidoSplitFactory(feeRecipient, feeShare, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
 
     demoSplit = makeAddr("demoSplit");
 
-    lidoSplit = ObolLidoSplit(lidoSplitFactory.createSplit(demoSplit));
-    lidoSplitWithFee = ObolLidoSplit(lidoSplitFactoryWithFee.createSplit(demoSplit));
+    lidoSplit = ObolLidoSplit(lidoSplitFactory.createCollector(address(0), demoSplit));
+    lidoSplitWithFee = ObolLidoSplit(lidoSplitFactoryWithFee.createCollector(address(0), demoSplit));
 
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
   }
 
   function test_CannotCreateInvalidFeeRecipient() public {
-    vm.expectRevert(
-      ObolLidoSplit.Invalid_FeeRecipient.selector
-    );
+    vm.expectRevert(BaseSplit.Invalid_FeeRecipient.selector);
     new ObolLidoSplit(address(0), 10, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
   }
 
   function test_CannotCreateInvalidFeeShare() public {
-    vm.expectRevert(
-      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1)
-    );
+    vm.expectRevert(abi.encodeWithSelector(BaseSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1));
     new ObolLidoSplit(address(1), PERCENTAGE_SCALE + 1, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(
-      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE)
-    );
+    vm.expectRevert(abi.encodeWithSelector(BaseSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE));
     new ObolLidoSplit(address(1), PERCENTAGE_SCALE, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
   }
 
   function test_CloneArgsIsCorrect() public {
-    assertEq(lidoSplit.splitWallet(), demoSplit, "invalid address");
+    assertEq(lidoSplit.withdrawalAddress(), demoSplit, "invalid address");
     assertEq(address(lidoSplit.stETH()), STETH_MAINNET_ADDRESS, "invalid stETH address");
     assertEq(address(lidoSplit.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
     assertEq(lidoSplit.feeRecipient(), address(0), "invalid fee recipient");
     assertEq(lidoSplit.feeShare(), 0, "invalid fee amount");
 
-    assertEq(lidoSplitWithFee.splitWallet(), demoSplit, "invalid address");
+    assertEq(lidoSplitWithFee.withdrawalAddress(), demoSplit, "invalid address");
     assertEq(address(lidoSplitWithFee.stETH()), STETH_MAINNET_ADDRESS, "invalid stETH address");
     assertEq(address(lidoSplitWithFee.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
     assertEq(lidoSplitWithFee.feeRecipient(), feeRecipient, "invalid fee recipient /2");
@@ -93,21 +80,21 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     uint256 balance = lidoSplit.rescueFunds(address(0));
     assertEq(balance, amountOfEther, "balance not rescued");
     assertEq(address(lidoSplit).balance, 0, "balance is not zero");
-    assertEq(address(lidoSplit.splitWallet()).balance, amountOfEther, "rescue not successful");
+    assertEq(address(lidoSplit.withdrawalAddress()).balance, amountOfEther, "rescue not successful");
 
     // rescue tokens
     mERC20.transfer(address(lidoSplit), amountOfEther);
     uint256 tokenBalance = lidoSplit.rescueFunds(address(mERC20));
     assertEq(tokenBalance, amountOfEther, "token - balance not rescued");
     assertEq(mERC20.balanceOf(address(lidoSplit)), 0, "token - balance is not zero");
-    assertEq(mERC20.balanceOf(lidoSplit.splitWallet()), amountOfEther, "token - rescue not successful");
+    assertEq(mERC20.balanceOf(lidoSplit.withdrawalAddress()), amountOfEther, "token - rescue not successful");
   }
 
   function testCannot_RescueLidoTokens() public {
-    vm.expectRevert(ObolLidoSplit.Invalid_Address.selector);
+    vm.expectRevert(BaseSplit.Invalid_Address.selector);
     lidoSplit.rescueFunds(address(STETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(ObolLidoSplit.Invalid_Address.selector);
+    vm.expectRevert(BaseSplit.Invalid_Address.selector);
     lidoSplit.rescueFunds(address(WSTETH_MAINNET_ADDRESS));
   }
 
@@ -170,13 +157,10 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     vm.assume(amountToDistribute < 10 ether);
 
     ObolLidoSplitFactory fuzzFactorySplitWithFee = new ObolLidoSplitFactory(
-      fuzzFeeRecipient,
-      fuzzFeeShare,
-      ERC20(STETH_MAINNET_ADDRESS),
-      ERC20(WSTETH_MAINNET_ADDRESS)
+      fuzzFeeRecipient, fuzzFeeShare, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS)
     );
 
-    ObolLidoSplit fuzzSplitWithFee = ObolLidoSplit(fuzzFactorySplitWithFee.createSplit(anotherSplit));
+    ObolLidoSplit fuzzSplitWithFee = ObolLidoSplit(fuzzFactorySplitWithFee.createCollector(address(0), anotherSplit));
 
     vm.prank(0x2bf3937b8BcccE4B65650F122Bb3f1976B937B2f);
 

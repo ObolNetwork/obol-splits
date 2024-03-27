@@ -33,7 +33,7 @@ contract IMSCFactory is Test {
 
   function setUp() public {
     uint256 goerliBlock = 8_529_931;
-    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
+    vm.createSelectFork(getChain("goerli").rpcUrl);
 
     factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_GOERLI);
     cntrlImpl = factory.controller();
@@ -154,20 +154,10 @@ contract IMSCFactory is Test {
     uint32[] memory localAllocations = _generatePercentAlloc(size);
 
     vm.expectRevert(
-      abi.encodeWithSelector(
-        ImmutableSplitControllerFactory.InvalidSplit__TooManyAccounts.selector,
-        size
-      )
+      abi.encodeWithSelector(ImmutableSplitControllerFactory.InvalidSplit__TooManyAccounts.selector, size)
     );
 
-    factory.createController(
-      address(1),
-      owner,
-      localAccounts,
-      localAllocations,
-      0,
-      deploymentSalt
-    );
+    factory.createController(address(1), owner, localAccounts, localAllocations, 0, deploymentSalt);
   }
 
   function test_CanCreateController() public {

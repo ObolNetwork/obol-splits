@@ -6,25 +6,15 @@ import {ObolLidoSplitFactory} from "src/lido/ObolLidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 contract ObolLidoSplitFactoryScript is Script {
-    function run(
-        address _feeRecipient,
-        uint256 _feeShare, 
-        address _stETH,
-        address _wstETH
-    ) external {
-        uint256 privKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(privKey);
-        
-        ERC20 stETH = ERC20(_stETH);
-        ERC20 wstETH =  ERC20(_wstETH);
+  function run(address _feeRecipient, uint256 _feeShare, address _stETH, address _wstETH) external {
+    uint256 privKey = vm.envUint("PRIVATE_KEY");
+    vm.startBroadcast(privKey);
 
-        new ObolLidoSplitFactory{salt: keccak256("obol.lidoSplitFactory.v1")}(
-            _feeRecipient,
-            _feeShare, 
-            stETH,
-            wstETH
-        );
+    ERC20 stETH = ERC20(_stETH);
+    ERC20 wstETH = ERC20(_wstETH);
 
-        vm.stopBroadcast();
-    }
+    new ObolLidoSplitFactory{salt: keccak256("obol.lidoSplitFactory.v1")}(_feeRecipient, _feeShare, stETH, wstETH);
+
+    vm.stopBroadcast();
+  }
 }
