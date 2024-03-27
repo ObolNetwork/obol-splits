@@ -55,48 +55,37 @@ This command generates compilation output into the `out` directory.
 
 This repo can be deployed with `forge create` or running the deployment scripts.
 
-#### Goerli
+### Goerli Network Contracts
+| Contract Type                        | Address                                                                                             |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------|
+| OptimisticWithdrawalRecipientFactory | [0xe9557FCC055c89515AE9F3A4B1238575Fcd80c26](https://goerli.etherscan.io/address/0xe9557FCC055c89515AE9F3A4B1238575Fcd80c26) |
+| OptimisticWithdrawalRecipient        | [0x898516b26D99d0F389598acFcd9F115Ab8184Fe3](https://goerli.etherscan.io/address/0x898516b26D99d0F389598acFcd9F115Ab8184Fe3) |
+| ImmutableSplitControllerFactory     | [0x64a2c4A50B1f46c3e2bF753CFe270ceB18b5e18f](https://goerli.etherscan.io/address/0x64a2c4A50B1f46c3e2bF753CFe270ceB18b5e18f) |
+| ImmutableSplitController            | [0x009894cdA6cB6d99866ca8E04e8EDeabd625712F](https://goerli.etherscan.io/address/0x009894cdA6cB6d99866ca8E04e8EDeabd625712F) |
+| ObolLidoSplitFactory                | [0x40435F54cc57943C727d8f856A52d4E55501cA8C](https://goerli.etherscan.io/address/0x40435F54cc57943C727d8f856A52d4E55501cA8C) |
+| ObolLidoSplit                       | [0xdF46B2f36ffb67492A73263Ae3C3849B99DA9967](https://goerli.etherscan.io/address/0xdF46B2f36ffb67492A73263Ae3C3849B99DA9967) |
 
-OptimisticWithdrawalRecipientFactory: https://goerli.etherscan.io/address/0xe9557FCC055c89515AE9F3A4B1238575Fcd80c26
+### Sepolia Network Contracts
+| Contract Type                        | Address                                                                                             |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------|
+| OptimisticWithdrawalRecipientFactory | [0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a](https://sepolia.etherscan.io/address/0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a) |
+| OptimisticWithdrawalRecipient        | [0x99585e71ab1118682d51efefca0a170c70eef0d6](https://sepolia.etherscan.io/address/0x99585e71ab1118682d51efefca0a170c70eef0d6) |
 
-OptimisticWithdrawalRecipient: https://goerli.etherscan.io/address/0x898516b26D99d0F389598acFcd9F115Ab8184Fe3
+### Holesky Network Contracts
+| Contract Type        | Address                                                                                         |
+|----------------------|-------------------------------------------------------------------------------------------------|
+| ObolLidoSplitFactory | [0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449](https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449) |
+| ObolLidoSplit       | [0x22bdC6609de39E569546184Bff4ba4716d34fEBd](https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd) |
 
-ImmutableSplitControllerFactory: https://goerli.etherscan.io/address/0x64a2c4A50B1f46c3e2bF753CFe270ceB18b5e18f
-
-ImmutableSplitController: https://goerli.etherscan.io/address/0x009894cdA6cB6d99866ca8E04e8EDeabd625712F
-
-ObolLidoSplitFactory: https://goerli.etherscan.io/address/0x40435F54cc57943C727d8f856A52d4E55501cA8C
-
-ObolLidoSplit: https://goerli.etherscan.io/address/0xdF46B2f36ffb67492A73263Ae3C3849B99DA9967
-
-
-#### Sepolia
-
-OptimisticWithdrawalRecipientFactory: https://sepolia.etherscan.io/address/0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a
-
-OptimisticWithdrawalRecipient: https://sepolia.etherscan.io/address/0x99585e71ab1118682d51efefca0a170c70eef0d6
-
-
-### Holesky
-
-ObolLidoSplitFactory: https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449
-
-ObolLidoSplit: https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd 
-
-
-#### Mainnet
-
-OptimisticWithdrawalRecipientFactory: https://etherscan.io/address/0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522
-
-OptimisticWithdrawalRecipient: https://etherscan.io/address/0xe11eabf19a49c389d3e8735c35f8f34f28bdcb22
-
-ObolLidoSplitFactory: https://etherscan.io/address/0xA9d94139A310150Ca1163b5E23f3E1dbb7D9E2A6
-
-ObolLidoSplit: https://etherscan.io/address/0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3
-
-ImmutableSplitControllerFactory: https://etherscan.io/address/0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4
-
-ImmutableSplitController: https://etherscan.io/address/0xaF129979b773374dD3025d3F97353e73B0A6Cc8d
+### Mainnet Contracts
+| Contract Type                        | Address                                                                                             |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------|
+| OptimisticWithdrawalRecipientFactory | [0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522](https://etherscan.io/address/0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522) |
+| OptimisticWithdrawalRecipient        | [0xe11eabf19a49c389d3e8735c35f8f34f28bdcb22](https://etherscan.io/address/0xe11eabf19a49c389d3e8735c35f8f34f28bdcb22) |
+| ObolLidoSplitFactory                | [0xA9d94139A310150Ca1163b5E23f3E1dbb7D9E2A6](https://etherscan.io/address/0xA9d94139A310150Ca1163b5E23f3E1dbb7D9E2A6) |
+| ObolLidoSplit                       | [0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3](https://etherscan.io/address/0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3) |
+| ImmutableSplitControllerFactory     | [0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4](https://etherscan.io/address/0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4) |
+| ImmutableSplitController            | [0xaF129979b773374dD3025d3F97353e73B0A6Cc8d](https://etherscan.io/address/0xaF129979b773374dD3025d3F97353e73B0A6Cc8d) |
 
 ### Versioning
 
