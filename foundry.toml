@@ -31,3 +31,6 @@ wrap_comments = true
 
 [fuzz]
 runs = 100
+
+[etherscan]
+chiado = { key = "${ETHERSCAN_API_KEY}", url = "https://blockscout.com/gnosis/chiado/api" }

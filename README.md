@@ -87,6 +87,19 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 | ImmutableSplitControllerFactory     | [0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4](https://etherscan.io/address/0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4) |
 | ImmutableSplitController            | [0xaF129979b773374dD3025d3F97353e73B0A6Cc8d](https://etherscan.io/address/0xaF129979b773374dD3025d3F97353e73B0A6Cc8d) |
 
+### Gnosis Chain Mainnet Contracts
+| Contract Type                        | Address                                                                                             |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------|
+| OptimisticWithdrawalRecipientFactory | [0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D](https://gnosisscan.io/address/0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D) |
+| OptimisticWithdrawalRecipient        | [0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa](https://gnosisscan.io/address/0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa) |
+
+### Gnosis Chain Chiado Contracts
+| Contract Type                        | Address                                                                                             |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------|
+| OptimisticWithdrawalRecipientFactory | [0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D](https://gnosis-chiado.blockscout.com/address/0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D) |
+| OptimisticWithdrawalRecipient        | [0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa](https://gnosis-chiado.blockscout.com/address/0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa) |
+
+
 ### Versioning
 
 Versioning of releases to this repo has not been implemented.
