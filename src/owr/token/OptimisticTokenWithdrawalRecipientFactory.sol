@@ -4,12 +4,12 @@ pragma solidity 0.8.19;
 import {OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipient.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 
-/// @title OptimisticWithdrawalWithTokenRecipientFactory
+/// @title OptimisticTokenWithdrawalRecipientFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying
 /// OptimisticWithdrawalRecipient.
 /// @dev This contract uses token = address(0) to refer to ETH.
-contract OptimisticWithdrawalWithTokenRecipientFactory {
+contract OptimisticTokenWithdrawalRecipientFactory {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------

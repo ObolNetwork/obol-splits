@@ -3,11 +3,11 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import {OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipient.sol";
-import {OptimisticWithdrawalWithTokenRecipientFactory} from "src/owr/token/OptimisticWithdrawalWithTokenRecipientFactory.sol";
+import {OptimisticTokenWithdrawalRecipientFactory} from "src/owr/token/OptimisticTokenWithdrawalRecipientFactory.sol";
 import {MockERC20} from "../../utils/mocks/MockERC20.sol";
 import {OWRTestHelper} from "../OWRTestHelper.t.sol";
 
-contract OptimisticWithdrawalWithTokenRecipientFactoryTest is OWRTestHelper, Test {
+contract OptimisticTokenWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   event CreateOWRecipient(
     address indexed owr,
     address token,
@@ -19,7 +19,7 @@ contract OptimisticWithdrawalWithTokenRecipientFactoryTest is OWRTestHelper, Tes
 
   address public ENS_REVERSE_REGISTRAR_GOERLI = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
-  OptimisticWithdrawalWithTokenRecipientFactory owrFactoryModule;
+  OptimisticTokenWithdrawalRecipientFactory owrFactoryModule;
   MockERC20 mERC20;
   address public recoveryAddress;
   address public principalRecipient;
@@ -30,7 +30,7 @@ contract OptimisticWithdrawalWithTokenRecipientFactoryTest is OWRTestHelper, Tes
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
 
-    owrFactoryModule = new OptimisticWithdrawalWithTokenRecipientFactory();
+    owrFactoryModule = new OptimisticTokenWithdrawalRecipientFactory();
 
     recoveryAddress = makeAddr("recoveryAddress");
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(10);
@@ -80,23 +80,23 @@ contract OptimisticWithdrawalWithTokenRecipientFactoryTest is OWRTestHelper, Tes
   function testCannot_createWithInvalidRecipients() public {
     (principalRecipient, rewardRecipient, threshold) = generateTranches(1, 1);
     // eth
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__Recipients.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__Recipients.selector);
     owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, address(0), rewardRecipient, threshold);
 
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__Recipients.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__Recipients.selector);
     owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, address(0), address(0), threshold);
 
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__Recipients.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__Recipients.selector);
     owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, address(0), threshold);
 
     // erc20
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__Recipients.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__Recipients.selector);
     owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, address(0), rewardRecipient, threshold);
 
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__Recipients.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__Recipients.selector);
     owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, address(0), address(0), threshold);
 
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__Recipients.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__Recipients.selector);
     owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, address(0), threshold);
   }
 
@@ -104,12 +104,12 @@ contract OptimisticWithdrawalWithTokenRecipientFactoryTest is OWRTestHelper, Tes
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(2);
     threshold = 0;
 
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__ZeroThreshold.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector);
     owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     vm.expectRevert(
       abi.encodeWithSelector(
-        OptimisticWithdrawalWithTokenRecipientFactory.Invalid__ThresholdTooLarge.selector, type(uint128).max
+        OptimisticTokenWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, type(uint128).max
       )
     );
     owrFactoryModule.createOWRecipient(
@@ -146,11 +146,11 @@ contract OptimisticWithdrawalWithTokenRecipientFactoryTest is OWRTestHelper, Tes
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(_receipientSeed);
 
     // eth
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__ZeroThreshold.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector);
     owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     // erc20
-    vm.expectRevert(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__ZeroThreshold.selector);
+    vm.expectRevert(OptimisticTokenWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector);
 
     owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
@@ -162,13 +162,13 @@ contract OptimisticWithdrawalWithTokenRecipientFactoryTest is OWRTestHelper, Tes
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(_receipientSeed);
 
     vm.expectRevert(
-      abi.encodeWithSelector(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
+      abi.encodeWithSelector(OptimisticTokenWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
     );
 
     owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     vm.expectRevert(
-      abi.encodeWithSelector(OptimisticWithdrawalWithTokenRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
+      abi.encodeWithSelector(OptimisticTokenWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
     );
 
     owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
