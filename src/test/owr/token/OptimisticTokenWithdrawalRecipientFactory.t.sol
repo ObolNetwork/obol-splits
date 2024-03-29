@@ -17,8 +17,6 @@ contract OptimisticTokenWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     uint256 threshold
   );
 
-  address public ENS_REVERSE_REGISTRAR_GOERLI = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
-
   OptimisticTokenWithdrawalRecipientFactory owrFactoryModule;
   MockERC20 mERC20;
   address public recoveryAddress;
