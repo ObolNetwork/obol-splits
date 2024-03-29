@@ -90,14 +90,14 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 ### Gnosis Chain Mainnet Contracts
 | Contract Type                        | Address                                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
-| OptimisticWithdrawalRecipientFactory | [0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D](https://gnosisscan.io/address/0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D) |
-| OptimisticWithdrawalRecipient        | [0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa](https://gnosisscan.io/address/0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa) |
+| OptimisticTokenWithdrawalRecipientFactory | [0x4e326Ca253e5E892971b49207EB0a75943cdC657.](https://gnosisscan.io/address/0x4e326Ca253e5E892971b49207EB0a75943cdC657) |
+| OptimisticWithdrawalRecipient        | [0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C](https://gnosisscan.io/address/0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C) |
 
 ### Gnosis Chain Chiado Contracts
 | Contract Type                        | Address                                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
-| OptimisticWithdrawalRecipientFactory | [0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D](https://gnosis-chiado.blockscout.com/address/0x0C4bEa915F44E2f9533eDb20BA9623fcb20Ece7D) |
-| OptimisticWithdrawalRecipient        | [0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa](https://gnosis-chiado.blockscout.com/address/0xF979e49FE4FC0d503AD1Ee8583d88f0d5A165Cfa) |
+| OptimisticTokenWithdrawalRecipientFactory | [0x4e326ca253e5e892971b49207eb0a75943cdc657](https://gnosis-chiado.blockscout.com/address/0x4e326ca253e5e892971b49207eb0a75943cdc657) |
+| OptimisticWithdrawalRecipient        | [0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C](https://gnosis-chiado.blockscout.com/address/0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C) |
 
 
 ### Versioning

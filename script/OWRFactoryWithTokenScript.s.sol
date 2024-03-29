@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import {OptimisticWithdrawalWithTokenRecipientFactory} from "src/owr/token/OptimisticWithdrawalWithTokenRecipientFactory.sol";
+import {OptimisticTokenWithdrawalRecipientFactory} from "src/owr/token/OptimisticTokenWithdrawalRecipientFactory.sol";
 
 contract OWRWFactoryWithTokenScript is Script {
   function run() external {
@@ -10,7 +10,7 @@ contract OWRWFactoryWithTokenScript is Script {
     
     vm.startBroadcast(privKey);
     
-    new OptimisticWithdrawalWithTokenRecipientFactory{salt: keccak256("obol.owrFactoryWithToken.v1")}();
+    new OptimisticTokenWithdrawalRecipientFactory{salt: keccak256("obol.owrFactoryWithToken.v0")}();
 
     vm.stopBroadcast();
   }
