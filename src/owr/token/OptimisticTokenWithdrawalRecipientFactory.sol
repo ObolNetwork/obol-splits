@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipient.sol";
+import {OptimisticTokenWithdrawalRecipient} from "src/owr/token/OptimisticTokenWithdrawalRecipient.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 
 /// @title OptimisticTokenWithdrawalRecipientFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying
-/// OptimisticWithdrawalRecipient.
+/// OptimisticTokenWithdrawalRecipient.
 /// @dev This contract uses token = address(0) to refer to ETH.
 contract OptimisticTokenWithdrawalRecipientFactory {
   /// -----------------------------------------------------------------------
@@ -55,15 +55,15 @@ contract OptimisticTokenWithdrawalRecipientFactory {
 
   uint256 internal constant ADDRESS_BITS = 160;
 
-  /// OptimisticWithdrawalRecipient implementation address
-  OptimisticWithdrawalRecipient public immutable owrImpl;
+  /// OptimisticTokenWithdrawalRecipient implementation address
+  OptimisticTokenWithdrawalRecipient public immutable owrImpl;
 
   /// -----------------------------------------------------------------------
   /// constructor
   /// -----------------------------------------------------------------------
 
   constructor() {
-    owrImpl = new OptimisticWithdrawalRecipient();
+    owrImpl = new OptimisticTokenWithdrawalRecipient();
   }
 
   /// -----------------------------------------------------------------------
@@ -74,7 +74,7 @@ contract OptimisticTokenWithdrawalRecipientFactory {
   /// functions - public & external
   /// -----------------------------------------------------------------------
 
-  /// Create a new OptimisticWithdrawalRecipient clone
+  /// Create a new OptimisticTokenWithdrawalRecipient clone
   /// @param token Address of ERC20 to distribute (0x0 used for ETH)
   /// @param recoveryAddress Address to recover tokens to
   /// If this address is 0x0, recovery of unrelated tokens can be completed by
@@ -87,14 +87,14 @@ contract OptimisticTokenWithdrawalRecipientFactory {
   /// principal recipient (multiple of 32 ETH)
   /// (reward recipient has no threshold & receives all residual flows)
   /// it cannot be greater than uint96
-  /// @return owr Address of new OptimisticWithdrawalRecipient clone
+  /// @return owr Address of new OptimisticTokenWithdrawalRecipient clone
   function createOWRecipient(
     address token,
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
     uint256 amountOfPrincipalStake
-  ) external returns (OptimisticWithdrawalRecipient owr) {
+  ) external returns (OptimisticTokenWithdrawalRecipient owr) {
     /// checks
 
     // ensure doesn't have address(0)
@@ -111,7 +111,7 @@ contract OptimisticTokenWithdrawalRecipientFactory {
     // would not exceed contract size limits
     // important to not reorder
     bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
-    owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
+    owr = OptimisticTokenWithdrawalRecipient(address(owrImpl).clone(data));
 
     emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake);
   }
