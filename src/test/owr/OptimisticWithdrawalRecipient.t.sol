@@ -33,18 +33,18 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
   function setUp() public {
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
+      bytes.concat(bytes32(0))
     );
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
+      bytes.concat(bytes32(0))
     );
 
-    owrFactory = new OptimisticWithdrawalRecipientFactory(
-      "demo.obol.eth",
-      ENS_REVERSE_REGISTRAR_GOERLI,
-      address(this)
-    );
-    
+    owrFactory = new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
+
     owrModule = owrFactory.owrImpl();
 
     mERC20 = new MockERC20("demo", "DMT", 18);

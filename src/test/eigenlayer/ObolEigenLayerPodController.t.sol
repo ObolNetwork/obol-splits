@@ -52,7 +52,7 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
 
   function setUp() public {
     uint256 goerliBlock = 10_205_449;
-    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
+    vm.createSelectFork(getChain("goerli").rpcUrl);
 
     vm.mockCall(
       DEPOSIT_CONTRACT_GOERLI, abi.encodeWithSelector(IDepositContract.deposit.selector), bytes.concat(bytes32(0))
@@ -71,7 +71,7 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
     );
 
     zeroFeeFactory = new ObolEigenLayerPodControllerFactory(
-        address(0), 0, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
+      address(0), 0, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
     );
 
     controller = ObolEigenLayerPodController(factory.createPodController(owner, withdrawalAddress));

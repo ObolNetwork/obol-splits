@@ -42,8 +42,8 @@ contract OELPCIntegration is EigenLayerTestBase {
   uint256 feeShare;
 
   function setUp() public {
-    uint256 goerliBlock = 10_205_449;
-    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
+    uint256 goerliBlock = 10_653_080;
+    vm.createSelectFork(getChain("goerli").rpcUrl);
 
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI,

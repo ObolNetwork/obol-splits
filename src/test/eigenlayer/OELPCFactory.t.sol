@@ -25,7 +25,7 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
 
   function setUp() public {
     uint256 goerliBlock = 10_205_449;
-    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
+    vm.createSelectFork(getChain("goerli").rpcUrl);
 
     owner = makeAddr("owner");
     user1 = makeAddr("user1");
@@ -72,17 +72,10 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
 
     emit CreatePodController(address(0), withdrawalAddress, user1);
 
-    address predictedAddress = factory.predictControllerAddress(
-        user1,
-        withdrawalAddress
-    );
+    address predictedAddress = factory.predictControllerAddress(user1, withdrawalAddress);
 
     address createdAddress = factory.createPodController(user1, withdrawalAddress);
 
-    assertEq(
-        predictedAddress,
-        createdAddress,
-        "predicted address is equivalent"
-    );
+    assertEq(predictedAddress, createdAddress, "predicted address is equivalent");
   }
 }

@@ -28,17 +28,18 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
 
   function setUp() public {
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
+      bytes.concat(bytes32(0))
     );
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
+      bytes.concat(bytes32(0))
     );
 
-    owrFactoryModule = new OptimisticWithdrawalRecipientFactory(
-      "demo.obol.eth",
-      ENS_REVERSE_REGISTRAR_GOERLI,
-      address(this)
-    );
+    owrFactoryModule =
+      new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
 
     recoveryAddress = makeAddr("recoveryAddress");
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(10);
@@ -55,6 +56,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   function testCan_emitOnCreate() public {
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
+    
     emit CreateOWRecipient(
       address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold
     );
@@ -136,7 +138,6 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     vm.expectRevert(
       abi.encodeWithSelector(OptimisticWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
     );
-
     owrFactoryModule.createOWRecipient( recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 }
