@@ -17,7 +17,7 @@ contract ObolTechneCredentialsTest is Test {
     string constant BASE_URI = "https://github.com";
 
     function setUp() public {
-        credentials = new ObolTechneCredentials(NAME, SYMBOL, BASE_URI);
+        credentials = new ObolTechneCredentials(NAME, SYMBOL, BASE_URI, address(this));
 
         userWithMinterRole = makeAddr("userWithMinterRole");
         userWithoutMinterRole = makeAddr("userWithoutMinterRole");

@@ -15,8 +15,8 @@ contract ObolTechneCredentials is ERC721, OwnableRoles {
     uint256 public constant MINTABLE_ROLE = 1111;
 
     error TokenNotTransferable();
-    constructor(string memory name_, string memory symbol_, string memory baseUri_) {
-        _initializeOwner(msg.sender);
+    constructor(string memory name_, string memory symbol_, string memory baseUri_, address _owner) {
+        _initializeOwner(_owner);
 
         _name = name_;
         _symbol = symbol_;
