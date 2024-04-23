@@ -119,4 +119,37 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
         recipient.claim(1);
         assertEq(withdrawalAddress.balance, 1 ether);
     }
+
+    function testReceiveRewards() public {
+        address withdrawalAddress = makeAddr("withdrawalAddress");
+        vm.mockCall(
+            ENS_REVERSE_REGISTRAR_GOERLI,
+            abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
+            bytes.concat(bytes32(0))
+        );
+        vm.mockCall(
+            ENS_REVERSE_REGISTRAR_GOERLI,
+            abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
+            bytes.concat(bytes32(0))
+        );
+        OptimisticWithdrawalRecipientFactory owrFactory = new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
+    
+        OptimisticWithdrawalRecipient owrETH =
+            owrFactory.createOWRecipient(ETH_ADDRESS, withdrawalAddress, withdrawalAddress, address(recipient), ETH_STAKE);
+
+        address(owrETH).safeTransferETH(1 ether);
+
+        recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(owrETH), withdrawalAddress: withdrawalAddress}));
+        bool ownerOf1 = recipient.isOwnerOf(1);
+        assertEq(ownerOf1, true);
+
+        uint256 registeredRewards = recipient.rewards(address(owrETH), 1);
+        assertEq(registeredRewards, 0);
+
+        recipient.receiveRewards(address(owrETH));
+        assertEq(address(owrETH).balance, 0 ether);
+
+        registeredRewards = recipient.rewards(address(owrETH), 1);
+        assertEq(registeredRewards, 1 ether);
+    }
 }

@@ -15,15 +15,12 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
 
     struct OWRInfo {
         address owr;
-        address withdrawalAddress; // split address
-        //TODO: do we need more info here ?!
+        address withdrawalAddress; 
     }
 
-    //TODO: how can we increase `claimable` here?
-    mapping (address owr => mapping (uint256 id => uint256 claimable)) public rewards; 
     mapping (uint256 => OWRInfo) public owrInfo;
-
-    // mapping (address owr => uint256[] ids) public assignedTokens;
+    mapping(address owr => uint256 id) public assignedToOWR;
+    mapping (address owr => mapping (uint256 id => uint256 claimable)) public rewards; 
 
     string private _baseUri;
     address private constant ETH_TOKEN_ADDRESS = address(0x0);
@@ -65,15 +62,20 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     /// -----------------------------------------------------------------------
     /// functions - public & external
     /// -----------------------------------------------------------------------
-    /// @notice updates claimable rewards for `owr` and token `id`
-    /// @param owr the OptimisticWithdrawalRecipient contract
-    /// @param id the token id
-    /// @param amount the claimable amount to add
-    function onRewardsReceived(address owr, uint256 id, uint256 amount) external {
-        if (owr == address(0)) revert InvalidOWR();
+    
+    function receiveRewards(address owr) external onlyOwner {
+        uint256 _tokenId = assignedToOWR[owr];
 
-        if (msg.sender != owr) revert InvalidOwner();
-        rewards[owr][id] += amount;
+        // check if sender is owner of id
+        if (!isOwnerOf(_tokenId)) revert InvalidOwner();
+
+        // call .distribute() on OWR 
+        uint256 balanceBefore = _getOWRTokenBalance(owr);
+        IOptimisticWithdrawalRecipient(owr).distributeFunds();
+        uint256 balanceAfter = _getOWRTokenBalance(owr);
+
+        // update rewards[owr][id] += received;
+        rewards[owr][_tokenId] += (balanceAfter - balanceBefore);
     }
 
     /// @notice claims rewards to `OWRInfo.withdrawalAddress`
@@ -105,6 +107,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
         _mint(to, lastId, amount, "");
         mintedId = _incrementId();
         owrInfo[mintedId] = info;
+        assignedToOWR[info.owr] = mintedId;
     }
 
     /// @notice mints a batch of tokens
@@ -127,6 +130,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
             _mint(to, lastId, amounts[i], "");
             mintedIds[i] = _incrementId();
             owrInfo[mintedIds[i]] = infos[i];
+            assignedToOWR[infos[i].owr] = mintedIds[i];
         }
     }
 
@@ -170,11 +174,20 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
        if (claimed == 0) revert NothingToClaim();
 
         address token = IOptimisticWithdrawalRecipient(_owr).token();
-        if (token == address(0)) {
+        if (token == ETH_TOKEN_ADDRESS) {
             (bool sent,) = owrInfo[id].withdrawalAddress.call{value: claimed}("");
             if (!sent) revert ClaimFailed();
         } else {
             token.safeTransfer(owrInfo[id].withdrawalAddress, claimed);
+        }
+    }
+
+    function _getOWRTokenBalance(address owr) private view returns (uint256 balance) {
+        address token = IOptimisticWithdrawalRecipient(owr).token();
+        if (token == ETH_TOKEN_ADDRESS) {
+            balance = address(this).balance;
+        } else {
+            balance = ERC20(token).balanceOf(address(this));
         }
     }
 
