@@ -15,7 +15,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
 
     struct OWRInfo {
         address owr;
-        address withdrawalAddress; 
+        address rewardAddress; 
     }
 
     mapping (uint256 => OWRInfo) public owrInfo;
@@ -78,22 +78,22 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
         rewards[owr][_tokenId] += (balanceAfter - balanceBefore);
     }
 
-    /// @notice claims rewards to `OWRInfo.withdrawalAddress`
+    /// @notice claims rewards to `OWRInfo.rewardAddress`
     /// @dev callable by the owner
     /// @param id the ERC1155 id
-    /// @return claimed the amount of rewards sent to `OWRInfo.withdrawalAddress`
+    /// @return claimed the amount of rewards sent to `OWRInfo.rewardAddress`
     function claim(uint256 id) external returns (uint256 claimed) {
-       claimed = _claim(id);
+       claimed = _claim(id, false);
     }
 
-    /// @notice claims rewards to `OWRInfo.withdrawalAddress` from multiple token ids
+    /// @notice claims rewards to `OWRInfo.rewardAddress` from multiple token ids
     /// @dev callable by the owner
     /// @param ids the ERC1155 ids
-    /// @return claimed the amount of rewards sent to `OWRInfo.withdrawalAddress` per each id
+    /// @return claimed the amount of rewards sent to `OWRInfo.rewardAddress` per each id
     function batchClaim(uint256[] calldata ids) external returns (uint256[] memory claimed) {
         uint256 count = ids.length;
         for (uint256 i; i < count; i ++) {
-            claimed[i] = _claim(ids[i]);
+            claimed[i] = _claim(ids[i], false);
         }
     }
 
@@ -134,51 +134,52 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
         }
     }
 
-    /// @dev non-transferable
-    function safeTransferFrom(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes calldata
-    ) public pure override {
-        revert TokenNotTransferable();
-    }
+    /// @dev Hook that is called before any token transfer.
+    ///      Forces claim before a transfer happens
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory,
+        bytes memory
+    ) internal override {
+        // skip for mint or burn
+        if (from == address(0) || to == address(0)) return;
 
-    /// @dev non-transferable
-    function safeBatchTransferFrom(
-        address,
-        address,
-        uint256[] calldata,
-        uint256[] calldata,
-        bytes calldata
-    ) public pure override {
-        revert TokenNotTransferable();
+        // claim before transfer
+        uint256 length = ids.length;
+        for (uint i; i < length; i++) {
+            _claim(ids[i], true); //allow transfer even if `claimed == 0`
+        }
     }
 
     /// -----------------------------------------------------------------------
     /// functions - private
     /// -----------------------------------------------------------------------
+    function _useBeforeTokenTransfer() internal pure override returns (bool) {
+        return true;
+    }
+
     function _incrementId() public returns (uint256 mintedId) {
         mintedId = lastId;
         lastId++;
     }
 
-    function _claim(uint256 id) private returns (uint256 claimed) {
+    function _claim(uint256 id, bool canSkipAmountCheck) private returns (uint256 claimed) {
         if (!isOwnerOf(id)) revert InvalidOwner();
 
        address _owr = owrInfo[id].owr;
        if (_owr == address(0)) revert InvalidOWR();
 
        claimed = rewards[_owr][id];
-       if (claimed == 0) revert NothingToClaim();
+       if (claimed == 0 && !canSkipAmountCheck) revert NothingToClaim();
 
         address token = IOptimisticWithdrawalRecipient(_owr).token();
         if (token == ETH_TOKEN_ADDRESS) {
-            (bool sent,) = owrInfo[id].withdrawalAddress.call{value: claimed}("");
+            (bool sent,) = owrInfo[id].rewardAddress.call{value: claimed}("");
             if (!sent) revert ClaimFailed();
         } else {
-            token.safeTransfer(owrInfo[id].withdrawalAddress, claimed);
+            token.safeTransfer(owrInfo[id].rewardAddress, claimed);
         }
     }
 
