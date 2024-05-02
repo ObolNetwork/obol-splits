@@ -12,6 +12,13 @@ import {IProofVerifier} from "src/interfaces/IProofVerifier.sol";
 contract StateProofVerifierV1 is IProofVerifier {
     using BeaconChainProofs for *;
 
+    error Invalid_Timestamp(uint64 timestamp);
+    error Invalid_Inputs();
+
+     /// @dev beacon roots contract
+    address public constant BEACON_BLOCK_ROOTS_CONTRACT = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
+
+
     uint256 public constant VERSION = 1;
     bytes32 public immutable HARDFORK;
 
@@ -32,14 +39,47 @@ contract StateProofVerifierV1 is IProofVerifier {
         VALIDATOR_STATUS status;
     }
 
+    struct Withdrawal {
+        bytes32 validatorPubKeyHash;
+        uint256 amountToSendGwei;
+        uint64 withdrawalTimestamp;
+        // `@TODO add validator status
+    }
 
     constructor() {
         HARDFORK = 'capella';
     }
 
-    function isValidWithdrawalProof(
+    function verifyWithdrawal(
+        uint64 oracleTimestamp,
         bytes calldata proof
-    ) external override returns (bool valid) {
+    ) external override returns (Withdrawal memory verifiedWithdrawal) {
+        (
+            BeaconChainProofs.StateRootProof calldata stateRootProof,
+            BeaconChainProofs.WithdrawalProof[] calldata withdrawalProofs,
+            bytes[] calldata validatorFieldsProofs,
+            bytes32[][] calldata validatorFields,
+            bytes32[][] calldata withdrawalFields
+        ) = abi.decode(proof);
+
+        if (
+            (validatorFields.length != validatorFieldsProofs.length) ||
+            (validatorFieldsProofs.length != withdrawalProofs.length) ||
+            (withdrawalProofs.length != withdrawalFields.length)
+        ) {
+            revert Invalid_Inputs();
+        }
+
+        // Verify passed-in beaconStateRoot against rovided block root:
+        BeaconChainProofs.verifyStateRootAgainstLatestBlockRoot({
+            latestBlockRoot: getBeaconBlockRootFromTimestamp(oracleTimestamp),
+            beaconStateRoot: stateRootProof.beaconStateRoot,
+            stateRootProof: stateRootProof.proof
+        });
+
+        uint256 amountToSendGwei;
+
+
 
     }
 
@@ -131,11 +171,16 @@ contract StateProofVerifierV1 is IProofVerifier {
     }
 
 
-    function getBeaconBlockRootAtTimestamp(uint256 timestamp) public view returns (bytes32 beaconBlockRoot) {
-        assembly {
-            // beaconBlockRoot :=  
-        }
+    /// @dev Returns the becaon block root based on timestamp
+    /// @param timestamp timestamp to fetch state root 
+    /// @return stateRoot beacon state root 
+    function getBeaconBlockRootFromTimestamp(uint256 timestamp) public view returns (bytes32 stateRoot) {
+        (bool ret, bytes memory data) = BEACON_BLOCK_ROOTS_CONTRACT.call(bytes.concat(bytes32(timestamp)));
+        if (ret == false) revert Invalid_Timestamp(timestamp);
+
+        stateRoot = bytes32(data);
     }
+
 
 
 
