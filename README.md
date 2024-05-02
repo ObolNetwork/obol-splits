@@ -76,6 +76,8 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 |----------------------|-------------------------------------------------------------------------------------------------|
 | ObolLidoSplitFactory | [0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449](https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449) |
 | ObolLidoSplit       | [0x22bdC6609de39E569546184Bff4ba4716d34fEBd](https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd) |
+| OptimisticWithdrawalRecipientFactory | [0x7fec4add6b5ee2b6c1cba232bc6db754794cb6df](https://holesky.etherscan.io/address/0x7fec4add6b5ee2b6c1cba232bc6db754794cb6df) |
+| OptimisticWithdrawalRecipient        | [0x8c55787F913A62a41A6CB7943e91827a02beB663](https://holesky.etherscan.io/address/0x8c55787F913A62a41A6CB7943e91827a02beB663) |
 
 ### Mainnet Contracts
 | Contract Type                        | Address                                                                                             |
