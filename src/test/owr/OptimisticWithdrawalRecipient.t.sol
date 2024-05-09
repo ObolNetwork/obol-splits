@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
+import {OwnableRecipient} from "src/owr/OwnableRecipient.sol";
 import {OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipient.sol";
 import {OptimisticWithdrawalRecipientFactory} from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
@@ -32,6 +33,8 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   address public principalRecipient;
   address public rewardRecipient;
   uint256 internal trancheThreshold;
+
+  receive() payable external {}
 
   function setUp() public {
     mERC20 = new MockERC20("demo", "DMT", 18);
@@ -69,6 +72,39 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
       owrFactory.createOWRecipient(ETH_ADDRESS, address(0), principalRecipient, rewardRecipient, trancheThreshold);
     owrERC20_OR =
       owrFactory.createOWRecipient(address(mERC20), address(0), principalRecipient, rewardRecipient, trancheThreshold);
+  }
+
+  function testOwnableRecipient() public {
+    OwnableRecipient ownableRecipient = new OwnableRecipient();
+    OptimisticWithdrawalRecipient owrOwnableRecipient  =
+      owrFactory.createOWRecipient(ETH_ADDRESS, recoveryAddress, address(ownableRecipient), rewardRecipient, trancheThreshold);
+
+
+    address(owrOwnableRecipient).safeTransferETH(36 ether);
+
+    uint256 principalPayout = 32 ether;
+    uint256 rewardPayout = 4 ether;
+
+    vm.expectEmit(true, true, true, true);
+    emit DistributeFunds(principalPayout, rewardPayout, 0);
+    owrOwnableRecipient.distributeFunds();
+    assertEq(address(owrOwnableRecipient).balance, 0 ether);
+    assertEq(address(ownableRecipient).balance, 32 ether);
+    assertEq(rewardRecipient.balance, 4 ether);
+
+    ownableRecipient.claim(address(0), address(this));
+
+    assertEq(ownableRecipient.owner(), address(this));
+    ownableRecipient.transferOwnership(principalRecipient);
+    assertEq(ownableRecipient.owner(), principalRecipient);
+
+    ownableRecipient.requestOwnershipHandover();
+    vm.prank(rewardRecipient);
+    ownableRecipient.requestOwnershipHandover();
+
+    vm.prank(principalRecipient);
+    ownableRecipient.completeOwnershipHandover(address(this));
+    assertEq(ownableRecipient.owner(), address(this));
   }
 
   function testGetTranches() public {
