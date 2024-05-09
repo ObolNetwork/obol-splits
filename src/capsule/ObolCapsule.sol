@@ -126,7 +126,7 @@ contract ObolCapsule is Clone, IObolCapsule {
 
     /// @notice Create new validators
     /// @param oracleTimestamp oracle timestamp 
-    /// 
+    /// @param proof beacon state withdrawal proof
     // @TODO do for 1 single validator first in one block ✅
     // then figure out for multiple validators in one block using historical summaries
     // then figure out for multiple validators in multiple blocks historical summaries
@@ -151,7 +151,13 @@ contract ObolCapsule is Clone, IObolCapsule {
             // send to principal recipient
             principalRecipient().safeTransferETH(withdrawal.amountToSendGwei);
         } else {
-            rewardRecipient().safeTransferETH(withdrawal.amountToSendGwei);
+            // charge obol fee on rewards
+            uint256 fee = (withdrawal.amountToSendGwei * feeShare) / PERCENTAGE_SCALE;
+            // transfer fee to fee recipient
+            feeRecipient.safeTransferETH(fee);
+            // transfer to reward recipient
+            uint256 amount = withdrawal.amountToSendGwei - fee;
+            rewardRecipient().safeTransferETH(amount);
         }
 
         emit Withdraw(
@@ -178,6 +184,7 @@ contract ObolCapsule is Clone, IObolCapsule {
     }
 
     /// @dev Verify withdrawal proof
+    /// @param oracleTimestamp beacon stat
     function verfiyWithdrawalProof(
         uint64 oracleTimestamp,
         bytes calldata proof

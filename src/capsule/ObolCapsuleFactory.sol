@@ -82,8 +82,9 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
     }
 
     /// @notice Predict capsule address
-    /// @param principalRecipient principal address
-    /// @param rewardRecipient reward addresss
+    /// @param principalRecipient principal address to receive principal stake
+    /// @param rewardRecipient reward addresss to receive rewards
+    /// @param recoveryRecipient recovery address
     function predictCapsuleAddress(
         address principalRecipient,
         address rewardRecipient,
