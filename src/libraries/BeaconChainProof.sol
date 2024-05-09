@@ -141,8 +141,8 @@ library BeaconChainProofs {
      */
     function verifyValidatorFields(
         bytes32 beaconStateRoot,
-        bytes32[] calldata validatorFields,
-        bytes calldata validatorFieldsProof,
+        bytes32[] memory validatorFields,
+        bytes memory validatorFieldsProof,
         uint40 validatorIndex
     ) internal view {
         require(
@@ -184,7 +184,7 @@ library BeaconChainProofs {
     function verifyStateRootAgainstLatestBlockRoot(
         bytes32 latestBlockRoot,
         bytes32 beaconStateRoot,
-        bytes calldata stateRootProof
+        bytes memory stateRootProof
     ) internal view {
         require(
             stateRootProof.length == 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT),
@@ -209,8 +209,8 @@ library BeaconChainProofs {
      */
     function verifyWithdrawal(
         bytes32 beaconStateRoot,
-        bytes32[] calldata withdrawalFields,
-        WithdrawalProof calldata withdrawalProof
+        bytes32[] memory withdrawalFields,
+        WithdrawalProof memory withdrawalProof
     ) internal view {
         require(
             withdrawalFields.length == 2 ** WITHDRAWAL_FIELD_TREE_HEIGHT,

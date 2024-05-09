@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
+import {IProofVerifier} from "./IProofVerifier.sol";
 
 interface IObolCapsuleFactory {
 
@@ -10,23 +11,25 @@ interface IObolCapsuleFactory {
     event CreateCapsule(
         address indexed capsule,
         address principalRecipient,
-        address rewardRecipient
+        address rewardRecipient,
+        address recoveryRecipient
     );
 
     /// @notice Emitted on settting new state proof verifier
     /// @param oldVerifier previous verifier address
     /// @param newVerifier new veriifer adddress
-    /// @param timestamp block timestamp
     event UpdateStateProofVerifier(
         address indexed oldVerifier,
-        address newVerifier,
-        uint256 timestamp
+        address newVerifier
     );
 
     /// @notice Invalid address
     error Invalid__Address();
+    error Invalid__RewardRecipient();
+    error Invalid__PrincipalRecipient();
+    error Invalid__RecoveryRecipient();
 
     /// @notice Returns verifier address
-    function getVerifier() external returns (address);
+    function getVerifier() external view returns (IProofVerifier);
 
 }
