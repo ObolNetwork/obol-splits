@@ -169,7 +169,7 @@ contract ObolCapsule is Clone, IObolCapsule {
     }
 
     /// Recover tokens to a recipient
-    /// @param token Token to recover (cannot be OWR token)
+    /// @param token Token to recover
     function recoverFunds(address token) external payable {
         /// checks
         address _recoveryAddress = recoveryAddress();
