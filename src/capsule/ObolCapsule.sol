@@ -204,7 +204,7 @@ contract ObolCapsule is Clone, IObolCapsule {
         return _getArgAddress(PRINCIPAL_RECIPIENT_ADDRESS_OFFSET);
     }
 
-    /// Address to recover non-OWR tokens to
+    /// Address to recover tokens to
     /// @dev equivalent to address public immutable recoveryAddress;
     function recoveryAddress() public pure returns (address) {
         return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
