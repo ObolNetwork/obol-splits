@@ -49,13 +49,13 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     return true;
   }
 
-  function testInitialSupply() public {
-    assertEq(recipient.totalSupply(), 0);
+  function testInitialSupply_owrErc1155() public {
+    assertEq(recipient.totalSupplyAll(), 0);
   }
 
-  function testTransferFrom() public {
-    recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(0), rewardAddress: address(0)}), ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
-    recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(0), rewardAddress: address(0)}), ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
+  function testTransferFrom_owrErc1155() public {
+    recipient.mint(address(this), 1, address(0), address(0));
+    recipient.mint(address(this), 1, address(0), address(0));
 
     vm.expectRevert();
     recipient.safeTransferFrom(address(this), address(this), 1, 0, "");
@@ -71,8 +71,8 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     recipient.safeBatchTransferFrom(address(this), address(this), batchTokens, batchAmounts, "");
   }
 
-  function testMint() public {
-    recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(0), rewardAddress: address(0)}), ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
+  function testMint_owrErc1155() public {
+    recipient.mint(address(this), 1, address(0), address(0));
     bool ownerOf1 = recipient.isOwnerOf(1);
     assertEq(ownerOf1, true);
 
@@ -80,17 +80,43 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     amounts[0] = 1;
     amounts[1] = 1;
 
-    ObolErc1155Recipient.OWRInfo[] memory infos = new ObolErc1155Recipient.OWRInfo[](2);
-    infos[0] = ObolErc1155Recipient.OWRInfo({owr: address(0), rewardAddress: address(0)});
-    infos[1] = ObolErc1155Recipient.OWRInfo({owr: address(0), rewardAddress: address(0)});
-    recipient.mintBatch(address(this), 2, amounts, infos, ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
+    address[] memory owrs = new address[](2);
+    owrs[0] = address(0);
+    owrs[1] = address(0);
+    address[] memory rewardAddresses = new address[](2);
+    rewardAddresses[0] = address(0);
+    rewardAddresses[1] = address(0);
+
+    recipient.mintBatch(address(this), 2, amounts, owrs, rewardAddresses);
     bool ownerOf2 = recipient.isOwnerOf(2);
     bool ownerOf3 = recipient.isOwnerOf(3);
     assertEq(ownerOf2, true);
     assertEq(ownerOf3, true);
   }
 
-  function testClaim() public {
+  function testMintSupply_owrErc1155() public {
+    recipient.mint(address(this), 1, address(0), address(0));
+    bool ownerOf1 = recipient.isOwnerOf(1);
+    assertEq(ownerOf1, true);
+
+    uint256 totalSupplyBefore = recipient.totalSupply(1);
+    recipient.mintSupply(1, 100);   
+    uint256 totalSupplyAfter = recipient.totalSupply(1);
+    assertGt(totalSupplyAfter, totalSupplyBefore);
+  }
+
+  function testBurn_owrErc1155() public {
+    recipient.mint(address(this), 100, address(0), address(0));
+    bool ownerOf1 = recipient.isOwnerOf(1);
+    assertEq(ownerOf1, true);
+
+    uint256 totalSupplyBefore = recipient.totalSupply(1);
+    recipient.burn(1, 50);   
+    uint256 totalSupplyAfter = recipient.totalSupply(1);
+    assertLt(totalSupplyAfter, totalSupplyBefore);
+  }
+
+  function testClaim_owrErc1155() public {
     address rewardAddress = makeAddr("rewardAddress");
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI,
@@ -108,19 +134,19 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     OptimisticWithdrawalRecipient owrETH =
       owrFactory.createOWRecipient(ETH_ADDRESS, rewardAddress, rewardAddress, rewardAddress, ETH_STAKE);
 
-    recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(owrETH), rewardAddress: rewardAddress}), ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
+    recipient.mint(address(this), 1, address(owrETH), rewardAddress);
 
     address(recipient).safeTransferETH(1 ether);
     assertEq(address(recipient).balance, 1 ether);
 
-    recipient.setRewards(1, address(owrETH), 1 ether);
-    assertEq(recipient.rewards(address(owrETH), 1), 1 ether);
+    recipient.setRewards(1, 1 ether);
+    assertEq(_getRewards(1), 1 ether);
 
     recipient.claim(1);
     assertEq(rewardAddress.balance, 1 ether);
   }
 
-  function testTransferWithRewards() public {
+  function testTransferWithRewards_owrErc1155() public {
     address rewardAddress = makeAddr("rewardAddress");
     address receiverAddress = address(new ObolErc1155ReceiverMock());
 
@@ -140,19 +166,19 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     OptimisticWithdrawalRecipient owrETH =
       owrFactory.createOWRecipient(ETH_ADDRESS, rewardAddress, rewardAddress, rewardAddress, ETH_STAKE);
 
-    recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(owrETH), rewardAddress: rewardAddress}), ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
+    recipient.mint(address(this), 1, address(owrETH), rewardAddress);
 
     address(recipient).safeTransferETH(1 ether);
     assertEq(address(recipient).balance, 1 ether);
 
-    recipient.setRewards(1, address(owrETH), 1 ether);
-    assertEq(recipient.rewards(address(owrETH), 1), 1 ether);
+    recipient.setRewards(1, 1 ether);
+    assertEq(_getRewards(1), 1 ether);
 
     recipient.safeTransferFrom(address(this), receiverAddress, 1, 1, "0x");
     assertEq(rewardAddress.balance, 1 ether);
   }
 
-  function testTransferWithoutRewards() public {
+  function testTransferWithoutRewards_owrErc1155() public {
     address rewardAddress = makeAddr("rewardAddress");
     address receiverAddress = address(new ObolErc1155ReceiverMock());
 
@@ -172,7 +198,7 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     OptimisticWithdrawalRecipient owrETH =
       owrFactory.createOWRecipient(ETH_ADDRESS, rewardAddress, rewardAddress, rewardAddress, ETH_STAKE);
 
-    recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(owrETH), rewardAddress: rewardAddress}), ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
+    recipient.mint(address(this), 1, address(owrETH), rewardAddress);
 
     recipient.safeTransferFrom(address(this), receiverAddress, 1, 1, "0x");
     assertFalse(recipient.isOwnerOf(1));
@@ -181,7 +207,7 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     assertTrue(recipient.isOwnerOf(1));
   }
 
-  function testReceiveRewards() public {
+  function testReceiveRewards_owrErc1155() public {
     address rewardAddress = makeAddr("rewardAddress");
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI,
@@ -201,17 +227,23 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
 
     address(owrETH).safeTransferETH(1 ether);
 
-    recipient.mint(address(this), 1, ObolErc1155Recipient.OWRInfo({owr: address(owrETH), rewardAddress: rewardAddress}), ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x"}));
+    recipient.mint(address(this), 1, address(owrETH), rewardAddress);
     bool ownerOf1 = recipient.isOwnerOf(1);
     assertEq(ownerOf1, true);
 
-    uint256 registeredRewards = recipient.rewards(address(owrETH), 1);
+    uint256 registeredRewards = _getRewards(1);
     assertEq(registeredRewards, 0);
 
     recipient.receiveRewards(address(owrETH));
     assertEq(address(owrETH).balance, 0 ether);
 
-    registeredRewards = recipient.rewards(address(owrETH), 1);
+    registeredRewards = _getRewards(1);
     assertEq(registeredRewards, 1 ether);
+  }
+
+
+  function _getRewards(uint256 id) private view returns (uint256) {
+    (, , , uint256 claimable) = recipient.tokenInfo(id);
+    return claimable;
   }
 }

@@ -15,9 +15,11 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
   uint256 public lastId;
   IDepositContract public ethDepositContract;
 
-  struct OWRInfo {
+  struct TokenInfo {
     address owr;
+    uint256 activeSupply;
     address rewardAddress;
+    uint256 claimable;
   }
 
   struct DepositInfo {
@@ -26,22 +28,24 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     bytes sig;
   }
 
-  mapping(uint256 => OWRInfo) public owrInfo;
-  mapping(address owr => uint256 id) public assignedToOWR;
-  mapping(address owr => mapping(uint256 id => uint256 claimable)) public rewards;
+  mapping(uint256 id => TokenInfo) public tokenInfo;
+  mapping(address owr => uint256) public owrTokens;
+
+  mapping(uint256 id => uint256) public totalSupply;
+  uint256 public totalSupplyAll;
 
   string private _baseUri;
   address private constant ETH_TOKEN_ADDRESS = address(0x0);
   uint256 private constant ETH_DEPOSIT_AMOUNT = 32 ether;
 
-  error TokenNotTransferable();
-  error TokenBatchMintLengthMismatch();
+  error LengthMismatch();
   error InvalidTokenAmount();
   error InvalidOwner();
   error InvalidOWR();
   error NothingToClaim();
   error ClaimFailed();
   error InvalidDepositContract();
+  error InvalidLastSupply();
 
   event DepositContractUpdated(address oldAddy, address newAddy);
 
@@ -65,17 +69,13 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     return string(abi.encodePacked(_baseUri, LibString.toString(id)));
   }
 
-  /// @dev Returns the total amount of tokens stored by the contract.
-  function totalSupply() public view virtual returns (uint256) {
-    return lastId - 1;
-  }
-
+  /// @dev Returns true if `msg.sender` is the owner of the contract
   function isOwnerOf(uint256 id) public view returns (bool) {
     return balanceOf(msg.sender, id) > 0;
   }
 
   /// -----------------------------------------------------------------------
-  /// functions - public & external
+  /// functions - onlyOwner
   /// -----------------------------------------------------------------------
   /// @notice sets the ETH DepositContract
   /// @dev callable by the owner
@@ -86,11 +86,14 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     ethDepositContract = IDepositContract(depositContract);
   }
 
+  /// -----------------------------------------------------------------------
+  /// functions - public & external
+  /// -----------------------------------------------------------------------
   /// @notice triggers `OWR.distributeFunds`
   /// @dev callable by the owner
   /// @param owr the OWR address
-  function receiveRewards(address owr) external onlyOwner {
-    uint256 _tokenId = assignedToOWR[owr];
+  function receiveRewards(address owr) external {
+    uint256 _tokenId = owrTokens[owr];
 
     // check if sender is owner of id
     if (!isOwnerOf(_tokenId)) revert InvalidOwner();
@@ -100,76 +103,144 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     IOptimisticWithdrawalRecipient(owr).distributeFunds();
     uint256 balanceAfter = _getOWRTokenBalance(owr);
 
-    // update rewards[owr][id] += received;
-    rewards[owr][_tokenId] += (balanceAfter - balanceBefore);
+    tokenInfo[_tokenId].claimable += (balanceAfter - balanceBefore);
   }
 
-  /// @notice claims rewards to `OWRInfo.rewardAddress`
+  /// @notice claims rewards to `TokenInfo.rewardAddress`
   /// @dev callable by the owner
   /// @param id the ERC1155 id
-  /// @return claimed the amount of rewards sent to `OWRInfo.rewardAddress`
+  /// @return claimed the amount of rewards sent to `TokenInfo.rewardAddress`
   function claim(uint256 id) external returns (uint256 claimed) {
-    claimed = _claim(id, false);
+    claimed = _claim(id);
   }
 
-  /// @notice claims rewards to `OWRInfo.rewardAddress` from multiple token ids
+  /// @notice claims rewards to `TokenInfo.rewardAddress` from multiple token ids
   /// @dev callable by the owner
   /// @param ids the ERC1155 ids
-  /// @return claimed the amount of rewards sent to `OWRInfo.rewardAddress` per each id
+  /// @return claimed the amount of rewards sent to `TokenInfo.rewardAddress` per each id
   function batchClaim(uint256[] calldata ids) external returns (uint256[] memory claimed) {
     uint256 count = ids.length;
     for (uint256 i; i < count; i++) {
-      claimed[i] = _claim(ids[i], false);
+      claimed[i] = _claim(ids[i]);
     }
   }
 
   /// @notice mints a new token
+  /// @dev supply can be increased later with `mintSupply`
   /// @param to receiver address
   /// @param amount the amount for `lastId`
+  /// @param owr OptimisticWithdrawalRecipient address
+  /// @param rewardAddress rewards receiver address
   /// @return mintedId id of the minted NFT
-  function mint(address to, uint256 amount, OWRInfo calldata info, DepositInfo calldata depositInfo)
+  function mint(address to, uint256 amount, address owr, address rewardAddress)
     external
     payable
     onlyOwner
     returns (uint256 mintedId)
-  { 
+  {
     // validation
     if (amount == 0) revert InvalidTokenAmount();
-    uint256 totalETH = ETH_DEPOSIT_AMOUNT * amount;
-    if (msg.value != totalETH) revert InvalidTokenAmount();
-    
-    // mint 
-    _mint(to, lastId, amount, "");
-    mintedId = _afterMint(info, depositInfo, totalETH);
+
+    // mint
+    mintedId = _assignInfoAndExtractId(owr, rewardAddress);
+    _mint(to, mintedId, amount, "");
+
+    // increase total supply
+    totalSupply[mintedId] += amount;
+    totalSupplyAll += amount;
   }
 
-
   /// @notice mints a batch of tokens
+  /// @dev supply can be increased later with `mintSupply`
   /// @param to receiver address
   /// @param count batch length
   /// @param amounts the amounts for each id
-  /// @param infos info per each id
+  /// @param owrs OptimisticWithdrawalRecipient addresses
+  /// @param rewardAddresses rewards receiver addresses
   /// @return mintedIds id list of the minted NFTs
-  function mintBatch(address to, uint256 count, uint256[] calldata amounts, OWRInfo[] calldata infos, DepositInfo calldata depositInfo)
-    external
-    payable
-    onlyOwner
-    returns (uint256[] memory mintedIds)
-  {
-    if (count != amounts.length) revert TokenBatchMintLengthMismatch();
-    uint256 totalETH;
-    for (uint256 i; i < count; i++) {
-        totalETH += (ETH_DEPOSIT_AMOUNT * amounts[i]);
-    }
-    if (totalETH != msg.value) revert InvalidTokenAmount();
+  function mintBatch(
+    address to,
+    uint256 count,
+    uint256[] calldata amounts,
+    address[] calldata owrs,
+    address[] calldata rewardAddresses
+  ) external payable onlyOwner returns (uint256[] memory mintedIds) {
+    // validate
+    if (count != amounts.length) revert LengthMismatch();
+    if (count != owrs.length) revert LengthMismatch();
+    if (count != rewardAddresses.length) revert LengthMismatch();
 
+    // mint up to `count`
     mintedIds = new uint256[](count);
     for (uint256 i; i < count; i++) {
-        if (amounts[i] == 0) revert InvalidTokenAmount();
-        uint256 totalIndexETH = ETH_DEPOSIT_AMOUNT * amounts[i];
-        _mint(to, lastId, amounts[i], "");
-        mintedIds[i] = _afterMint(infos[i], depositInfo, totalIndexETH);
+      if (amounts[i] == 0) revert InvalidTokenAmount();
+      mintedIds[i] = _assignInfoAndExtractId(owrs[i], rewardAddresses[i]);
+      _mint(to, mintedIds[i], amounts[i], "");
+
+      // increase total supply
+      totalSupply[mintedIds[i]] += amounts[i];
+      totalSupplyAll += amounts[i];
     }
+  }
+
+  /// @notice deposits ETH to `DepositContract` and activates part of supply
+  /// @param id token id
+  /// @param count amount of supply to activate
+  /// @param depositInfo deposit data needed for `DepositContract`
+  function depositForToken(uint256 id, uint256 count, DepositInfo[] calldata depositInfo) external payable {
+    // vaidate
+    if (!isOwnerOf(id)) revert InvalidOwner();
+
+    if (depositInfo.length != count) revert LengthMismatch();
+
+    uint256 crtActiveSupply = tokenInfo[id].activeSupply;
+    if (crtActiveSupply + count >= totalSupply[id]) revert InvalidLastSupply();
+
+    if (msg.value < count * ETH_DEPOSIT_AMOUNT) revert InvalidTokenAmount();
+
+    // deposit to ETH `DepositContract`
+    for (uint i; i < count; i++) {
+      ethDepositContract.deposit{value: ETH_DEPOSIT_AMOUNT}(
+        depositInfo[i].pubkey, depositInfo[i].withdrawal_credentials, depositInfo[i].sig, ethDepositContract.get_deposit_root()
+      );
+    }
+ 
+    // activate supply
+    tokenInfo[id].activeSupply += count;
+  }
+
+  /// @notice increases totalSupply for token id
+  /// @param id token id
+  /// @param amount newly added supply
+  function mintSupply(uint256 id, uint256 amount) external {
+    // validate
+    if (!isOwnerOf(id)) revert InvalidOwner();
+    if (lastId < id) revert InvalidLastSupply();
+
+    // mint for existing id
+    _mint(msg.sender, id, amount, "");
+
+    // increase total supply
+    totalSupply[id] += amount;
+    totalSupplyAll += amount;
+  }
+
+  /// @notice decreases totalSupply for token id
+  /// @param id token id
+  /// @param amount newly removed supply
+  function burn(uint256 id, uint256 amount) external {
+    // vaidate
+    if (!isOwnerOf(id)) revert InvalidOwner();
+    if (amount == 0) revert InvalidTokenAmount();
+
+    _burn(msg.sender, id, amount);
+
+    totalSupply[id] -= amount;
+    totalSupplyAll -= amount;
+
+    // burn should be initiated on activeSupply withdrawal, but
+    // check just in case
+    tokenInfo[id].activeSupply =(tokenInfo[id].activeSupply > amount ? tokenInfo[id].activeSupply - amount: 0);
   }
 
   /// @dev Hook that is called before any token transfer.
@@ -184,7 +255,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     // claim before transfer
     uint256 length = ids.length;
     for (uint256 i; i < length; i++) {
-      _claim(ids[i], true); //allow transfer even if `claimed == 0`
+      _claim(ids[i]); //allow transfer even if `claimed == 0`
     }
   }
 
@@ -200,22 +271,21 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     lastId++;
   }
 
-  function _claim(uint256 id, bool canSkipAmountCheck) private returns (uint256 claimed) {
+  function _claim(uint256 id) private returns (uint256 claimed) {
     if (!isOwnerOf(id)) revert InvalidOwner();
 
-    address _owr = owrInfo[id].owr;
+    address _owr = tokenInfo[id].owr;
     if (_owr == address(0)) revert InvalidOWR();
-
-    claimed = rewards[_owr][id];
-    if (claimed == 0 && !canSkipAmountCheck) revert NothingToClaim();
+    if (tokenInfo[id].claimable == 0) return 0;
 
     address token = IOptimisticWithdrawalRecipient(_owr).token();
     if (token == ETH_TOKEN_ADDRESS) {
-      (bool sent,) = owrInfo[id].rewardAddress.call{value: claimed}("");
+      (bool sent,) = tokenInfo[id].rewardAddress.call{value: tokenInfo[id].claimable}("");
       if (!sent) revert ClaimFailed();
     } else {
-      token.safeTransfer(owrInfo[id].rewardAddress, claimed);
+      token.safeTransfer(tokenInfo[id].rewardAddress, tokenInfo[id].claimable);
     }
+    tokenInfo[id].claimable = 0;
   }
 
   function _getOWRTokenBalance(address owr) private view returns (uint256 balance) {
@@ -224,18 +294,11 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     else balance = ERC20(token).balanceOf(address(this));
   }
 
-  
-  function _afterMint(OWRInfo calldata info, DepositInfo calldata depositInfo, uint256 totalETH) private returns (uint256 mintedId) {
+  function _assignInfoAndExtractId(address owr, address rewardAddress) private returns (uint256 mintedId) {
     mintedId = _incrementId();
-    owrInfo[mintedId] = info;
-    assignedToOWR[info.owr] = mintedId;
 
-    // deposit to ETH `DepositContract`
-    ethDepositContract.deposit{value: totalETH}(
-      depositInfo.pubkey,
-      depositInfo.withdrawal_credentials,
-      depositInfo.sig,
-      ethDepositContract.get_deposit_root()
-    );
+    TokenInfo memory info = TokenInfo({activeSupply: 0, claimable: 0, owr: owr, rewardAddress: rewardAddress});
+    tokenInfo[mintedId] = info;
+    owrTokens[info.owr] = mintedId;
   }
 }
