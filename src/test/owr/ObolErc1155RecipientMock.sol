@@ -10,4 +10,9 @@ contract ObolErc1155RecipientMock is ObolErc1155Recipient {
     function setRewards(uint256 id, uint256 amount) external {
         tokenInfo[id].claimable += amount;
     }
+
+    function simulateReceiverMint(uint256 id, uint256 amount) external {
+        (bool success,) = address(this).call(abi.encodeWithSelector(this.safeTransferFrom.selector, address(this), tokenInfo[id].receiver, id, amount, "0x"));
+        if (!success) revert TransferFailed();
+    }
 }

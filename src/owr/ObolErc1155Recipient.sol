@@ -8,8 +8,9 @@ import {IDepositContract} from "../interfaces/IDepositContract.sol";
 import {IOptimisticWithdrawalRecipient} from "../interfaces/IOptimisticWithdrawalRecipient.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {IERC165, IERC1155Receiver} from "src/interfaces/IERC1155Receiver.sol";
 
-contract ObolErc1155Recipient is ERC1155, Ownable {
+contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   using SafeTransferLib for address;
 
   uint256 public lastId;
@@ -17,9 +18,11 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
 
   struct TokenInfo {
     address owr;
-    uint256 activeSupply;
     address rewardAddress;
     uint256 claimable;
+
+    uint256 maxSupply;
+    address receiver;
   }
 
   struct DepositInfo {
@@ -46,6 +49,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
   error ClaimFailed();
   error InvalidDepositContract();
   error InvalidLastSupply();
+  error TransferFailed();
 
   event DepositContractUpdated(address oldAddy, address newAddy);
 
@@ -74,6 +78,16 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     return balanceOf(msg.sender, id) > 0;
   }
 
+  /// @dev Returns true if `msg.sender` is the receiver of id
+  function isReceiverOf(uint256 id) public view returns (bool) {
+    return tokenInfo[id].receiver == msg.sender;
+  }
+
+  /// @dev Returns max supply for id
+  function getMaxSupply(uint256 id) public view returns (uint256) {
+    return tokenInfo[id].maxSupply;
+  }
+
   /// -----------------------------------------------------------------------
   /// functions - onlyOwner
   /// -----------------------------------------------------------------------
@@ -90,13 +104,13 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
   /// functions - public & external
   /// -----------------------------------------------------------------------
   /// @notice triggers `OWR.distributeFunds`
-  /// @dev callable by the owner
+  /// @dev callable by the receiver
   /// @param owr the OWR address
   function receiveRewards(address owr) external {
     uint256 _tokenId = owrTokens[owr];
 
-    // check if sender is owner of id
-    if (!isOwnerOf(_tokenId)) revert InvalidOwner();
+    // check if sender is the receiver of id
+    if (!isReceiverOf(_tokenId)) revert InvalidOwner();
 
     // call .distribute() on OWR
     uint256 balanceBefore = _getOWRTokenBalance(owr);
@@ -126,60 +140,52 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
   }
 
   /// @notice mints a new token
-  /// @dev supply can be increased later with `mintSupply`
-  /// @param to receiver address
-  /// @param amount the amount for `lastId`
+  /// @dev tokens are minted to address(this) and transferred when ETH is deposited to the DepositContract 
+  /// @param to address registered as the tokens receiver
+  /// @param maxSupply the max allowed amount for `lastId`
   /// @param owr OptimisticWithdrawalRecipient address
   /// @param rewardAddress rewards receiver address
   /// @return mintedId id of the minted NFT
-  function mint(address to, uint256 amount, address owr, address rewardAddress)
+  function mint(address to, uint256 maxSupply, address owr, address rewardAddress)
     external
     payable
     onlyOwner
     returns (uint256 mintedId)
   {
     // validation
-    if (amount == 0) revert InvalidTokenAmount();
+    if (maxSupply == 0) revert InvalidTokenAmount();
 
     // mint
-    mintedId = _assignInfoAndExtractId(owr, rewardAddress);
-    _mint(to, mintedId, amount, "");
-
-    // increase total supply
-    totalSupply[mintedId] += amount;
-    totalSupplyAll += amount;
+    mintedId = _assignInfoAndExtractId(owr, rewardAddress, to, maxSupply);
+    _mint(address(this), mintedId, maxSupply, "");
   }
 
   /// @notice mints a batch of tokens
-  /// @dev supply can be increased later with `mintSupply`
+  /// @dev tokens are minted to address(this) and transferred when ETH is deposited to the DepositContract 
   /// @param to receiver address
   /// @param count batch length
-  /// @param amounts the amounts for each id
+  /// @param maxSupply the max allowed amounts for each id
   /// @param owrs OptimisticWithdrawalRecipient addresses
   /// @param rewardAddresses rewards receiver addresses
   /// @return mintedIds id list of the minted NFTs
   function mintBatch(
     address to,
     uint256 count,
-    uint256[] calldata amounts,
+    uint256[] calldata maxSupply,
     address[] calldata owrs,
     address[] calldata rewardAddresses
   ) external payable onlyOwner returns (uint256[] memory mintedIds) {
     // validate
-    if (count != amounts.length) revert LengthMismatch();
+    if (count != maxSupply.length) revert LengthMismatch();
     if (count != owrs.length) revert LengthMismatch();
     if (count != rewardAddresses.length) revert LengthMismatch();
 
     // mint up to `count`
     mintedIds = new uint256[](count);
     for (uint256 i; i < count; i++) {
-      if (amounts[i] == 0) revert InvalidTokenAmount();
-      mintedIds[i] = _assignInfoAndExtractId(owrs[i], rewardAddresses[i]);
-      _mint(to, mintedIds[i], amounts[i], "");
-
-      // increase total supply
-      totalSupply[mintedIds[i]] += amounts[i];
-      totalSupplyAll += amounts[i];
+      if (maxSupply[i] == 0) revert InvalidTokenAmount();
+      mintedIds[i] = _assignInfoAndExtractId(owrs[i], rewardAddresses[i], to, maxSupply[i]);
+      _mint(address(this), mintedIds[i], maxSupply[i], "");
     }
   }
 
@@ -189,12 +195,12 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
   /// @param depositInfo deposit data needed for `DepositContract`
   function depositForToken(uint256 id, uint256 count, DepositInfo[] calldata depositInfo) external payable {
     // vaidate
-    if (!isOwnerOf(id)) revert InvalidOwner();
+    if (!isReceiverOf(id)) revert InvalidOwner();
 
     if (depositInfo.length != count) revert LengthMismatch();
 
-    uint256 crtActiveSupply = tokenInfo[id].activeSupply;
-    if (crtActiveSupply + count >= totalSupply[id]) revert InvalidLastSupply();
+    uint256 crtActiveSupply =totalSupply[id];
+    if (crtActiveSupply + count >= getMaxSupply(id)) revert InvalidLastSupply();
 
     if (msg.value < count * ETH_DEPOSIT_AMOUNT) revert InvalidTokenAmount();
 
@@ -204,33 +210,37 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
         depositInfo[i].pubkey, depositInfo[i].withdrawal_credentials, depositInfo[i].sig, ethDepositContract.get_deposit_root()
       );
     }
- 
-    // activate supply
-    tokenInfo[id].activeSupply += count;
+
+    (bool success,) = address(this).call(abi.encodeWithSelector(this.safeTransferFrom.selector, tokenInfo[id].receiver, id, count, "0x"));
+    if (!success) revert TransferFailed();
+
+    // increase total supply
+    totalSupply[id] += count;
+    totalSupplyAll += count;
   }
 
-  /// @notice increases totalSupply for token id
+  /// @notice increases maxSupply for token id
   /// @param id token id
   /// @param amount newly added supply
   function mintSupply(uint256 id, uint256 amount) external {
     // validate
-    if (!isOwnerOf(id)) revert InvalidOwner();
+    if (!isReceiverOf(id)) revert InvalidOwner();
     if (lastId < id) revert InvalidLastSupply();
 
     // mint for existing id
-    _mint(msg.sender, id, amount, "");
+    _mint(address(this), id, amount, "");
 
-    // increase total supply
-    totalSupply[id] += amount;
-    totalSupplyAll += amount;
+    // increase supply
+    tokenInfo[id].maxSupply += amount;
   }
 
   /// @notice decreases totalSupply for token id
   /// @param id token id
   /// @param amount newly removed supply
+  // TODO: refactor
   function burn(uint256 id, uint256 amount) external {
     // vaidate
-    if (!isOwnerOf(id)) revert InvalidOwner();
+    if (!isReceiverOf(id)) revert InvalidOwner();
     if (amount == 0) revert InvalidTokenAmount();
 
     _burn(msg.sender, id, amount);
@@ -240,7 +250,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
 
     // burn should be initiated on activeSupply withdrawal, but
     // check just in case
-    tokenInfo[id].activeSupply =(tokenInfo[id].activeSupply > amount ? tokenInfo[id].activeSupply - amount: 0);
+    // tokenInfo[id].activeSupply =(tokenInfo[id].activeSupply > amount ? tokenInfo[id].activeSupply - amount: 0);
   }
 
   /// @dev Hook that is called before any token transfer.
@@ -272,8 +282,6 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
   }
 
   function _claim(uint256 id) private returns (uint256 claimed) {
-    if (!isOwnerOf(id)) revert InvalidOwner();
-
     address _owr = tokenInfo[id].owr;
     if (_owr == address(0)) revert InvalidOWR();
     if (tokenInfo[id].claimable == 0) return 0;
@@ -294,11 +302,37 @@ contract ObolErc1155Recipient is ERC1155, Ownable {
     else balance = ERC20(token).balanceOf(address(this));
   }
 
-  function _assignInfoAndExtractId(address owr, address rewardAddress) private returns (uint256 mintedId) {
+  function _assignInfoAndExtractId(address owr, address rewardAddress, address receiver, uint256 maxSupply) private returns (uint256 mintedId) {
     mintedId = _incrementId();
 
-    TokenInfo memory info = TokenInfo({activeSupply: 0, claimable: 0, owr: owr, rewardAddress: rewardAddress});
+    TokenInfo memory info = TokenInfo({maxSupply: maxSupply, receiver: receiver, claimable: 0, owr: owr, rewardAddress: rewardAddress});
     tokenInfo[mintedId] = info;
     owrTokens[info.owr] = mintedId;
+  }
+
+  /// -----------------------------------------------------------------------
+  /// IERC1155Receiver
+  /// -----------------------------------------------------------------------
+  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, IERC165) returns (bool) {
+      return interfaceId == type(IERC1155Receiver).interfaceId || super.supportsInterface(interfaceId);
+  }
+  function onERC1155Received(
+      address,
+      address,
+      uint256,
+      uint256,
+      bytes memory
+  ) public virtual override returns (bytes4) {
+      return this.onERC1155Received.selector;
+  }
+
+  function onERC1155BatchReceived(
+      address,
+      address,
+      uint256[] memory,
+      uint256[] memory,
+      bytes memory
+  ) public virtual override returns (bytes4) {
+      return this.onERC1155BatchReceived.selector;
   }
 }
