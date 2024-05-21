@@ -223,13 +223,25 @@ contract ObolCapsule is Clone, IObolCapsule {
         withdrawal = proofVerifier.verifyWithdrawal(oracleTimestamp, proof);
 
         ValidatorInfo storage validatorInfo = validators[withdrawal.validatorPubKeyHash];
+        
+        //
+        // NB in a validator lifecycle it's possible to make deposits
+        //
+        //
+        //
+        // before and after validator exits
+        // is validator state necessary
+        // 
 
         if (validatorInfo.status == IProofVerifier.VALIDATOR_STATUS.WITHDRAWN) {
             revert Invalid_ValidatorStatus();
         }
 
         if (withdrawal.withdrawalTimestamp < validatorInfo.mostRecentOracleWithdrawalTimestamp) {
-            revert Invalid_ProofTimestamp(withdrawal.withdrawalTimestamp, validatorInfo.mostRecentOracleWithdrawalTimestamp);
+            revert Invalid_ProofTimestamp(
+                withdrawal.withdrawalTimestamp,
+                validatorInfo.mostRecentOracleWithdrawalTimestamp
+            );
         }
     }
 }
