@@ -62,8 +62,8 @@ contract OptimisticTokenWithdrawalRecipientFactory {
   /// constructor
   /// -----------------------------------------------------------------------
 
-  constructor() {
-    owrImpl = new OptimisticTokenWithdrawalRecipient();
+  constructor(uint256 threshold) {
+    owrImpl = new OptimisticTokenWithdrawalRecipient(threshold);
   }
 
   /// -----------------------------------------------------------------------

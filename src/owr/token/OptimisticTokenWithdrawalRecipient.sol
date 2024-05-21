@@ -77,8 +77,6 @@ contract OptimisticTokenWithdrawalRecipient is Clone {
   uint256 internal constant ONE_WORD = 32;
   uint256 internal constant ADDRESS_BITS = 160;
 
-  /// @dev threshold for pushing balance update as reward or principal
-  uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
   uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
   uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
 
@@ -96,6 +94,9 @@ contract OptimisticTokenWithdrawalRecipient is Clone {
   // 40 = recoveryAddress_offset (20) + recoveryAddress_size (address, 20
   // bytes)
   uint256 internal constant TRANCHES_OFFSET = 40;
+
+  /// @dev threshold for pushing balance update as reward or principal
+  uint256 public immutable BALANCE_CLASSIFICATION_THRESHOLD;
 
   /// Address of ERC20 to distribute (0x0 used for ETH)
   /// @dev equivalent to address public immutable token;
@@ -138,9 +139,10 @@ contract OptimisticTokenWithdrawalRecipient is Clone {
   /// constructor
   /// -----------------------------------------------------------------------
 
-  // solhint-disable-next-line no-empty-blocks
   /// clone implementation doesn't use constructor
-  constructor() {}
+  constructor(uint256 threshold) {
+    BALANCE_CLASSIFICATION_THRESHOLD = threshold;
+  }
 
   /// -----------------------------------------------------------------------
   /// functions
