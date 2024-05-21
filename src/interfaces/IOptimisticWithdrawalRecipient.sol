@@ -5,4 +5,5 @@ interface IOptimisticWithdrawalRecipient {
     function token() external view returns (address);
     function distributeFunds() external payable;
     function distributeFundsPull() external payable;
+    function getTranches() external view returns (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake);
 }
