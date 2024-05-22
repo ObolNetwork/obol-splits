@@ -37,14 +37,7 @@ contract OptimisticTokenWithdrawalRecipientTest is OWRTestHelper, Test {
     mERC20 = new MockERC20("demo", "DMT", 18);
     mERC20.mint(type(uint256).max);
 
-    vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
-    );
-    vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
-    );
-
-    owrFactory = new OptimisticTokenWithdrawalRecipientFactory();
+    owrFactory = new OptimisticTokenWithdrawalRecipientFactory(BALANCE_CLASSIFICATION_THRESHOLD);
     
     owrModule = owrFactory.owrImpl();
 

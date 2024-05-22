@@ -28,7 +28,7 @@ contract OptimisticTokenWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
 
-    owrFactoryModule = new OptimisticTokenWithdrawalRecipientFactory();
+    owrFactoryModule = new OptimisticTokenWithdrawalRecipientFactory(BALANCE_CLASSIFICATION_THRESHOLD);
 
     recoveryAddress = makeAddr("recoveryAddress");
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(10);
