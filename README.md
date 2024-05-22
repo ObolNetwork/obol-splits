@@ -90,8 +90,8 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 ### Gnosis Chain Mainnet Contracts
 | Contract Type                        | Address                                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
-| OptimisticTokenWithdrawalRecipientFactory | [0x4e326Ca253e5E892971b49207EB0a75943cdC657.](https://gnosisscan.io/address/0x4e326Ca253e5E892971b49207EB0a75943cdC657) |
-| OptimisticWithdrawalRecipient        | [0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C](https://gnosisscan.io/address/0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C) |
+| OptimisticTokenWithdrawalRecipientFactory | [0x417C41a1A49316dFdC317C1459d04C9959a67972..](https://gnosisscan.io/address/0x417C41a1A49316dFdC317C1459d04C9959a67972) |
+| OptimisticWithdrawalRecipient        | [0xdd94984658d4B9C45dDF1652287c15A672021894](https://gnosisscan.io/address/0xdd94984658d4B9C45dDF1652287c15A672021894) |
 
 ### Gnosis Chain Chiado Contracts
 | Contract Type                        | Address                                                                                             |
