@@ -96,8 +96,8 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 ### Gnosis Chain Chiado Contracts
 | Contract Type                        | Address                                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
-| OptimisticTokenWithdrawalRecipientFactory | [0x4e326ca253e5e892971b49207eb0a75943cdc657](https://gnosis-chiado.blockscout.com/address/0x4e326ca253e5e892971b49207eb0a75943cdc657) |
-| OptimisticWithdrawalRecipient        | [0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C](https://gnosis-chiado.blockscout.com/address/0xE14ed26f65Cb7F1C932a5Ae77e4D0B486C774c5C) |
+| OptimisticTokenWithdrawalRecipientFactory | [0x417C41a1A49316dFdC317C1459d04C9959a67972](https://gnosis-chiado.blockscout.com/address/0x417C41a1A49316dFdC317C1459d04C9959a67972) |
+| OptimisticWithdrawalRecipient        | [0xdd94984658d4b9c45ddf1652287c15a672021894](https://gnosis-chiado.blockscout.com/address/0xdd94984658d4b9c45ddf1652287c15a672021894) |
 
 
 ### Versioning

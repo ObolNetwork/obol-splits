@@ -13,8 +13,8 @@ contract OWRWFactoryWithTokenScript is Script {
     
     vm.startBroadcast(privKey);
     
-    new OptimisticTokenWithdrawalRecipientFactory{salt: keccak256("obol.owrFactoryWithToken.v0")}(
-      ETH_STAKE_THRESHOLD
+    new OptimisticTokenWithdrawalRecipientFactory{salt: keccak256("obol.owrFactoryWithToken.v0.0")}(
+      GNO_STAKE_THRESHOLD
     );
 
     vm.stopBroadcast();
