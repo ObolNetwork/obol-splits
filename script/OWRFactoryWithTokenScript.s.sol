@@ -10,12 +10,10 @@ contract OWRWFactoryWithTokenScript is Script {
 
   function run() external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-    
+
     vm.startBroadcast(privKey);
-    
-    new OptimisticTokenWithdrawalRecipientFactory{salt: keccak256("obol.owrFactoryWithToken.v0.0")}(
-      GNO_STAKE_THRESHOLD
-    );
+
+    new OptimisticTokenWithdrawalRecipientFactory{salt: keccak256("obol.owrFactoryWithToken.v0.0")}(GNO_STAKE_THRESHOLD);
 
     vm.stopBroadcast();
   }

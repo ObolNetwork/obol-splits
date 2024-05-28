@@ -56,11 +56,9 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     recoveryAddress = makeAddr("recoveryAddress");
 
-    owrETH =
-      owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
 
-    owrETH_OR =
-      owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
+    owrETH_OR = owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
   }
 
   function testGetTranches() public {
@@ -380,9 +378,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     (address _principalRecipient, address _rewardRecipient, uint256 _trancheThreshold) =
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
-    owrETH = owrFactory.createOWRecipient(
-      recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
-    );
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold);
 
     /// test eth
     for (uint256 i = 0; i < _numDeposits; i++) {
@@ -436,9 +432,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     (address _principalRecipient, address _rewardRecipient, uint256 _trancheThreshold) =
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
-    owrETH = owrFactory.createOWRecipient(
-      recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
-    );
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold);
 
     /// test eth
 

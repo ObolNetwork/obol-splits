@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import "forge-std/Script.sol";
 import {ISplitMain, SplitConfiguration} from "src/interfaces/ISplitMain.sol";
 import {ObolLidoSplitFactory} from "src/lido/ObolLidoSplitFactory.sol";
-import { SplitterConfiguration } from "./SplitterConfiguration.sol";
+import {SplitterConfiguration} from "./SplitterConfiguration.sol";
 
 /// @title ObolLidoScript
 /// @author Obol
@@ -36,7 +36,6 @@ import { SplitterConfiguration } from "./SplitterConfiguration.sol";
 /// add --broadcast flag to broadcast to the public blockchain
 
 contract ObolLidoSetupScript is Script, SplitterConfiguration {
-
   function run(string memory jsonFilePath, address splitMain, address obolLidoSplitFactory) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
 
@@ -76,5 +75,4 @@ contract ObolLidoSetupScript is Script, SplitterConfiguration {
 
     vm.writeJson(finalJSON, "./result.json");
   }
-
 }

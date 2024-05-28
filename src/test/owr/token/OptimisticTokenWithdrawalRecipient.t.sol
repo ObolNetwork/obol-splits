@@ -38,7 +38,7 @@ contract OptimisticTokenWithdrawalRecipientTest is OWRTestHelper, Test {
     mERC20.mint(type(uint256).max);
 
     owrFactory = new OptimisticTokenWithdrawalRecipientFactory(BALANCE_CLASSIFICATION_THRESHOLD);
-    
+
     owrModule = owrFactory.owrImpl();
 
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(uint256(uint160(makeAddr("tranche"))));

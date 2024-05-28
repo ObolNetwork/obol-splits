@@ -87,7 +87,7 @@ contract OptimisticTokenWithdrawalRecipient is Clone {
   // token (address, 20 bytes), recoveryAddress (address, 20 bytes),
   // tranches (uint256[], numTranches * 32 bytes)
 
-    // 0; first item
+  // 0; first item
   uint256 internal constant TOKEN_OFFSET = 0;
   // 20 = token_offset (0) + token_size (address, 20 bytes)
   uint256 internal constant RECOVERY_ADDRESS_OFFSET = 20;

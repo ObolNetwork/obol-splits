@@ -59,11 +59,7 @@ contract OptimisticWithdrawalRecipientFactory {
   /// constructor
   /// -----------------------------------------------------------------------
 
-  constructor(
-    string memory _ensName,
-    address _ensReverseRegistrar,
-    address _ensOwner
-  ) {
+  constructor(string memory _ensName, address _ensReverseRegistrar, address _ensOwner) {
     owrImpl = new OptimisticWithdrawalRecipient();
     IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
     IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);

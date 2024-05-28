@@ -46,7 +46,12 @@ contract OptimisticTokenWithdrawalRecipientFactory {
   /// @param threshold Absolute payment threshold for OWR first recipient
   /// (reward recipient has no threshold & receives all residual flows)
   event CreateOWRecipient(
-    address indexed owr, address token, address recoveryAddress, address principalRecipient, address rewardRecipient, uint256 threshold
+    address indexed owr,
+    address token,
+    address recoveryAddress,
+    address principalRecipient,
+    address rewardRecipient,
+    uint256 threshold
   );
 
   /// -----------------------------------------------------------------------
@@ -113,6 +118,8 @@ contract OptimisticTokenWithdrawalRecipientFactory {
     bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
     owr = OptimisticTokenWithdrawalRecipient(address(owrImpl).clone(data));
 
-    emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake);
+    emit CreateOWRecipient(
+      address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake
+    );
   }
 }

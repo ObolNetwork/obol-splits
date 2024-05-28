@@ -10,11 +10,7 @@ import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
 contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   event CreateOWRecipient(
-    address indexed owr,
-    address recoveryAddress,
-    address principalRecipient,
-    address rewardRecipient,
-    uint256 threshold
+    address indexed owr, address recoveryAddress, address principalRecipient, address rewardRecipient, uint256 threshold
   );
 
   address public ENS_REVERSE_REGISTRAR_GOERLI = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
@@ -56,19 +52,15 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   function testCan_emitOnCreate() public {
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
-    
-    emit CreateOWRecipient(
-      address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold
-    );
+
+    emit CreateOWRecipient(address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold);
     owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     recoveryAddress = address(0);
 
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
-    emit CreateOWRecipient(
-      address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold
-    );
+    emit CreateOWRecipient(address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold);
     owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 
@@ -82,7 +74,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     owrFactoryModule.createOWRecipient(recoveryAddress, address(0), address(0), threshold);
 
     vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__Recipients.selector);
-    owrFactoryModule.createOWRecipient( recoveryAddress, principalRecipient, address(0), threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, address(0), threshold);
   }
 
   function testCannot_createWithInvalidThreshold() public {
@@ -90,16 +82,14 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     threshold = 0;
 
     vm.expectRevert(OptimisticWithdrawalRecipientFactory.Invalid__ZeroThreshold.selector);
-    owrFactoryModule.createOWRecipient( recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     vm.expectRevert(
       abi.encodeWithSelector(
         OptimisticWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, type(uint128).max
       )
     );
-    owrFactoryModule.createOWRecipient(
-      recoveryAddress, principalRecipient, rewardRecipient, type(uint128).max
-    );
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, type(uint128).max);
   }
 
   /// -----------------------------------------------------------------------
@@ -114,9 +104,7 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     (principalRecipient, rewardRecipient, threshold) = generateTranches(recipientsSeed, thresholdSeed);
 
     vm.expectEmit(false, true, true, true);
-    emit CreateOWRecipient(
-      address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold
-    );
+    emit CreateOWRecipient(address(0xdead), recoveryAddress, principalRecipient, rewardRecipient, threshold);
     owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 
@@ -138,6 +126,6 @@ contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
     vm.expectRevert(
       abi.encodeWithSelector(OptimisticWithdrawalRecipientFactory.Invalid__ThresholdTooLarge.selector, _threshold)
     );
-    owrFactoryModule.createOWRecipient( recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    owrFactoryModule.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, threshold);
   }
 }
