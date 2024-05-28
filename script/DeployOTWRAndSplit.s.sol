@@ -28,10 +28,8 @@ contract DeployOTWRAndSplit is Script, SplitterConfiguration {
         address OTWRFactory,
         uint256 stakeSize
     ) external {
-
         uint256 privKey = vm.envUint("PRIVATE_KEY");
-        string memory file = vm.readFile(jsonFilePath);
-        bytes memory parsedJson = vm.parseJson(file);
+        bytes memory parsedJson = vm.parseJson(vm.readFile(jsonFilePath));
 
         ConfigurationData[] memory data = abi.decode(parsedJson, (ConfigurationData[]));
         _validateInputJson(data);
@@ -40,8 +38,9 @@ contract DeployOTWRAndSplit is Script, SplitterConfiguration {
         string memory jsonKey = "otwrDeploy";
         string memory finalJSON;
 
+        uint256 stakeAmount = stakeSize * 1 ether;
+
         for (uint256 i = 0; i  < data.length; i++) {
-            string memory objKey = vm.toString(i);
             // deploy split
             ConfigurationData memory currentConfiguration = data[i];
 
@@ -60,15 +59,18 @@ contract DeployOTWRAndSplit is Script, SplitterConfiguration {
                 address(0),
                 currentConfiguration.principalRecipient,
                 split,
-                stakeSize * 1 ether
+                stakeAmount
             ));
+            
+            vm.stopBroadcast();
+            
+            string memory objKey = vm.toString(i);
 
             vm.serializeAddress(objKey, "splitAddress", split);
             string memory repsonse = vm.serializeAddress(objKey, "OTWRAddress", otwrAddress);
 
             finalJSON = vm.serializeString(jsonKey, objKey, repsonse);
 
-            vm.stopBroadcast();
         }
 
         vm.writeJson(finalJSON, "./otwr-split.json");
