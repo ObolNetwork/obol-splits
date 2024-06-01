@@ -13,6 +13,7 @@ solc_version = '0.8.19'
 gas_reports = ["*"]
 fs_permissions = [{ access = "read-write", path = "./"}]
 
+
 [rpc_endpoints]
 goerli = "${GOERLI_RPC_URL}"
 mainnet = "${MAINNET_RPC_URL}"
@@ -32,3 +33,6 @@ wrap_comments = true
 
 [fuzz]
 runs = 100
+
+[etherscan]
+chiado = { key = "${ETHERSCAN_API_KEY}", url = "https://blockscout.com/gnosis/chiado/api" }

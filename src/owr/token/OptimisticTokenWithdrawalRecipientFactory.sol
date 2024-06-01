@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {OptimisticWithdrawalRecipient} from "./OptimisticWithdrawalRecipient.sol";
+import {OptimisticTokenWithdrawalRecipient} from "src/owr/token/OptimisticTokenWithdrawalRecipient.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
-import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
 
-/// @title OptimisticWithdrawalRecipientFactory
+/// @title OptimisticTokenWithdrawalRecipientFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying
-/// OptimisticWithdrawalRecipient.
+/// OptimisticTokenWithdrawalRecipient.
 /// @dev This contract uses token = address(0) to refer to ETH.
-contract OptimisticWithdrawalRecipientFactory {
+contract OptimisticTokenWithdrawalRecipientFactory {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------
+
+  /// Invalid token
+  error Invalid_Token();
 
   /// Invalid number of recipients, must be 2
   error Invalid__Recipients();
@@ -35,15 +37,21 @@ contract OptimisticWithdrawalRecipientFactory {
   /// events
   /// -----------------------------------------------------------------------
 
-  /// Emitted after a new OptimisticWithdrawalRecipient module is deployed
-  /// @param owr Address of newly created OptimisticWithdrawalRecipient clone
+  /// Emitted after a new OptimisticWithdrawalWithTokenRecipient module is deployed
+  /// @param owr Address of newly created OptimisticWithdrawalWithTokenRecipient clone
+  /// @param token Address of ERC20 to distribute (0x0 used for ETH)
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// @param principalRecipient Address to distribute principal payment to
   /// @param rewardRecipient Address to distribute reward payment to
   /// @param threshold Absolute payment threshold for OWR first recipient
   /// (reward recipient has no threshold & receives all residual flows)
   event CreateOWRecipient(
-    address indexed owr, address recoveryAddress, address principalRecipient, address rewardRecipient, uint256 threshold
+    address indexed owr,
+    address token,
+    address recoveryAddress,
+    address principalRecipient,
+    address rewardRecipient,
+    uint256 threshold
   );
 
   /// -----------------------------------------------------------------------
@@ -52,17 +60,15 @@ contract OptimisticWithdrawalRecipientFactory {
 
   uint256 internal constant ADDRESS_BITS = 160;
 
-  /// OptimisticWithdrawalRecipient implementation address
-  OptimisticWithdrawalRecipient public immutable owrImpl;
+  /// OptimisticTokenWithdrawalRecipient implementation address
+  OptimisticTokenWithdrawalRecipient public immutable owrImpl;
 
   /// -----------------------------------------------------------------------
   /// constructor
   /// -----------------------------------------------------------------------
 
-  constructor(string memory _ensName, address _ensReverseRegistrar, address _ensOwner) {
-    owrImpl = new OptimisticWithdrawalRecipient();
-    IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
-    IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
+  constructor(uint256 threshold) {
+    owrImpl = new OptimisticTokenWithdrawalRecipient(threshold);
   }
 
   /// -----------------------------------------------------------------------
@@ -73,7 +79,8 @@ contract OptimisticWithdrawalRecipientFactory {
   /// functions - public & external
   /// -----------------------------------------------------------------------
 
-  /// Create a new OptimisticWithdrawalRecipient clone
+  /// Create a new OptimisticTokenWithdrawalRecipient clone
+  /// @param token Address of ERC20 to distribute (0x0 used for ETH)
   /// @param recoveryAddress Address to recover tokens to
   /// If this address is 0x0, recovery of unrelated tokens can be completed by
   /// either the principal or reward recipients.  If this address is set, only
@@ -85,13 +92,14 @@ contract OptimisticWithdrawalRecipientFactory {
   /// principal recipient (multiple of 32 ETH)
   /// (reward recipient has no threshold & receives all residual flows)
   /// it cannot be greater than uint96
-  /// @return owr Address of new OptimisticWithdrawalRecipient clone
+  /// @return owr Address of new OptimisticTokenWithdrawalRecipient clone
   function createOWRecipient(
+    address token,
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
     uint256 amountOfPrincipalStake
-  ) external returns (OptimisticWithdrawalRecipient owr) {
+  ) external returns (OptimisticTokenWithdrawalRecipient owr) {
     /// checks
 
     // ensure doesn't have address(0)
@@ -107,9 +115,11 @@ contract OptimisticWithdrawalRecipientFactory {
 
     // would not exceed contract size limits
     // important to not reorder
-    bytes memory data = abi.encodePacked(recoveryAddress, principalData, rewardData);
-    owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
+    bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
+    owr = OptimisticTokenWithdrawalRecipient(address(owrImpl).clone(data));
 
-    emit CreateOWRecipient(address(owr), recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake);
+    emit CreateOWRecipient(
+      address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake
+    );
   }
 }

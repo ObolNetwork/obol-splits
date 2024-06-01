@@ -68,7 +68,7 @@ contract OELPCIntegration is EigenLayerTestBase {
       new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
 
     owrWithdrawalAddress =
-      address(owrFactory.createOWRecipient(ETH_ADDRESS, address(0), principalRecipient, rewardRecipient, 32 ether));
+      address(owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, 32 ether));
 
     factory = new ObolEigenLayerPodControllerFactory(
       feeRecipient, feeShare, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
