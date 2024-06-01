@@ -15,13 +15,13 @@ contract GNOOWTRIntegration is OWRTestHelper, Test {
   address public rewardRecipient;
   uint256 public threshold;
 
-  uint256 internal constant GNO_BALANCE_CLASSIFICATOION_THRESHOLD = 0.8 ether;
+  uint256 internal constant GNO_BALANCE_CLASSIFICATION_THRESHOLD = 0.8 ether;
 
   function setUp() public {
-    mERC20 = new MockERC20("Test Token", "TOK", 18);
+    mERC20 = new MockERC20("demo", "DMT", 18);
     mERC20.mint(type(uint256).max);
 
-    owrFactoryModule = new OptimisticTokenWithdrawalRecipientFactory(GNO_BALANCE_CLASSIFICATOION_THRESHOLD);
+    owrFactoryModule = new OptimisticTokenWithdrawalRecipientFactory(GNO_BALANCE_CLASSIFICATION_THRESHOLD);
 
     recoveryAddress = makeAddr("recoveryAddress");
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(10);
@@ -30,46 +30,85 @@ contract GNOOWTRIntegration is OWRTestHelper, Test {
 
   function test_Distribute() public {
     OptimisticTokenWithdrawalRecipient gnoRecipient =
-      owrFactoryModule.createOWRecipient(ETH_ADDRESS, recoveryAddress, principalRecipient, rewardRecipient, threshold);
+      owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
 
     uint256 amountToStake = 0.001 ether;
     for (uint256 i = 0; i < 5; i++) {
-      payable(address(gnoRecipient)).transfer(amountToStake);
+      mERC20.transfer(address(gnoRecipient), amountToStake);
     }
 
     gnoRecipient.distributeFunds();
 
     // ensure it goes to the rewardRecipient
-    assertEq(address(rewardRecipient).balance, amountToStake * 5, "failed to stake");
+    assertEq(mERC20.balanceOf(rewardRecipient), amountToStake * 5, "failed to stake");
 
     // ensure it goes to principal recipient
     uint256 amountPrincipal = 2 ether;
 
-    payable(address(gnoRecipient)).transfer(amountPrincipal);
+    mERC20.transfer(address(gnoRecipient), amountPrincipal);
     gnoRecipient.distributeFunds();
 
     // ensure it goes to the principal recipient
-    assertEq(address(principalRecipient).balance, amountPrincipal, "failed to stake");
+    assertEq(mERC20.balanceOf(principalRecipient), amountPrincipal, "failed to stake");
 
     assertEq(gnoRecipient.claimedPrincipalFunds(), amountPrincipal, "invalid claimed principal funds");
 
-    uint256 prevRewardBalance = address(rewardRecipient).balance;
+    uint256 prevRewardBalance = mERC20.balanceOf(rewardRecipient);
 
     for (uint256 i = 0; i < 5; i++) {
-      payable(address(gnoRecipient)).transfer(amountPrincipal);
+      mERC20.transfer(address(gnoRecipient), amountPrincipal);
     }
 
     gnoRecipient.distributeFunds();
 
     // ensure it goes to the principal recipient
-    assertEq(address(principalRecipient).balance, threshold, "principal recipient balance valid");
+    assertEq(mERC20.balanceOf(principalRecipient), threshold, "principal recipient balance valid");
 
     assertEq(gnoRecipient.claimedPrincipalFunds(), threshold, "claimed funds not equal threshold");
 
     assertEq(
-      address(rewardRecipient).balance,
+      mERC20.balanceOf(rewardRecipient),
       prevRewardBalance + amountPrincipal,
       "reward recipient should recieve remaining funds"
     );
+  }
+
+  function testFuzz_Distribute(
+    uint256 amountToDistribute,
+    address fuzzPrincipalRecipient,
+    address fuzzRewardRecipient,
+    uint256 fuzzThreshold
+  ) public {
+    vm.assume(fuzzRewardRecipient != address(0));
+    vm.assume(fuzzPrincipalRecipient != address(0));
+    vm.assume(fuzzRewardRecipient != fuzzPrincipalRecipient);
+    vm.assume(amountToDistribute > 0);
+    fuzzThreshold = bound(fuzzThreshold, 1, type(uint96).max);
+
+    OptimisticTokenWithdrawalRecipient gnoRecipient =
+      owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, fuzzPrincipalRecipient, fuzzRewardRecipient, fuzzThreshold);
+    
+    uint256 amountToShare = bound(amountToDistribute, 1e18, type(uint96).max);
+
+    mERC20.transfer(address(gnoRecipient), amountToShare);
+
+    gnoRecipient.distributeFunds();
+
+    if (amountToShare >= GNO_BALANCE_CLASSIFICATION_THRESHOLD) {
+      if (amountToShare > fuzzThreshold) {
+        assertEq(mERC20.balanceOf(fuzzPrincipalRecipient), fuzzThreshold, "invalid principal balance 1");
+        assertEq(gnoRecipient.claimedPrincipalFunds(), fuzzThreshold, "invalid claimed principal funds 2");
+        assertEq(mERC20.balanceOf(fuzzRewardRecipient), amountToShare - fuzzThreshold, "invalid reward balance 3");
+      } else {
+        assertEq(mERC20.balanceOf(fuzzPrincipalRecipient), amountToShare, "invalid principal balance 4");
+        assertEq(gnoRecipient.claimedPrincipalFunds(), amountToShare, "invalid claimed principal funds 5");
+        assertEq(mERC20.balanceOf(fuzzRewardRecipient), 0, "invalid reward balance 6");
+      }
+    } else {
+      assertEq(mERC20.balanceOf(fuzzPrincipalRecipient), 0, "invalid principal balance 7");
+      assertEq(gnoRecipient.claimedPrincipalFunds(), 0, "invalid claimed principal funds 8");
+      assertEq(mERC20.balanceOf(fuzzRewardRecipient), amountToShare, "invalid reward balance 9");
+    }
+  
   }
 }
