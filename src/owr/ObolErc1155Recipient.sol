@@ -24,6 +24,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     bytes sig;
     bytes32 root;
   }
+
   struct Partition {
     uint256 maxSupply;
     address owr;
@@ -46,7 +47,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
 
   // BeaconChain deposit contract
   IDepositContract public immutable depositContract;
-  
+
   string private _baseUri;
   address private constant ETH_TOKEN_ADDRESS = address(0x0);
   uint256 private constant ETH_DEPOSIT_AMOUNT = 32 ether;
@@ -64,7 +65,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   error ClaimFailed();
   error InvalidLastSupply();
   error TransferFailed();
-  error InvalidBurnAmount(uint256 necessary, uint received);
+  error InvalidBurnAmount(uint256 necessary, uint256 received);
 
   event PartitionCreated(address indexed _owr, uint256 indexed _partitionId, uint256 indexed _maxSupply);
   event Minted(uint256 indexed _partitionId, uint256 indexed _mintedId, address indexed _sender);
@@ -121,7 +122,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// @return mintedId id of the minted NFT
   function mint(uint256 _partitionId, DepositInfo calldata depositInfo) external payable returns (uint256 mintedId) {
     // validation
-    if (partitions[_partitionId].owr == address(0)) revert PartitionNotValid(); 
+    if (partitions[_partitionId].owr == address(0)) revert PartitionNotValid();
     if (partitionTokens[_partitionId].length + 1 > partitions[_partitionId].maxSupply) revert PartitionSupplyReached();
     if (msg.value != ETH_DEPOSIT_AMOUNT) revert DepositAmountNotValid();
 
@@ -137,8 +138,10 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     totalSupplyAll++;
 
     // deposit to ETH deposit contract
-    depositContract.deposit{value: ETH_DEPOSIT_AMOUNT}(depositInfo.pubkey, depositInfo.withdrawal_credentials, depositInfo.sig, depositInfo.root);
-    
+    depositContract.deposit{value: ETH_DEPOSIT_AMOUNT}(
+      depositInfo.pubkey, depositInfo.withdrawal_credentials, depositInfo.sig, depositInfo.root
+    );
+
     // mint to sender
     _mint(msg.sender, mintedId, 1, "");
     ownerOf[mintedId] = msg.sender;
@@ -162,7 +165,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     uint256 ethReceived = ethBalanceAfter - ethBalanceBefore;
     // TODO: check `ethReceived` amount
 
-    if(ethReceived < MIN_ETH_EXIT_AMOUNT) revert InvalidBurnAmount(MIN_ETH_EXIT_AMOUNT, ethReceived);
+    if (ethReceived < MIN_ETH_EXIT_AMOUNT) revert InvalidBurnAmount(MIN_ETH_EXIT_AMOUNT, ethReceived);
 
     _burn(msg.sender, _tokenId, 1);
 
@@ -176,11 +179,14 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// @notice triggers `OWR.distributeFunds` and updates claimable balances for partition
   /// @param _tokenId token id
   /// @param _splitConfig pull split configuration
-  function updateRewards(uint256 _tokenId, address _distributor, IPullSplit.PullSplitConfiguration calldata _splitConfig) external {
+  function distributeRewards(
+    uint256 _tokenId,
+    address _distributor,
+    IPullSplit.PullSplitConfiguration calldata _splitConfig
+  ) external {
     uint256 _partitionId = tokensPartition[_tokenId];
     address _owr = partitions[tokensPartition[_tokenId]].owr;
     if (_owr == address(0)) revert OwrNotValid();
-
 
     // call .distribute() on OWR
     uint256 balanceBefore = _getTokenBalance(_owr);
@@ -192,37 +198,40 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     if (_totalClaimable > 0) {
       uint256 count = partitionTokens[_partitionId].length;
       uint256 _reward = _totalClaimable / count;
-      for(uint i; i < count; i++) {
+      for (uint256 i; i < count; i++) {
         address _owner = ownerOf[partitionTokens[_partitionId][i]];
         claimable[_owner] += _reward;
       }
     }
-  } 
-
-  /// @notice claim rewards
-  function claim() external {
-    if(claimable[msg.sender] > 0) {
-      (bool sent,) = msg.sender.call{value: claimable[msg.sender]}("");
-      if (!sent) revert TransferFailed();
-    }
-    claimable[msg.sender] = 0;
   }
 
-  
+  /// @notice claim rewards
+  function claim(address _user) external {
+    if (claimable[_user] > 0) {
+      (bool sent,) = _user.call{value: claimable[_user]}("");
+      if (!sent) revert TransferFailed();
+    }
+    claimable[_user] = 0;
+  }
+
   /// -----------------------------------------------------------------------
   /// functions - private
   /// -----------------------------------------------------------------------
 
   //TODO: refactor this
-  function _distributeSplitsRewards(address owr, address _distributor, IPullSplit.PullSplitConfiguration calldata _splitConfig) private {
-    (,address _split,) = IOptimisticWithdrawalRecipient(owr).getTranches();
+  function _distributeSplitsRewards(
+    address owr,
+    address _distributor,
+    IPullSplit.PullSplitConfiguration calldata _splitConfig
+  ) private {
+    (, address _split,) = IOptimisticWithdrawalRecipient(owr).getTranches();
     address _token = IOptimisticWithdrawalRecipient(owr).token();
 
     IPullSplit(_split).distribute(_splitConfig, _token, _distributor);
     address warehouse = IPullSplit(_split).SPLITS_WAREHOUSE();
     ISplitsWarehouse(warehouse).withdraw(address(this), _token);
   }
-  
+
   /// @dev Hook that is called before any token transfer.
   ///      Forces claim before a transfer happens
   function _beforeTokenTransfer(address from, address to, uint256[] memory ids, uint256[] memory, bytes memory)
@@ -251,7 +260,6 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     lastId++;
   }
 
-
   function _getTokenBalance(address owr) private view returns (uint256 balance) {
     address token = IOptimisticWithdrawalRecipient(owr).token();
     if (token == ETH_TOKEN_ADDRESS) balance = address(this).balance;
@@ -262,25 +270,19 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// IERC1155Receiver
   /// -----------------------------------------------------------------------
   function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, IERC165) returns (bool) {
-      return interfaceId == type(IERC1155Receiver).interfaceId || super.supportsInterface(interfaceId);
-  }
-  function onERC1155Received(
-      address,
-      address,
-      uint256,
-      uint256,
-      bytes memory
-  ) public virtual override returns (bytes4) {
-      return this.onERC1155Received.selector;
+    return interfaceId == type(IERC1155Receiver).interfaceId || super.supportsInterface(interfaceId);
   }
 
-  function onERC1155BatchReceived(
-      address,
-      address,
-      uint256[] memory,
-      uint256[] memory,
-      bytes memory
-  ) public virtual override returns (bytes4) {
-      return this.onERC1155BatchReceived.selector;
+  function onERC1155Received(address, address, uint256, uint256, bytes memory) public virtual override returns (bytes4) {
+    return this.onERC1155Received.selector;
+  }
+
+  function onERC1155BatchReceived(address, address, uint256[] memory, uint256[] memory, bytes memory)
+    public
+    virtual
+    override
+    returns (bytes4)
+  {
+    return this.onERC1155BatchReceived.selector;
   }
 }
