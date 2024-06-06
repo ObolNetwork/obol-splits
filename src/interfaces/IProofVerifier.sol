@@ -9,18 +9,15 @@ interface IProofVerifier {
         WITHDRAWN // withdrawn from the Beacon Chain
     }
 
-    struct Withdrawal {
-        bytes32 validatorPubKeyHash;
-        uint256 amountToSendGwei;
-        uint64 withdrawalTimestamp;
-        VALIDATOR_STATUS status;
-        // `@TODO add validator status
-    }
-
+    
+    
     error Invalid_Timestamp(uint256 timestamp);
 
-    function verifyWithdrawal(
+    function verifyExitProof(
         uint256 oracleTimestamp,
         bytes calldata proof
-    ) external view returns(Withdrawal memory);
+    ) external view returns(
+        uint256 totalExitedBalance,
+        bytes32[] memory validatorPubkeyHashses
+    );
 }

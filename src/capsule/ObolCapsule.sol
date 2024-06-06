@@ -22,11 +22,11 @@ contract ObolCapsule is Clone, IObolCapsule {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address;
 
-    struct ValidatorInfo {
-        // timestamp of the validator's most withdrawal
-        uint64 mostRecentOracleWithdrawalTimestamp;
-        // status of the validator
-        IProofVerifier.VALIDATOR_STATUS status;
+    struct Principal {
+        /// @dev exited stake 
+        uint128 exitedStake;
+        /// @dev pending amount of stake to claim
+        uint128 pendingStakeToClaim;
     }
 
     /// -----------------------------------------------------------------------
@@ -35,9 +35,6 @@ contract ObolCapsule is Clone, IObolCapsule {
 
     uint256 internal constant ADDRESS_BITS = 160;
     uint256 internal constant PERCENTAGE_SCALE = 1e5;
-
-    /// @dev beacon roots contract
-    address public constant BEACON_BLOCK_ROOTS_CONTRACT = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
 
     /// @notice This is the beacon chain deposit contract
     IETHPOSDeposit public immutable ethDepositContract;
@@ -73,8 +70,11 @@ contract ObolCapsule is Clone, IObolCapsule {
     /// storage
     /// -----------------------------------------------------------------------
 
-    /// @notice validator pubkey hash to information
-    mapping (bytes32 => ValidatorInfo) public validators;
+    /// @notice validator pubkey hash to status
+    mapping (bytes32 validatorPubkeyHash => IProofVerifier.VALIDATOR_STATUS status) public validators;
+
+    /// @notice Tracks the amount of stake
+    Principal public principalAmount;
 
 
     constructor(
@@ -103,14 +103,14 @@ contract ObolCapsule is Clone, IObolCapsule {
     ) external payable override {
         bytes32 pubkeyHash = BeaconChainProofs.hashValidatorBLSPubkey(pubkey);
 
-        ValidatorInfo storage info = validators[pubkeyHash];
+       IProofVerifier.VALIDATOR_STATUS status = validators[pubkeyHash];
 
         // @NB We don't validate stake size because EIP-7251 
         // could enable validator effective balance top up
 
         /// Effects
-        if (info.status == IProofVerifier.VALIDATOR_STATUS.INACTIVE) {
-            validators[pubkeyHash] = ValidatorInfo(0, IProofVerifier.VALIDATOR_STATUS.ACTIVE);
+        if (status == IProofVerifier.VALIDATOR_STATUS.INACTIVE) {
+            validators[pubkeyHash] = IProofVerifier.VALIDATOR_STATUS.ACTIVE;
         }
 
         /// Interaction
@@ -124,48 +124,119 @@ contract ObolCapsule is Clone, IObolCapsule {
         emit ObolPodStaked(pubkeyHash, msg.value);
     }
 
-    /// @notice Create new validators
+    /// @notice Process a validator exits
     /// @param oracleTimestamp oracle timestamp 
-    /// @param proof beacon state withdrawal proof
+    /// @param exitProof a merkle multi-proof of exited validators
     // @TODO do for 1 single validator first in one block ✅
     // then figure out for multiple validators in one block using historical summaries
     // then figure out for multiple validators in multiple blocks historical summaries
-    function withdraw(
+    function processValidatorExit(
         uint64 oracleTimestamp,
-        bytes calldata proof
-    ) external {
-        
+        bytes calldata exitProof
+    ) external { 
         /// Checks
-        IProofVerifier.Withdrawal memory withdrawal = _verifyWithdrawal(oracleTimestamp, proof);
+
+        // we ensure the validator has exited i.e. withdrawable_epoch and exit_epoch have been set
+        // we than verify the balance
+        // we then add the balance to pendingStakeToClaim
+        
+        // @TODO for slashed validators figure out how to achieve ensuring the 
+        // proof is posted after the second penalty is applied
+
+       (
+            uint256 totalExitedBalance,
+            bytes32[] memory validatorPubkeyHashses
+       ) = _verifyExit(oracleTimestamp, exitProof);
         
         /// Effects
-        ValidatorInfo storage validatorInfo = validators[withdrawal.validatorPubKeyHash];
+        uint256 i = 0;
+        uint256 size = validatorPubkeyHashses.length;
 
-        validatorInfo.mostRecentOracleWithdrawalTimestamp = withdrawal.withdrawalTimestamp;
-        validatorInfo.status = withdrawal.status;
+        for (; i < size;) {
+            bytes32 validatorPubkeyHash = validatorPubkeyHashses[i];
+            
+            if (validators[validatorPubkeyHash] != IProofVerifier.VALIDATOR_STATUS.ACTIVE) {
+                revert Invalid_ValidatorPubkey(validatorPubkeyHash);
+            }
 
-        /// Interaction
+            // Write to Storage
+            validators[validatorPubkeyHash] = IProofVerifier.VALIDATOR_STATUS.WITHDRAWN;
 
-        /// the validator has been exited
-        if (withdrawal.status == IProofVerifier.VALIDATOR_STATUS.WITHDRAWN) {
-            // send to principal recipient
-            principalRecipient().safeTransferETH(withdrawal.amountToSendGwei);
-        } else {
-            // charge obol fee on rewards
-            uint256 fee = (withdrawal.amountToSendGwei * feeShare) / PERCENTAGE_SCALE;
-            // transfer fee to fee recipient
-            feeRecipient.safeTransferETH(fee);
-            // transfer to reward recipient
-            uint256 amount = withdrawal.amountToSendGwei - fee;
-            rewardRecipient().safeTransferETH(amount);
+            unchecked {
+                i++;
+            }
         }
 
-        emit Withdraw(
-            withdrawal.validatorPubKeyHash,
-            withdrawal.amountToSendGwei,
+        /// Write to storage
+        principalAmount.pendingStakeToClaim += uint128(totalExitedBalance);
+
+        emit ValidatorExit(
             uint256(oracleTimestamp),
-            uint256(withdrawal.status)
-        );
+            totalExitedBalance,
+            validatorPubkeyHashses
+      );
+
+    }
+
+    /// @notice Distribute ETH available in the contract
+    function distribute() external {
+        Principal memory currentPrincipalData = principalAmount;
+        uint256 currentBalance = address(this).balance;
+
+        if (currentBalance == 0) revert Invalid_Balance();
+
+        (
+            uint256 principal,
+            uint256 rewards,
+            uint256 fee
+        ) = _calculateDistribution(currentBalance, currentPrincipalData);
+
+        /// Effects
+        if (principal > 0) {
+            currentPrincipalData.pendingStakeToClaim -= uint128(principal);
+            currentPrincipalData.exitedStake += uint128(principal);
+        }
+
+        /// Write to storage
+        principalAmount = currentPrincipalData;
+
+        /// Interactions
+        if (principal > 0) principalRecipient().safeTransferETH(principal);
+        if (rewards > 0) rewardRecipient().safeTransferETH(rewards);
+        if (fee > 0) feeRecipient.safeTransferETH(fee);
+
+        emit DistributeFunds(principal, rewards, fee);
+    }
+
+    function _calculateDistribution(uint256 balance, Principal memory currentPrincipal) 
+        internal 
+        view
+        returns(
+            uint256 principal,
+            uint256 rewards,
+            uint256 fee
+        )
+    {
+        if (currentPrincipal.pendingStakeToClaim > 0) {
+            if (balance > currentPrincipal.pendingStakeToClaim) {
+                principal = currentPrincipal.pendingStakeToClaim;
+                
+                uint256 availableRewardToDistribute = balance - currentPrincipal.pendingStakeToClaim;
+                (rewards, fee) = _calculateRewardDistribution(availableRewardToDistribute);
+            } else {
+                principal = balance;
+            }
+        } else {
+            // distribute current balance has rewards
+            (rewards, fee) = _calculateRewardDistribution(balance);
+        }
+    }
+
+    function _calculateRewardDistribution(uint256 amount) internal view returns (uint256 reward, uint256 fee) {
+        // charge obol fee on rewards
+        fee = ( amount * feeShare) / PERCENTAGE_SCALE;
+        // transfer to reward recipient
+        reward = amount - fee;
     }
 
     /// Recover tokens to a recipient
@@ -185,16 +256,19 @@ contract ObolCapsule is Clone, IObolCapsule {
 
     /// @dev Verify withdrawal proof
     /// @param oracleTimestamp beacon stat
-    function verfiyWithdrawalProof(
+    function verfiyExitProof(
         uint64 oracleTimestamp,
         bytes calldata proof
-    ) external view returns (IProofVerifier.Withdrawal memory withdrawal) {
-       withdrawal = _verifyWithdrawal(oracleTimestamp, proof);
+    ) external view returns (
+        uint256 totalExitedBalance,
+        bytes32[] memory validatorPubkeyHashses
+    ) {
+       return _verifyExit(oracleTimestamp, proof);
     }
 
     /// Address that receives rewards
     /// @dev equivalent to address public immutable rewardRecipient;
-    function rewardRecipient() public pure returns(address) {
+    function rewardRecipient() public pure returns (address) {
         return _getArgAddress(REWARD_RECIPIENT_ADDRESS_OFFSET);
     }
 
@@ -215,33 +289,17 @@ contract ObolCapsule is Clone, IObolCapsule {
         return abi.encodePacked(bytes1(uint8(1)), bytes11(0), address(this));
     }
 
-    function _verifyWithdrawal(
+    function _verifyExit(
         uint64 oracleTimestamp,
         bytes calldata proof
-    ) internal view returns (IProofVerifier.Withdrawal memory withdrawal) {
+    ) internal view returns (
+        uint256 totalExitedBalance,
+        bytes32[] memory validatorPubkeyHashses
+    ) {
         IProofVerifier proofVerifier = capsuleFactory.getVerifier();
-        withdrawal = proofVerifier.verifyWithdrawal(oracleTimestamp, proof);
-
-        ValidatorInfo storage validatorInfo = validators[withdrawal.validatorPubKeyHash];
-        
-        //
-        // NB in a validator lifecycle it's possible to make deposits
-        //
-        //
-        //
-        // before and after validator exits
-        // is validator state necessary
-        // 
-
-        if (validatorInfo.status == IProofVerifier.VALIDATOR_STATUS.WITHDRAWN) {
-            revert Invalid_ValidatorStatus();
-        }
-
-        if (withdrawal.withdrawalTimestamp < validatorInfo.mostRecentOracleWithdrawalTimestamp) {
-            revert Invalid_ProofTimestamp(
-                withdrawal.withdrawalTimestamp,
-                validatorInfo.mostRecentOracleWithdrawalTimestamp
-            );
-        }
+        ( 
+            totalExitedBalance,
+            validatorPubkeyHashses
+        ) = proofVerifier.verifyExitProof(oracleTimestamp, proof);
     }
 }

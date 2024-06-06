@@ -30,27 +30,31 @@ contract StateProofVerifierV1 is IProofVerifier {
     /// @dev verify Becaon chain validator withdrawals
     /// @param oracleTimestamp beacon block roots timestamp
     /// @param proof withdrawal proofs 
-    function verifyWithdrawal(
+    function verifyExitProof(
         uint256 oracleTimestamp,
         bytes calldata proof
-    ) external view override returns (Withdrawal memory withdrawal) {
+    ) external view override returns (
+        uint256 totalExitedBalance,
+        bytes32[] memory validatorPubkeyHashses
+    ) {
+
+        // BeaconChainProofs.StateRootProof memory stateRootProof,
+        // BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
+        // bytes memory validatorFieldsProof,
+        // bytes32[] memory validatorFields
         (
             BeaconChainProofs.StateRootProof memory stateRootProof,
-            BeaconChainProofs.WithdrawalProof memory withdrawalProofs,
-            bytes memory validatorFieldsProofs,
-            bytes32[] memory validatorFields,
-            bytes32[] memory withdrawalFields
+            BeaconChainProofs.BalanceProof memory balanceProofs,
+            BeaconChainProofs.ValidatorProof memory validatorProof
         ) = abi.decode(
             proof,
             (
                 BeaconChainProofs.StateRootProof,
-                BeaconChainProofs.WithdrawalProof,
-                bytes,
-                bytes32[],
-                bytes32[]
+                BeaconChainProofs.BalanceProof,
+                BeaconChainProofs.ValidatorProof
             ));
             
-        // Verify passed-in beaconStateRoot against rovided block root:
+        // Verify passed-in beaconStateRoot against provided block root:
         BeaconChainProofs.verifyStateRootAgainstLatestBlockRoot({
             latestBlockRoot: getBeaconBlockRootFromTimestamp(oracleTimestamp),
             beaconStateRoot: stateRootProof.beaconStateRoot,
@@ -66,51 +70,51 @@ contract StateProofVerifierV1 is IProofVerifier {
         );
     }
 
-    function _verifyWithdrawal(
-        bytes32 beaconStateRoot,
-        BeaconChainProofs.WithdrawalProof memory withdrawalProof,
-        bytes memory validatorFieldsProof,
-        bytes32[] memory validatorFields,
-        bytes32[] memory withdrawalFields
-    ) internal view returns (Withdrawal memory withdrawal) {
-        uint64 withdrawalTimestamp = withdrawalProof.getWithdrawalTimestamp();
-        bytes32 validatorPubkeyHash = validatorFields.getPubkeyHash();
+    // function _verifyWithdrawal(
+    //     bytes32 beaconStateRoot,
+    //     BeaconChainProofs.WithdrawalProof memory withdrawalProof,
+    //     bytes memory validatorFieldsProof,
+    //     bytes32[] memory validatorFields,
+    //     bytes32[] memory withdrawalFields
+    // ) internal view returns (Withdrawal memory withdrawal) {
+    //     uint64 withdrawalTimestamp = withdrawalProof.getWithdrawalTimestamp();
+    //     bytes32 validatorPubkeyHash = validatorFields.getPubkeyHash();
 
-        BeaconChainProofs.verifyWithdrawal({
-            beaconStateRoot: beaconStateRoot, 
-            withdrawalFields: withdrawalFields, 
-            withdrawalProof: withdrawalProof
-        });
+    //     BeaconChainProofs.verifyWithdrawal({
+    //         beaconStateRoot: beaconStateRoot, 
+    //         withdrawalFields: withdrawalFields, 
+    //         withdrawalProof: withdrawalProof
+    //     });
 
-        uint40 validatorIndex = withdrawalFields.getValidatorIndex();
+    //     uint40 validatorIndex = withdrawalFields.getValidatorIndex();
 
-        // Verify passed-in validatorFields against verified beaconStateRoot:
-        BeaconChainProofs.verifyValidatorFields({
-            beaconStateRoot: beaconStateRoot,
-            validatorFields: validatorFields,
-            validatorFieldsProof: validatorFieldsProof,
-            validatorIndex: validatorIndex
-        });
+    //     // Verify passed-in validatorFields against verified beaconStateRoot:
+    //     BeaconChainProofs.verifyValidatorFields({
+    //         beaconStateRoot: beaconStateRoot,
+    //         validatorFields: validatorFields,
+    //         validatorFieldsProof: validatorFieldsProof,
+    //         validatorIndex: validatorIndex
+    //     });
 
-        uint64 withdrawalAmountGwei = withdrawalFields.getWithdrawalAmountGwei();
+    //     uint64 withdrawalAmountGwei = withdrawalFields.getWithdrawalAmountGwei();
 
-        VALIDATOR_STATUS validatorStatus = VALIDATOR_STATUS.ACTIVE;
-        /**
-         * If the withdrawal
-         * 's epoch comes after the validator's "withdrawable epoch," we know the validator        
-         * has fully withdrawn, and we process this as a full withdrawal.
-         */
-        if (withdrawalProof.getWithdrawalEpoch() >= validatorFields.getWithdrawableEpoch()) {
-            validatorStatus = VALIDATOR_STATUS.WITHDRAWN;
-        }
+    //     VALIDATOR_STATUS validatorStatus = VALIDATOR_STATUS.ACTIVE;
+    //     /**
+    //      * If the withdrawal
+    //      * 's epoch comes after the validator's "withdrawable epoch," we know the validator        
+    //      * has fully withdrawn, and we process this as a full withdrawal.
+    //      */
+    //     if (withdrawalProof.getWithdrawalEpoch() >= validatorFields.getWithdrawableEpoch()) {
+    //         validatorStatus = VALIDATOR_STATUS.WITHDRAWN;
+    //     }
 
-        withdrawal = Withdrawal(
-            validatorPubkeyHash,
-            withdrawalAmountGwei,
-            withdrawalTimestamp,
-            validatorStatus
-        );
-    }
+    //     withdrawal = Withdrawal(
+    //         validatorPubkeyHash,
+    //         withdrawalAmountGwei,
+    //         withdrawalTimestamp,
+    //         validatorStatus
+    //     );
+    // }
 
     /// @dev Returns the becaon block root based on timestamp
     /// @param timestamp timestamp to fetch state root 

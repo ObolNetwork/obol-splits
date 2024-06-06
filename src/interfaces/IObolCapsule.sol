@@ -13,7 +13,9 @@ interface IObolCapsule {
     error Invalid_Timestamp(uint256 timestamp);
     error Invalid_ProofTimestamp(uint256 withdrawalTimestamp, uint256 mostRecentTimestamp);
     error Invalid_ValidatorStatus();
-    
+    error Invalid_Balance();
+    error Invalid_ValidatorPubkey(bytes32 validatorPubkeyHash);
+
     event Initialized(address owner);
 
     /// @dev Emitted on stake
@@ -23,11 +25,17 @@ interface IObolCapsule {
     /// @param token token address
     event RecoverFunds(address token, address recoveryAddress, uint256 amount);
 
-    event Withdraw(
-        bytes32 indexed validatorPubkeyHash,
-        uint256 amountToSendGwei,
+    /// @notice Emitted on distributeRewards
+    event DistributeFunds(
+        uint256 principal,
+        uint256 rewards,
+        uint256 fee
+    );
+    
+    event ValidatorExit(
         uint256 oracleTimestamp,
-        uint256 validatorStatus
+        uint256 totalExitedBalance,
+        bytes32[] validatorPubkeyHasshes
     );
 
 
