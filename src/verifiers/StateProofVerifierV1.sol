@@ -37,7 +37,6 @@ contract StateProofVerifierV1 is IProofVerifier {
         uint256 totalExitedBalance,
         bytes32[] memory validatorPubkeyHashses
     ) {
-
         // BeaconChainProofs.StateRootProof memory stateRootProof,
         // BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
         // bytes memory validatorFieldsProof,
@@ -45,13 +44,15 @@ contract StateProofVerifierV1 is IProofVerifier {
         (
             BeaconChainProofs.StateRootProof memory stateRootProof,
             BeaconChainProofs.BalanceProof memory balanceProofs,
-            BeaconChainProofs.ValidatorProof memory validatorProof
+            BeaconChainProofs.ValidatorProof memory validatorProof,
+            bytes32[] memory validatorFields
         ) = abi.decode(
             proof,
             (
                 BeaconChainProofs.StateRootProof,
                 BeaconChainProofs.BalanceProof,
-                BeaconChainProofs.ValidatorProof
+                BeaconChainProofs.ValidatorProof,
+                bytes32[]
             ));
             
         // Verify passed-in beaconStateRoot against provided block root:
@@ -61,13 +62,18 @@ contract StateProofVerifierV1 is IProofVerifier {
             stateRootProof: stateRootProof.proof
         });
 
-        return _verifyWithdrawal(
+        return _verifyExitProofs(
             getBeaconBlockRootFromTimestamp(oracleTimestamp),
             withdrawalProofs,
             validatorFieldsProofs,
             validatorFields,
             withdrawalFields
         );
+    }
+
+    function _verifyExitProofs(
+    ) internal view returns ()
+
     }
 
     // function _verifyWithdrawal(
