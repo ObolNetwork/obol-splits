@@ -8,7 +8,7 @@ import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {OWRReentrancy} from "./OWRReentrancy.sol";
 import {OWRTestHelper} from "./OWRTestHelper.t.sol";
-import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
+import {IENSReverseRegistrar} from "../../interfaces/external/IENSReverseRegistrar.sol";
 
 contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   using SafeTransferLib for address;

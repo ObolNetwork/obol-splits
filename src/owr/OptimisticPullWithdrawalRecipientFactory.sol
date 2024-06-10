@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {OptimisticWithdrawalRecipient} from "./OptimisticWithdrawalRecipient.sol";
+import {OptimisticPullWithdrawalRecipient} from "./OptimisticPullWithdrawalRecipient.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 import {IENSReverseRegistrar} from "../interfaces/external/IENSReverseRegistrar.sol";
 
-/// @title OptimisticWithdrawalRecipientFactory
+/// @title OptimisticPullWithdrawalRecipientFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying
-/// OptimisticWithdrawalRecipient.
+/// OptimisticPullWithdrawalRecipient.
 /// @dev This contract uses token = address(0) to refer to ETH.
-contract OptimisticWithdrawalRecipientFactory {
+contract OptimisticPullWithdrawalRecipientFactory {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------
@@ -38,8 +38,8 @@ contract OptimisticWithdrawalRecipientFactory {
   /// events
   /// -----------------------------------------------------------------------
 
-  /// Emitted after a new OptimisticWithdrawalRecipient module is deployed
-  /// @param owr Address of newly created OptimisticWithdrawalRecipient clone
+  /// Emitted after a new OptimisticPullWithdrawalRecipient module is deployed
+  /// @param owr Address of newly created OptimisticPullWithdrawalRecipient clone
   /// @param token Address of ERC20 to distribute (0x0 used for ETH)
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// @param principalRecipient Address to distribute principal payment to
@@ -57,7 +57,7 @@ contract OptimisticWithdrawalRecipientFactory {
   uint256 internal constant ADDRESS_BITS = 160;
 
   /// OptimisticWithdrawalRecipient implementation address
-  OptimisticWithdrawalRecipient public immutable owrImpl;
+  OptimisticPullWithdrawalRecipient public immutable owrImpl;
 
   /// -----------------------------------------------------------------------
   /// constructor
@@ -68,7 +68,7 @@ contract OptimisticWithdrawalRecipientFactory {
     address _ensReverseRegistrar,
     address _ensOwner
   ) {
-    owrImpl = new OptimisticWithdrawalRecipient();
+    owrImpl = new OptimisticPullWithdrawalRecipient();
     IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
     IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
   }
@@ -101,7 +101,7 @@ contract OptimisticWithdrawalRecipientFactory {
     address principalRecipient,
     address rewardRecipient,
     uint256 amountOfPrincipalStake
-  ) external returns (OptimisticWithdrawalRecipient owr) {
+  ) external returns (OptimisticPullWithdrawalRecipient owr) {
     /// checks
 
     // ensure doesn't have address(0)
@@ -118,7 +118,7 @@ contract OptimisticWithdrawalRecipientFactory {
     // would not exceed contract size limits
     // important to not reorder
     bytes memory data = abi.encodePacked(token, recoveryAddress, principalData, rewardData);
-    owr = OptimisticWithdrawalRecipient(address(owrImpl).clone(data));
+    owr = OptimisticPullWithdrawalRecipient(address(owrImpl).clone(data));
 
     emit CreateOWRecipient(address(owr), token, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake);
   }

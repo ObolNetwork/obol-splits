@@ -5,7 +5,7 @@ import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-/// @title OptimisticWithdrawalRecipient
+/// @title OptimisticPullOnlyWithdrawalRecipient
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
 /// based on threshold to it's recipients
@@ -13,7 +13,7 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 /// recovery method for non-target tokens sent by accident.
 /// Target ERC20s with very large decimals may overflow & cause issues.
 /// This contract uses token = address(0) to refer to ETH.
-contract OptimisticWithdrawalRecipient is Clone {
+contract OptimisticPullWithdrawalRecipient is Clone {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -45,9 +45,8 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// Emitted after funds are distributed to recipients
   /// @param principalPayout Amount of principal paid out
   /// @param rewardPayout Amount of reward paid out
-  /// @param pullFlowFlag Flag for pushing funds to recipients or storing for
   /// pulling
-  event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
+  event DistributeFunds(uint256 principalPayout, uint256 rewardPayout);
 
   /// Emitted after non-OWRecipient tokens are recovered to a recipient
   /// @param recoveryAddressToken Recovered token (cannot be
@@ -70,9 +69,6 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// -----------------------------------------------------------------------
 
   address internal constant ETH_ADDRESS = address(0);
-
-  uint256 internal constant PUSH = 0;
-  uint256 internal constant PULL = 1;
 
   uint256 internal constant ONE_WORD = 32;
   uint256 internal constant ADDRESS_BITS = 160;
@@ -159,14 +155,73 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// Distributes target token inside the contract to recipients
   /// @dev pushes funds to recipients
   function distributeFunds() external payable {
-    _distributeFunds(PUSH);
-  }
+    /// checks
 
-  /// Distributes target token inside the contract to recipients
-  /// @dev backup recovery if any recipient tries to brick the OWRecipient for
-  /// remaining recipients
-  function distributeFundsPull() external payable {
-    _distributeFunds(PULL);
+    /// effects
+
+    // load storage into memory
+    // fetch the token we want to distribute
+    address _token = token();
+    uint256 currentbalance = _token == ETH_ADDRESS ? address(this).balance : ERC20(_token).balanceOf(address(this));
+    uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
+    uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
+
+    uint256 _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
+
+    (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
+
+    // determine which recipeint is getting paid based on funds to be
+    // distributed
+    uint256 _principalPayout = 0;
+    uint256 _rewardPayout = 0;
+
+    unchecked {
+      // _claimedPrincipalFunds should always be <= amountOfPrincipalStake
+      uint256 principalStakeRemaining = amountOfPrincipalStake - _claimedPrincipalFunds;
+
+      if (_fundsToBeDistributed >= BALANCE_CLASSIFICATION_THRESHOLD && principalStakeRemaining > 0) {
+        if (_fundsToBeDistributed > principalStakeRemaining) {
+          // this means there is reward part of the funds to be
+          // distributed
+          _principalPayout = principalStakeRemaining;
+          // shouldn't underflow
+          _rewardPayout = _fundsToBeDistributed - principalStakeRemaining;
+        } else {
+          // this means there is no reward part of the funds to be
+          // distributed
+          _principalPayout = _fundsToBeDistributed;
+        }
+      } else {
+        _rewardPayout = _fundsToBeDistributed;
+      }
+    }
+
+    {
+      if (_fundsToBeDistributed > type(uint128).max) revert InvalidDistribution_TooLarge();
+      // Write to storage
+      // the principal value
+      // it cannot overflow because _principalPayout < _fundsToBeDistributed
+      if (_principalPayout > 0) claimedPrincipalFunds += uint128(_principalPayout);
+    }
+
+    /// interactions
+
+    // pay outs
+    // earlier tranche recipients may try to re-enter but will cause fn to
+    // revert
+    // when later external calls fail (bc balance is emptied early)
+
+    // pay out principal
+    _payout(principalRecipient, _principalPayout);
+    // pay out reward
+    _payout(rewardRecipient, _rewardPayout);
+
+    if (_principalPayout > 0 || _rewardPayout > 0) {
+    // Write to storage
+    fundsPendingWithdrawal = uint128(_memoryFundsPendingWithdrawal + _principalPayout + _rewardPayout);
+    }
+
+    emit DistributeFunds(_principalPayout, _rewardPayout);
   }
 
   /// Recover non-OWR tokens to a recipient
@@ -254,91 +309,9 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// -----------------------------------------------------------------------
   /// functions - private & internal
   /// -----------------------------------------------------------------------
-
-  /// Distributes target token inside the contract to next-in-line recipients
-  /// @dev can PUSH or PULL funds to recipients
-  function _distributeFunds(uint256 pullFlowFlag) internal {
-    /// checks
-
-    /// effects
-
-    // load storage into memory
-    // fetch the token we want to distribute
-    address _token = token();
-    uint256 currentbalance = _token == ETH_ADDRESS ? address(this).balance : ERC20(_token).balanceOf(address(this));
-    uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
-    uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
-
-    uint256 _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
-
-    (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
-
-    // determine which recipeint is getting paid based on funds to be
-    // distributed
-    uint256 _principalPayout = 0;
-    uint256 _rewardPayout = 0;
-
-    unchecked {
-      // _claimedPrincipalFunds should always be <= amountOfPrincipalStake
-      uint256 principalStakeRemaining = amountOfPrincipalStake - _claimedPrincipalFunds;
-
-      if (_fundsToBeDistributed >= BALANCE_CLASSIFICATION_THRESHOLD && principalStakeRemaining > 0) {
-        if (_fundsToBeDistributed > principalStakeRemaining) {
-          // this means there is reward part of the funds to be
-          // distributed
-          _principalPayout = principalStakeRemaining;
-          // shouldn't underflow
-          _rewardPayout = _fundsToBeDistributed - principalStakeRemaining;
-        } else {
-          // this means there is no reward part of the funds to be
-          // distributed
-          _principalPayout = _fundsToBeDistributed;
-        }
-      } else {
-        _rewardPayout = _fundsToBeDistributed;
-      }
-    }
-
-    {
-      if (_fundsToBeDistributed > type(uint128).max) revert InvalidDistribution_TooLarge();
-      // Write to storage
-      // the principal value
-      // it cannot overflow because _principalPayout < _fundsToBeDistributed
-      if (_principalPayout > 0) claimedPrincipalFunds += uint128(_principalPayout);
-    }
-
-    /// interactions
-
-    // pay outs
-    // earlier tranche recipients may try to re-enter but will cause fn to
-    // revert
-    // when later external calls fail (bc balance is emptied early)
-
-    // pay out principal
-    _payout(_token, principalRecipient, _principalPayout, pullFlowFlag);
-    // pay out reward
-    _payout(_token, rewardRecipient, _rewardPayout, pullFlowFlag);
-
-    if (pullFlowFlag == PULL) {
-      if (_principalPayout > 0 || _rewardPayout > 0) {
-        // Write to storage
-        fundsPendingWithdrawal = uint128(_memoryFundsPendingWithdrawal + _principalPayout + _rewardPayout);
-      }
-    }
-
-    emit DistributeFunds(_principalPayout, _rewardPayout, pullFlowFlag);
-  }
-
-  function _payout(address payoutToken, address recipient, uint256 payoutAmount, uint256 pullFlowFlag) internal {
+  function _payout(address recipient, uint256 payoutAmount) internal {
     if (payoutAmount > 0) {
-      if (pullFlowFlag == PULL) {
-        // Write to Storage
         pullBalances[recipient] += payoutAmount;
-      } else if (payoutToken == ETH_ADDRESS) {
-        recipient.safeTransferETH(payoutAmount);
-      } else {
-        payoutToken.safeTransfer(recipient, payoutAmount);
-      }
     }
   }
 }

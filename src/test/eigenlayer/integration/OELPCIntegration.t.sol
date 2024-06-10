@@ -10,14 +10,14 @@ import {
   IEigenPodManager,
   IEigenLayerUtils,
   IDelayedWithdrawalRouter
-} from "src/interfaces/IEigenLayer.sol";
+} from "src/interfaces/external/IEigenLayer.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
-import {ISplitMain} from "src/interfaces/ISplitMain.sol";
+import {ISplitMain} from "src/interfaces/external/splits/ISplitMain.sol";
 import {
   OptimisticWithdrawalRecipientFactory,
   OptimisticWithdrawalRecipient
 } from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
-import {IENSReverseRegistrar} from "../../../interfaces/IENSReverseRegistrar.sol";
+import {IENSReverseRegistrar} from "../../../interfaces/external/IENSReverseRegistrar.sol";
 import {EigenLayerTestBase} from "src/test/eigenlayer/EigenLayerTestBase.sol";
 
 contract OELPCIntegration is EigenLayerTestBase {
@@ -42,7 +42,6 @@ contract OELPCIntegration is EigenLayerTestBase {
   uint256 feeShare;
 
   function setUp() public {
-    uint256 goerliBlock = 10_653_080;
     vm.createSelectFork(getChain("goerli").rpcUrl);
 
     vm.mockCall(

@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import {ObolEtherfiSplitFactory, ObolEtherfiSplit} from "src/etherfi/ObolEtherfiSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ObolEtherfiSplitTestHelper} from "../ObolEtherfiSplitTestHelper.sol";
-import {ISplitMain} from "src/interfaces/ISplitMain.sol";
+import {ISplitMain} from "src/interfaces/external/splits/ISplitMain.sol";
 
 contract ObolEtherfiSplitIntegrationTest is ObolEtherfiSplitTestHelper, Test {
   ObolEtherfiSplitFactory internal etherfiSplitFactory;

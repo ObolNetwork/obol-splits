@@ -24,7 +24,6 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
   uint256 feeShare;
 
   function setUp() public {
-    uint256 goerliBlock = 10_205_449;
     vm.createSelectFork(getChain("goerli").rpcUrl);
 
     owner = makeAddr("owner");

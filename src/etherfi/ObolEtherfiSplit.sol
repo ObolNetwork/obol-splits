@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Clone} from "solady/utils/Clone.sol";
-import {IweETH} from "src/interfaces/IweETH.sol";
+import {IweETH} from "src/interfaces/external/IweETH.sol";
 
 import {BaseSplit} from "../base/BaseSplit.sol";
 

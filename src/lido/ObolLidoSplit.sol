@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Clone} from "solady/utils/Clone.sol";
-import {IwstETH} from "src/interfaces/IwstETH.sol";
+import {IwstETH} from "src/interfaces/external/IwstETH.sol";
 import {BaseSplit} from "../base/BaseSplit.sol";
 
 /// @title ObolLidoSplit

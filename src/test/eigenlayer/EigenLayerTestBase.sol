@@ -8,7 +8,7 @@ import {
   IEigenPodManager,
   IEigenLayerUtils,
   IDelayedWithdrawalRouter
-} from "src/interfaces/IEigenLayer.sol";
+} from "src/interfaces/external/IEigenLayer.sol";
 
 abstract contract EigenLayerTestBase is Test {
   address public constant ETH_ADDRESS = address(0);
