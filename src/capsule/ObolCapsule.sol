@@ -133,7 +133,10 @@ contract ObolCapsule is Clone, IObolCapsule {
     function processValidatorExit(
         uint64 oracleTimestamp,
         bytes calldata exitProof
-    ) external { 
+    ) external returns (
+        uint256 totalExitedBalance,
+        bytes32[] memory validatorPubkeyHashses
+    ) {
         /// Checks
 
         // we ensure the validator has exited i.e. withdrawable_epoch and exit_epoch have been set
@@ -142,10 +145,9 @@ contract ObolCapsule is Clone, IObolCapsule {
         
         // @TODO for slashed validators figure out how to achieve ensuring the 
         // proof is posted after the second penalty is applied
-
        (
-            uint256 totalExitedBalance,
-            bytes32[] memory validatorPubkeyHashses
+            totalExitedBalance,
+            validatorPubkeyHashses
        ) = _verifyExit(oracleTimestamp, exitProof);
         
         /// Effects

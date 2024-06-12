@@ -106,6 +106,9 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
     /// @notice Sets a new state proof verifier contract
     /// @param newVerifier address of newVerifier contract
     function setNewVerifier(address newVerifier) external onlyOwner {
+        /// @TODO make it timestamp activated new verifier
+        /// this aligns with hardfork timestamps
+
         if (address(newVerifier) == address(0)) revert Invalid__Address();
 
         IProofVerifier oldVerifier = stateProofVerifier;

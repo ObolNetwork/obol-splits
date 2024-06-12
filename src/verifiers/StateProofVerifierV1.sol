@@ -72,7 +72,11 @@ contract StateProofVerifierV1 is IProofVerifier {
     }
 
     function _verifyExitProofs(
-    ) internal view returns ()
+        
+    ) internal view returns (
+        uint256 totalExitedBalance,
+        bytes32[] memory validatorPubkeyHashses
+    ) {
 
     }
 
