@@ -140,6 +140,60 @@ library Merkle {
         return computedHash[0];
     }
 
+     /**
+     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up
+     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt
+     * hash matches the root of the tree. The tree is built assuming `leaf` is
+     * the 0 indexed `index`'th leaf from the bottom left of the tree.
+     *
+     * _Available since v4.4._
+     *
+     * Note this is for a Merkle tree using the sha256 hash function
+     */
+    function processInclusionMultiProofSha256(
+        bytes memory proof,
+        bytes32[] memory leaves,
+        uint256[] memory indices,
+        uint256 numLayers
+    ) internal view returns (bytes32) {
+        // @TODO ensure indices is sorted
+        require(
+            leaves.length == indices.length,
+            "Merkle.processInclusionMultiProofSha256: indices and leaves length should match"
+        );
+        require(
+            proof.length != 0 && proof.length % 32 == 0,
+            "Merkle.processInclusionProofSha256: proof length should be a non-zero multiple of 32"
+        );
+
+        bytes32[] memory rescontructedTree = leaves;
+        
+        for (uint256 i = 32; i <= proof.length; i += 32) {
+            if (index % 2 == 0) {
+                // if ith bit of index is 0, then computedHash is a left sibling
+                assembly {
+                    mstore(0x00, mload(computedHash))
+                    mstore(0x20, mload(add(proof, i)))
+                    if iszero(staticcall(sub(gas(), 2000), 2, 0x00, 0x40, computedHash, 0x20)) {
+                        revert(0, 0)
+                    }
+                    index := div(index, 2)
+                }
+            } else {
+                // if ith bit of index is 1, then computedHash is a right sibling
+                assembly {
+                    mstore(0x00, mload(add(proof, i)))
+                    mstore(0x20, mload(computedHash))
+                    if iszero(staticcall(sub(gas(), 2000), 2, 0x00, 0x40, computedHash, 0x20)) {
+                        revert(0, 0)
+                    }
+                    index := div(index, 2)
+                }
+            }
+        }
+        return computedHash[0];
+    }
+
     /**
      @notice this function returns the merkle root of a tree created from a set of leaves using sha256 as its hash function
      @param leaves the leaves of the merkle tree

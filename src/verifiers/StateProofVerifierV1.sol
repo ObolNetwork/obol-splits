@@ -40,7 +40,7 @@ contract StateProofVerifierV1 is IProofVerifier {
         // BeaconChainProofs.StateRootProof memory stateRootProof,
         // BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
         // bytes memory validatorFieldsProof,
-        // bytes32[] memory validatorFields
+        // bytes32[][] memory validatorFields
         (
             BeaconChainProofs.StateRootProof memory stateRootProof,
             BeaconChainProofs.BalanceProof memory balanceProofs,
