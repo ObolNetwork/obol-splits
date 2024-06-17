@@ -6,5 +6,6 @@ interface IOptimisticPullWithdrawalRecipient {
     function distributeFunds() external payable;
     function distributeFundsPull() external payable;
     function getTranches() external view returns (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake);
-    function withdraw(address account) external;
+    function withdraw(address account, uint256 amount) external;
+    function pullBalances(address account) external view returns (uint256);
 }

@@ -164,26 +164,47 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     if (!isOwnerOf(_tokenId)) revert InvalidOwner();
 
     // retrieve OWR
-    address _owr = partitions[tokensPartition[_tokenId]].owr;
-    if (_owr == address(0)) revert OwrNotValid();
+    IOptimisticPullWithdrawalRecipient _owr = IOptimisticPullWithdrawalRecipient(partitions[tokensPartition[_tokenId]].owr);
+    if (address(_owr) == address(0)) revert OwrNotValid();
 
     // retrieve ETH from the OWR
-    uint256 ethBalanceBefore = address(this).balance;
-    IOptimisticPullWithdrawalRecipient(_owr).distributeFunds();
-    IOptimisticPullWithdrawalRecipient(_owr).withdraw(address(this));
-    uint256 ethBalanceAfter = address(this).balance;
-    uint256 ethReceived = ethBalanceAfter - ethBalanceBefore;
-
-    // TODO: what if ethReceived > 32
-    //     : should we distribute 32 to sender and remaining split between active validators ?
-    if (ethReceived < MIN_ETH_EXIT_AMOUNT) revert InvalidBurnAmount(MIN_ETH_EXIT_AMOUNT, ethReceived);
+    _owr.distributeFunds();
+    _owr.withdraw(address(this), ETH_DEPOSIT_AMOUNT);
 
     _burn(msg.sender, _tokenId, 1);
 
     totalSupply[_tokenId]--;
     totalSupplyAll--;
 
-    (bool sent,) = msg.sender.call{value: ethReceived}("");
+    (bool sent,) = msg.sender.call{value: ETH_DEPOSIT_AMOUNT}("");
+    if (!sent) revert TransferFailed();
+  }
+
+  /// @notice decreases totalSupply for token id
+  /// @param _tokenId token id
+  function burnSlashed(uint256 _tokenId) external {
+    // validate
+    if (!isOwnerOf(_tokenId)) revert InvalidOwner();
+
+    // retrieve OWR
+    IOptimisticPullWithdrawalRecipient _owr = IOptimisticPullWithdrawalRecipient(partitions[tokensPartition[_tokenId]].owr);
+    if (address(_owr) == address(0)) revert OwrNotValid();
+
+    // retrieve ETH from the OWR
+    _owr.distributeFunds();
+
+    // withdraw from the OWR
+    uint256 pullBalance = _owr.pullBalances(address(this));
+    uint256 toWithdraw = pullBalance < ETH_DEPOSIT_AMOUNT ? pullBalance: ETH_DEPOSIT_AMOUNT;
+    if (toWithdraw < MIN_ETH_EXIT_AMOUNT) revert InvalidBurnAmount(MIN_ETH_EXIT_AMOUNT, toWithdraw);
+    _owr.withdraw(address(this), toWithdraw);
+
+    _burn(msg.sender, _tokenId, 1);
+
+    totalSupply[_tokenId]--;
+    totalSupplyAll--;
+
+    (bool sent,) = msg.sender.call{value: toWithdraw}("");
     if (!sent) revert TransferFailed();
   }
 

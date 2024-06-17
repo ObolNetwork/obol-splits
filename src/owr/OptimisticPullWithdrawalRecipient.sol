@@ -33,6 +33,9 @@ contract OptimisticPullWithdrawalRecipient is Clone {
   /// Invalid distribution
   error InvalidDistribution_TooLarge();
 
+  /// Invalid withdraw 
+  error InvalidWithdrawAmount_TooLarge();
+
   /// -----------------------------------------------------------------------
   /// events
   /// -----------------------------------------------------------------------
@@ -265,18 +268,20 @@ contract OptimisticPullWithdrawalRecipient is Clone {
 
   /// Withdraw token balance for account `account`
   /// @param account Address to withdraw on behalf of
-  function withdraw(address account) external {
-    address _token = token();
-    uint256 tokenAmount = pullBalances[account];
+  /// @param amount Amount to withdraw
+  function withdraw(address account, uint256 amount) external {
+    if (pullBalances[account] < amount) revert InvalidWithdrawAmount_TooLarge();
     unchecked {
       // shouldn't underflow; fundsPendingWithdrawal = sum(pullBalances)
-      fundsPendingWithdrawal -= uint128(tokenAmount);
+      fundsPendingWithdrawal -= uint128(amount);
     }
-    pullBalances[account] = 0;
-    if (_token == ETH_ADDRESS) account.safeTransferETH(tokenAmount);
-    else _token.safeTransfer(account, tokenAmount);
+    pullBalances[account] -= amount;
+    
+    address _token = token();
+    if (_token == ETH_ADDRESS) account.safeTransferETH(amount);
+    else _token.safeTransfer(account, amount);
 
-    emit Withdrawal(account, tokenAmount);
+    emit Withdrawal(account, amount);
   }
 
   /// -----------------------------------------------------------------------
