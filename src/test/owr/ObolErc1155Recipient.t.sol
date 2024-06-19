@@ -13,6 +13,8 @@ import {IERC1155Receiver} from "src/interfaces/IERC1155Receiver.sol";
 import {ISplitMain} from "src/interfaces/external/splits/ISplitMain.sol";
 import {IPullSplit} from "src/interfaces/external/splits/IPullSplit.sol";
 import {IENSReverseRegistrar} from "../../interfaces/external/IENSReverseRegistrar.sol";
+import {IObolErc1155Recipient} from "src/interfaces/IObolErc1155Recipient.sol";
+
 
 import {PullSplitMock} from "./mocks/PullSplitMock.sol";
 import {DepositContractMock} from "./mocks/DepositContractMock.sol";
@@ -76,8 +78,8 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
   function testMint_owrErc1155() public {
     address owrAddress = makeAddr("owrAddress");
     recipient.createPartition(10, owrAddress);
-    recipient.mint{value: 32 ether}(0, ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
-    recipient.mint{value: 32 ether}(0, ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
+    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
+    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
 
     uint256 firstToken = recipient.partitionTokens(0, 0);
     assertEq(recipient.ownerOf(firstToken), address(this));
@@ -104,7 +106,7 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
       owrFactory.createOWRecipient(ETH_ADDRESS, address(pullSplitMock), address(this), address(pullSplitMock), ETH_STAKE);
 
     recipient.createPartition(10, address(owrETH));
-    recipient.mint{value: 32 ether}(0, ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
+    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
 
     address(owrETH).safeTransferETH(1 ether);
     assertEq(address(owrETH).balance, 1 ether);
@@ -138,7 +140,7 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
       owrFactory.createOWRecipient(ETH_ADDRESS, address(pullSplitMock), address(recipient), address(pullSplitMock), ETH_STAKE);
 
     recipient.createPartition(2, address(owrETH));
-    recipient.mint{value: 32 ether}(0, ObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
+    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
 
     address(owrETH).safeTransferETH(32 ether);
     assertEq(address(owrETH).balance, 32 ether);

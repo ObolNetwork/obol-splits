@@ -13,18 +13,12 @@ import {IDepositContract} from "../interfaces/external/IDepositContract.sol";
 import {ISplitsWarehouse} from "src/interfaces/external/splits/ISplitsWarehouse.sol";
 import {ISplitMain, SplitConfiguration} from "src/interfaces/external/splits/ISplitMain.sol";
 import {IOptimisticPullWithdrawalRecipient} from "../interfaces/IOptimisticPullWithdrawalRecipient.sol";
+import {IObolErc1155Recipient} from "../interfaces/IObolErc1155Recipient.sol";
 
 /// @notice OWR principal recipient
 /// @dev handles rewards and principal of OWR
 contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   using SafeTransferLib for address;
-
-  struct DepositInfo {
-    bytes pubkey;
-    bytes withdrawal_credentials;
-    bytes sig;
-    bytes32 root;
-  }
 
   struct Partition {
     uint256 maxSupply;
@@ -114,7 +108,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// @notice creates a new partition
   /// @param maxSupply the maximum number of unique tokens
   /// @param owr the Optimistic Withdrawal Recipient address
-  function createPartition(uint256 maxSupply, address owr) external onlyOwner {
+  function createPartition(uint256 maxSupply, address owr) external {
     uint256 _id = partitionId;
     partitions[_id] = Partition({maxSupply: maxSupply, owr: owr, operator: msg.sender});
     owrsPartition[owr] = _id;
@@ -127,7 +121,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// @param _partitionId the partition to assign it to
   /// @param depositInfo deposit data needed for `DepositContract`
   /// @return mintedId id of the minted NFT
-  function mint(uint256 _partitionId, DepositInfo calldata depositInfo) external payable returns (uint256 mintedId) {
+  function mint(uint256 _partitionId, IObolErc1155Recipient.DepositInfo calldata depositInfo) external payable returns (uint256 mintedId) {
     // validation
     if (partitions[_partitionId].owr == address(0)) revert PartitionNotValid();
     if (partitionTokens[_partitionId].length + 1 > partitions[_partitionId].maxSupply) revert PartitionSupplyReached();
@@ -194,7 +188,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     _owr.distributeFunds();
 
     // withdraw from the OWR
-    uint256 pullBalance = _owr.pullBalances(address(this));
+    uint256 pullBalance = _owr.getPullBalance(address(this));
     uint256 toWithdraw = pullBalance < ETH_DEPOSIT_AMOUNT ? pullBalance: ETH_DEPOSIT_AMOUNT;
     if (toWithdraw < MIN_ETH_EXIT_AMOUNT) revert InvalidBurnAmount(MIN_ETH_EXIT_AMOUNT, toWithdraw);
     _owr.withdraw(address(this), toWithdraw);
@@ -295,15 +289,17 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     address _distributor,
     IPullSplit.PullSplitConfiguration calldata _splitConfig
   ) private {
-    (, address _split,) = IOptimisticPullWithdrawalRecipient(owr).getTranches();
-    address _token = IOptimisticPullWithdrawalRecipient(owr).token();
+    IOptimisticPullWithdrawalRecipient _owr = IOptimisticPullWithdrawalRecipient(owr);
+    (, address _split,) = _owr.getTranches();
+    address _token = _owr.token();
+    uint256 _pullBalance = _owr.getPullBalance(_split);
 
     // retrieve funds from OWR
     IPullSplit.Call[] memory _calls = new IPullSplit.Call[](1);
     _calls[0] = IPullSplit.Call({
       to: owr,
       value: 0,
-      data: abi.encodeWithSelector(IOptimisticPullWithdrawalRecipient.withdraw.selector, _split)
+      data: abi.encodeWithSelector(IOptimisticPullWithdrawalRecipient.withdraw.selector, _split, _pullBalance)
     });
     IPullSplit(_split).execCalls(_calls);
 

@@ -1,40 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "forge-std/Script.sol";
-import {ISplitMain, SplitConfiguration} from "src/interfaces/external/splits/ISplitMain.sol";
-import {ObolLidoSplitFactory} from "src/lido/ObolLidoSplitFactory.sol";
-
-/// @title ObolLidoScript
-/// @author Obol
-/// @notice Creates Split and ObolLidoSplit Adddresses
-///
-/// @dev Takes a json file following the format defined at ./data/lido-data-sample.json
-/// and deploys split and ObolLido split contracts.
-///
-/// It outputs the result of the script to "./result.json"
-///
-/// NOTE: It's COMPULSORY the json file supplied follows the arrangement format defined
-/// in the sample file else the json parse will fail.
-///
-///
-/// To Run
-///
-/// Step 1 fill in the appropriate details for env vars
-/// > cp .env.deployment .env
-///
-/// Step 2 add to environment
-/// > source .env
-///
-/// Step 3 Run forge script to simulate the execution of the transaction
-///
-/// > forge script script/ObolLidoSetupScript.sol:ObolLidoSetupScript --fork-url $RPC_URL -vvvv --sig
-/// "run(string,address,address)" "<PATH_TO_JSON_FILE e.g. ./script/data/lido-data-sample.json>" $SPLITMAIN
-/// $OBOL_LIDO_SPLIT_FACTORY
-///
-/// add --broadcast flag to broadcast to the public blockchain
-
-contract ObolLidoSetupScript is Script {
+abstract contract SplitterConfiguration {
   /// @dev invalid split accounts configuration
   error InvalidSplit__TooFewAccounts(uint256 accountsLength);
   /// @notice Array lengths of accounts & percentAllocations don't match
@@ -63,60 +30,27 @@ contract ObolLidoSetupScript is Script {
   uint256 internal constant PERCENTAGE_SCALE = 1e6;
   uint256 internal constant MAX_DISTRIBUTOR_FEE = 1e5;
 
-  struct JsonSplitConfiguration {
+  struct JsonSplitData {
     address[] accounts;
     address controller;
     uint32 distributorFee;
     uint32[] percentAllocations;
   }
 
-  function run(string memory jsonFilePath, address splitMain, address obolLidoSplitFactory) external {
-    uint256 privKey = vm.envUint("PRIVATE_KEY");
-
-    string memory file = vm.readFile(jsonFilePath);
-    bytes memory parsedJson = vm.parseJson(file);
-    JsonSplitConfiguration[] memory configuration = abi.decode(parsedJson, (JsonSplitConfiguration[]));
-    _validateInputJson(configuration);
-
-    // deploy the split and obol script
-    string memory jsonKey = "lidoObolDeploy";
-    string memory finalJSON;
-
-    for (uint256 j = 0; j < configuration.length; j++) {
-      string memory objKey = vm.toString(j);
-      // deploy split
-      JsonSplitConfiguration memory currentConfiguration = configuration[j];
-
-      vm.startBroadcast(privKey);
-
-      address split = ISplitMain(splitMain).createSplit(
-        currentConfiguration.accounts,
-        currentConfiguration.percentAllocations,
-        currentConfiguration.distributorFee,
-        currentConfiguration.controller
-      );
-
-      // create obol split
-      address obolLidoSplitAdress = ObolLidoSplitFactory(obolLidoSplitFactory).createCollector(address(0), split);
-
-      vm.stopBroadcast();
-
-      vm.serializeAddress(objKey, "splitAddress", split);
-      string memory repsonse = vm.serializeAddress(objKey, "obolLidoSplitAddress", obolLidoSplitAdress);
-
-      finalJSON = vm.serializeString(jsonKey, objKey, repsonse);
-    }
-
-    vm.writeJson(finalJSON, "./result.json");
-  }
-
-  function _validateInputJson(JsonSplitConfiguration[] memory configuration) internal pure {
+  function _validateSplitInputJson(JsonSplitData[] memory configuration) internal pure {
     for (uint256 i = 0; i < configuration.length; i++) {
       address[] memory splitAddresses = configuration[i].accounts;
       uint32[] memory percents = configuration[i].percentAllocations;
       uint32 distributorFee = configuration[i].distributorFee;
       _validSplit(splitAddresses, percents, distributorFee);
     }
+  }
+
+  function _validateSplitInputJson(JsonSplitData memory configuration) internal pure {
+    address[] memory splitAddresses = configuration.accounts;
+    uint32[] memory percents = configuration.percentAllocations;
+    uint32 distributorFee = configuration.distributorFee;
+    _validSplit(splitAddresses, percents, distributorFee);
   }
 
   function _validSplit(address[] memory accounts, uint32[] memory percentAllocations, uint32 distributorFee)
