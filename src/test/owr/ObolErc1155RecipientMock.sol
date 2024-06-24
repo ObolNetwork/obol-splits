@@ -8,7 +8,7 @@ contract ObolErc1155RecipientMock is ObolErc1155Recipient {
     }
 
     function setRewards(uint256 id, uint256 amount) external {
-        claimable[ownerOf[id]][address(0)] += amount;
+        claimable[ownerOf[id]] += amount;
     }
 
     function simulateReceiverMint(uint256 id, uint256 amount) external {

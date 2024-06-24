@@ -21,11 +21,12 @@ contract DeployPullOWRAndSplit is Script, SplitterConfiguration {
     /// @param splitMain address for 0xsplits splitMain
     /// @param pullOwrFactory address for factory
     function run(string memory jsonFilePath, address splitMain, address pullOwrFactory, uint256 stakeSize)
+    // function run()
         external
-    {
+    {   
         uint256 privKey = vm.envUint("PRIVATE_KEY");
         bytes memory parsedJson = vm.parseJson(vm.readFile(jsonFilePath));
-
+        
         ConfigurationData[] memory data = abi.decode(parsedJson, (ConfigurationData[]));
         _validateInputJson(data);
 

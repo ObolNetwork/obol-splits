@@ -15,6 +15,8 @@ import {ISplitMain, SplitConfiguration} from "src/interfaces/external/splits/ISp
 import {IOptimisticPullWithdrawalRecipient} from "../interfaces/IOptimisticPullWithdrawalRecipient.sol";
 import {IObolErc1155Recipient} from "../interfaces/IObolErc1155Recipient.sol";
 
+import "forge-std/console.sol";
+
 /// @notice OWR principal recipient
 /// @dev handles rewards and principal of OWR
 contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
@@ -35,11 +37,13 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   mapping(uint256 _tokenId => uint256 _partitionId) public tokensPartition;
   mapping(uint256 _tokenId => address _owner) public ownerOf;
 
-  mapping(address _owner => mapping(address _token => uint256 _amount)) public claimable;
-  mapping(address _token => uint256 _claimable) public totalClaimable;
+  mapping(address _owner => uint256 _amount) public claimable;
+  uint256 public totalClaimable;
 
   mapping(uint256 id => uint256) public totalSupply;
   uint256 public totalSupplyAll;
+
+  mapping(bytes => bool) private _usedPubKeys;
 
   // BeaconChain deposit contract
   IDepositContract public immutable depositContract;
@@ -57,6 +61,8 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   error DepositAmountNotValid();
   error PartitionSupplyReached();
   error InvalidBurnAmount(uint256 necessary, uint256 received);
+  error PubKeyUsed();
+  error WithdrawCredentialsNotValid();
 
   event PartitionCreated(address indexed _owr, uint256 indexed _partitionId, uint256 indexed _maxSupply);
   event Minted(uint256 indexed _partitionId, uint256 indexed _mintedId, address indexed _sender);
@@ -122,10 +128,15 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// @param depositInfo deposit data needed for `DepositContract`
   /// @return mintedId id of the minted NFT
   function mint(uint256 _partitionId, IObolErc1155Recipient.DepositInfo calldata depositInfo) external payable returns (uint256 mintedId) {
+
     // validation
     if (partitions[_partitionId].owr == address(0)) revert PartitionNotValid();
     if (partitionTokens[_partitionId].length + 1 > partitions[_partitionId].maxSupply) revert PartitionSupplyReached();
     if (msg.value != ETH_DEPOSIT_AMOUNT) revert DepositAmountNotValid();
+    if (_usedPubKeys[depositInfo.pubkey]) revert PubKeyUsed();
+    if (!_validateWithdrawalCredentials(depositInfo.withdrawal_credentials, partitions[_partitionId].owr)) revert WithdrawCredentialsNotValid();
+
+    _usedPubKeys[depositInfo.pubkey] = true;
 
     // deposit first to ETH deposit contract
     depositContract.deposit{value: ETH_DEPOSIT_AMOUNT}(
@@ -218,15 +229,13 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     if (_owr == address(0)) revert OwrNotValid();
 
     // call `.distribute()` on OWR and `distribute()` on PullSplit
-    address _token = IOptimisticPullWithdrawalRecipient(_owr).token();
-    uint256 balanceBefore = _getTokenBalance(_token);
+    uint256 balanceBefore = address(this).balance;
     IOptimisticPullWithdrawalRecipient(_owr).distributeFunds();
     _distributeSplitsRewards(_owr, _distributor, _splitConfig);
-    uint256 balanceAfter = _getTokenBalance(_token);
 
     // update `claimable` for partition's active supply
-    uint256 _totalClaimable = balanceAfter - balanceBefore;
-    totalClaimable[_token] += _totalClaimable;
+    uint256 _totalClaimable = address(this).balance - balanceBefore;
+    totalClaimable += _totalClaimable;
 
     // update active validators claimable amounts
     if (_totalClaimable > 0) {
@@ -234,8 +243,8 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
       uint256 _reward = _totalClaimable / count;
       for (uint256 i; i < count; i++) {
         address _owner = ownerOf[partitionTokens[_partitionId][i]];
-        claimable[_owner][_token] += _reward;
-        emit RewardsDistributed(_token, _tokenId, _owner, _reward, _totalClaimable);
+        claimable[_owner] += _reward;
+        emit RewardsDistributed(ETH_ADDRESS, _tokenId, _owner, _reward, _totalClaimable);
       }
     }
   }
@@ -243,21 +252,19 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// @notice claim rewards
   /// @dev for ETH, `_token` should be `address(0)`
   /// @param _user the account to claim for
-  /// @param _token the token address
-  function claim(address _user, address _token) external {
-    uint256 _amount = claimable[_user][_token];
+  function claim(address _user) external {
+    uint256 _amount = claimable[_user];
 
     // send `_token` to user
     if (_amount > 0) {
-      if (_token == ETH_ADDRESS) _user.safeTransferETH(_amount);
-      else _token.safeTransfer(_user, _amount);
+      _user.safeTransferETH(_amount);
     }
 
     // reset `claimable` for `_user` and `_token`
-    claimable[_user][_token] = 0;
-    totalClaimable[_token] -= _amount;
+    claimable[_user] = 0;
+    totalClaimable -= _amount;
 
-    emit Claimed(_user, _token, _amount);
+    emit Claimed(_user, ETH_ADDRESS, _amount);
   }
 
   /// -----------------------------------------------------------------------
@@ -267,18 +274,19 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   /// @dev for ETH, `_token` should be `address(0)`
   /// @param _token the token address
   function recoverTokens(address _token) external onlyOwner {
+    if (_token != ETH_ADDRESS) {
+      uint256 _tokenBalance = ERC20(_token).balanceOf(address(this));
+      _token.safeTransfer(msg.sender, _tokenBalance);
+      return;
+    }
+
     // validate token amounts
-    uint256 _balance = ERC20(_token).balanceOf(address(this));
-    if (_balance <= totalClaimable[_token]) revert ClaimFailed();
+    uint256 _balance = address(this).balance;
+    if (_balance <= totalClaimable) revert ClaimFailed();
 
     // compoute airdropped amount
-    uint256 _amount = _balance - totalClaimable[_token];
-
-    // send `_token` to owner
-    if (_amount > 0) {
-      if (_token == ETH_ADDRESS) msg.sender.safeTransferETH(_amount);
-      else _token.safeTransfer(msg.sender, _amount);
-    }
+    uint256 _amount = _balance - totalClaimable;
+    msg.sender.safeTransferETH(_amount);
   }
 
   /// -----------------------------------------------------------------------
@@ -332,10 +340,9 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   function _useBeforeTokenTransfer() internal pure override returns (bool) {
     return true;
   }
-
-  function _getTokenBalance(address _token) private view returns (uint256 balance) {
-    if (_token == ETH_ADDRESS) balance = address(this).balance;
-    else balance = ERC20(_token).balanceOf(address(this));
+  function _validateWithdrawalCredentials(bytes calldata _credentials, address _owr) private pure returns (bool) {
+    address _address = address(uint160(bytes20(_credentials[12:32])));
+    return _address == _owr;
   }
 
   /// -----------------------------------------------------------------------
