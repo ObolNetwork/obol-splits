@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import {OptimisticWithdrawalRecipient} from "./OptimisticWithdrawalRecipient.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
-import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
+import {IENSReverseRegistrar} from "../interfaces/external/IENSReverseRegistrar.sol";
 
 /// @title OptimisticWithdrawalRecipientFactory
 /// @author Obol

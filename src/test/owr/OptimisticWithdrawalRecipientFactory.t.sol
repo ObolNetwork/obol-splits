@@ -6,7 +6,7 @@ import {OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipie
 import {OptimisticWithdrawalRecipientFactory} from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {OWRTestHelper} from "./OWRTestHelper.t.sol";
-import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
+import {IENSReverseRegistrar} from "../../interfaces/external/IENSReverseRegistrar.sol";
 
 contract OptimisticWithdrawalRecipientFactoryTest is OWRTestHelper, Test {
   event CreateOWRecipient(

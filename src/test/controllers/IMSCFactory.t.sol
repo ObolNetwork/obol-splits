@@ -6,7 +6,7 @@ import {
   ImmutableSplitControllerFactory,
   ImmutableSplitController
 } from "src/controllers/ImmutableSplitControllerFactory.sol";
-import {ISplitMain} from "src/interfaces/ISplitMain.sol";
+import {ISplitMain} from "src/interfaces/external/splits/ISplitMain.sol";
 
 contract IMSCFactory is Test {
   error Invalid_Address();
@@ -32,7 +32,6 @@ contract IMSCFactory is Test {
   uint32[] percentAllocations;
 
   function setUp() public {
-    uint256 goerliBlock = 8_529_931;
     vm.createSelectFork(getChain("goerli").rpcUrl);
 
     factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_GOERLI);

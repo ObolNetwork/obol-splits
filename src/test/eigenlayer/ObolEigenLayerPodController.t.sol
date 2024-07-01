@@ -10,7 +10,7 @@ import {
   IEigenPodManager,
   IEigenLayerUtils,
   IDelayedWithdrawalRouter
-} from "src/interfaces/IEigenLayer.sol";
+} from "src/interfaces/external/IEigenLayer.sol";
 import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 import {
   OptimisticWithdrawalRecipientFactory,
@@ -51,7 +51,6 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
   MockERC20 mERC20;
 
   function setUp() public {
-    uint256 goerliBlock = 10_205_449;
     vm.createSelectFork(getChain("goerli").rpcUrl);
 
     vm.mockCall(

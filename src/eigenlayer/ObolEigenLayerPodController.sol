@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
-import {IEigenLayerUtils, IEigenPodManager, IDelayedWithdrawalRouter} from "../interfaces/IEigenLayer.sol";
+import {IEigenLayerUtils, IEigenPodManager, IDelayedWithdrawalRouter} from "../interfaces/external/IEigenLayer.sol";
 
 /// @title ObolEigenLayerPodController
 /// @author Obol Labs

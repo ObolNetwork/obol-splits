@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import "forge-std/Script.sol";
-import {ISplitMain, SplitConfiguration} from "src/interfaces/ISplitMain.sol";
+import {ISplitMain, SplitConfiguration} from "src/interfaces/external/splits/ISplitMain.sol";
 import {ObolLidoSplitFactory} from "src/lido/ObolLidoSplitFactory.sol";
 
 /// @title ObolLidoScript

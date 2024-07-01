@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import {ObolLidoSplitFactory, ObolLidoSplit} from "src/lido/ObolLidoSplitFactory.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ObolLidoSplitTestHelper} from "../ObolLidoSplitTestHelper.sol";
-import {ISplitMain} from "src/interfaces/ISplitMain.sol";
+import {ISplitMain} from "src/interfaces/external/splits/ISplitMain.sol";
 
 contract ObolLidoSplitIntegrationTest is ObolLidoSplitTestHelper, Test {
   ObolLidoSplitFactory internal lidoSplitFactory;

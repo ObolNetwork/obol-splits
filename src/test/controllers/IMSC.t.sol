@@ -6,7 +6,7 @@ import {
   ImmutableSplitControllerFactory,
   ImmutableSplitController
 } from "src/controllers/ImmutableSplitControllerFactory.sol";
-import {ISplitMain} from "src/interfaces/ISplitMain.sol";
+import {ISplitMain} from "src/interfaces/external/splits/ISplitMain.sol";
 
 contract IMSC is Test {
   error Initialized();
@@ -31,7 +31,6 @@ contract IMSC is Test {
   address owner;
 
   function setUp() public {
-    uint256 goerliBlock = 8_529_931;
     vm.createSelectFork(getChain("goerli").rpcUrl);
 
     factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_GOERLI);
