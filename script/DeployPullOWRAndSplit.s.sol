@@ -18,12 +18,16 @@ contract DeployPullOWRAndSplit is Script, SplitterConfiguration {
     }
 
     /// @param jsonFilePath the data format can be seen in ./data/deploy-pullOWR-sample.json
-    /// @param splitMain address for 0xsplits splitMain
+    /// @param split address for 0xsplits PullSplit
     /// @param pullOwrFactory address for factory
-    function run(string memory jsonFilePath, address splitMain, address pullOwrFactory, uint256 stakeSize)
-    // function run()
+    function run(string memory jsonFilePath, address split, address pullOwrFactory, uint256 stakeSize)
         external
     {   
+        // string memory jsonFilePath = "script/data/deploy-pullOwr-sample.json";
+        // address pullOwrFactory = 0xcFf568fBD1386f0d7784C174411341C8588d4Ba4;
+        // address split = 0x2636b017110c4d8977C6a7351D1de09e95fd595a;
+        // uint256 stakeSize = 32;
+
         uint256 privKey = vm.envUint("PRIVATE_KEY");
         bytes memory parsedJson = vm.parseJson(vm.readFile(jsonFilePath));
         
@@ -34,36 +38,27 @@ contract DeployPullOWRAndSplit is Script, SplitterConfiguration {
         string memory jsonKey = "pullOwrDeploy";
         string memory finalJSON;
 
-        uint256 stakeAmount = stakeSize * 1 ether;
-
         for (uint256 i = 0; i < data.length; i++) {
-            // deploy split
-            ConfigurationData memory currentConfiguration = data[i];
+            {
+                vm.startBroadcast(privKey);
 
-            vm.startBroadcast(privKey);
+                ConfigurationData memory currentConfiguration = data[i];
+                address pullOwrAddress = address(
+                    OptimisticPullWithdrawalRecipientFactory(pullOwrFactory).createOWRecipient(
+                        ETH_ADDRESS, currentConfiguration.recoveryRecipient, currentConfiguration.principalRecipient, split, stakeSize * 1 ether
+                    )
+                );
 
-            address split = ISplitMain(splitMain).createSplit(
-                currentConfiguration.split.accounts,
-                currentConfiguration.split.percentAllocations,
-                currentConfiguration.split.distributorFee,
-                currentConfiguration.split.controller
-            );
+                vm.stopBroadcast();
 
-            // create obol split
-            address pullOwrAddress = address(
-                OptimisticPullWithdrawalRecipientFactory(pullOwrFactory).createOWRecipient(
-                    ETH_ADDRESS, currentConfiguration.recoveryRecipient, currentConfiguration.principalRecipient, split, stakeAmount
-                )
-            );
+                 string memory objKey = vm.toString(i);
 
-            vm.stopBroadcast();
+                vm.serializeAddress(objKey, "splitAddress", split);
+                string memory repsonse = vm.serializeAddress(objKey, "pullOWRAddress", pullOwrAddress);
 
-            string memory objKey = vm.toString(i);
-
-            vm.serializeAddress(objKey, "splitAddress", split);
-            string memory repsonse = vm.serializeAddress(objKey, "pullOWRAddress", pullOwrAddress);
-
-            finalJSON = vm.serializeString(jsonKey, objKey, repsonse);
+                finalJSON = vm.serializeString(jsonKey, objKey, repsonse);
+            }
+           
         }
 
         vm.writeJson(finalJSON, "./pullOwr-split.json");

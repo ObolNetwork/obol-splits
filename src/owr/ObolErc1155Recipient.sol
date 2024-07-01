@@ -201,7 +201,6 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
     // withdraw from the OWR
     uint256 pullBalance = _owr.getPullBalance(address(this));
     uint256 toWithdraw = pullBalance < ETH_DEPOSIT_AMOUNT ? pullBalance: ETH_DEPOSIT_AMOUNT;
-    if (toWithdraw < MIN_ETH_EXIT_AMOUNT) revert InvalidBurnAmount(MIN_ETH_EXIT_AMOUNT, toWithdraw);
     _owr.withdraw(address(this), toWithdraw);
 
     _burn(msg.sender, _tokenId, 1);
