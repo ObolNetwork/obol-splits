@@ -93,54 +93,54 @@ contract ProofParser is Test {
         return vm.parseJsonBytes32Array(proofPath, ".HistoricalSummaryProof");
     }
 
-    function values() public returns (
-        BeaconChainProofs.StateRootProof memory stateRootProof,
-        BeaconChainProofs.WithdrawalProof memory withdrawalProof,
-        bytes memory validatorFieldsProof,
-        bytes32[] memory validatorFields,
-        bytes32[] memory withdrawalFields
-    ) {
-        stateRootProof = BeaconChainProofs.StateRootProof({
-            beaconStateRoot: getBeaconStateRoot(),
-            proof: abi.encodePacked(getStateRootAgainstLatestBlockHeaderProof())
-        });
+    // function values() public returns (
+    //     BeaconChainProofs.StateRootProof memory stateRootProof,
+    //     BeaconChainProofs.WithdrawalProof memory withdrawalProof,
+    //     bytes memory validatorFieldsProof,
+    //     bytes32[] memory validatorFields,
+    //     bytes32[] memory withdrawalFields
+    // ) {
+    //     stateRootProof = BeaconChainProofs.StateRootProof({
+    //         beaconStateRoot: getBeaconStateRoot(),
+    //         proof: abi.encodePacked(getStateRootAgainstLatestBlockHeaderProof())
+    //     });
 
-        withdrawalProof = BeaconChainProofs.WithdrawalProof({
-            withdrawalProof: abi.encodePacked(getWithdrawalProof()),
-            slotProof: abi.encodePacked(getSlotProof()),
-            executionPayloadProof: abi.encodePacked(getExecutionPayloadProof()),
-            timestampProof: abi.encodePacked(getTimestampProof()),
-            historicalSummaryBlockRootProof: abi.encodePacked(getHistoricalSummaryProof()),
-            blockRootIndex: uint64(getBlockHeaderRootIndex()),
-            historicalSummaryIndex: uint64(getHistoricalSummaryIndex()),
-            withdrawalIndex: uint64(getWithdrawalIndex()),
-            blockRoot: getBlockHeaderRoot(),
-            slotRoot: getSlotRoot(),
-            timestampRoot: getTimestampRoot(),
-            executionPayloadRoot: getExecutionPayloadRoot()
-        });
+    //     withdrawalProof = BeaconChainProofs.WithdrawalProof({
+    //         withdrawalProof: abi.encodePacked(getWithdrawalProof()),
+    //         slotProof: abi.encodePacked(getSlotProof()),
+    //         executionPayloadProof: abi.encodePacked(getExecutionPayloadProof()),
+    //         timestampProof: abi.encodePacked(getTimestampProof()),
+    //         historicalSummaryBlockRootProof: abi.encodePacked(getHistoricalSummaryProof()),
+    //         blockRootIndex: uint64(getBlockHeaderRootIndex()),
+    //         historicalSummaryIndex: uint64(getHistoricalSummaryIndex()),
+    //         withdrawalIndex: uint64(getWithdrawalIndex()),
+    //         blockRoot: getBlockHeaderRoot(),
+    //         slotRoot: getSlotRoot(),
+    //         timestampRoot: getTimestampRoot(),
+    //         executionPayloadRoot: getExecutionPayloadRoot()
+    //     });
 
-        validatorFieldsProof = abi.encodePacked(getValidatorProof());
-        validatorFields = getValidatorFields();
-        withdrawalFields =  getWithdrawalFields();
-    }
+    //     validatorFieldsProof = abi.encodePacked(getValidatorProof());
+    //     validatorFields = getValidatorFields();
+    //     withdrawalFields =  getWithdrawalFields();
+    // }
 
-    function encodeToCapsuleParam() public returns (bytes memory encodedProof) {
-        (
-            BeaconChainProofs.StateRootProof memory stateRootProof,
-            BeaconChainProofs.WithdrawalProof memory withdrawalProof,
-            bytes memory validatorFieldsProof,
-            bytes32[] memory validatorFields,
-            bytes32[] memory withdrawalFields
-        ) = values();
+    // function encodeToCapsuleParam() public returns (bytes memory encodedProof) {
+    //     (
+    //         BeaconChainProofs.StateRootProof memory stateRootProof,
+    //         BeaconChainProofs.WithdrawalProof memory withdrawalProof,
+    //         bytes memory validatorFieldsProof,
+    //         bytes32[] memory validatorFields,
+    //         bytes32[] memory withdrawalFields
+    //     ) = values();
 
-        return abi.encode(
-            stateRootProof,
-            withdrawalProof,
-            validatorFieldsProof,
-            validatorFields,
-            withdrawalFields
-        );
+    //     return abi.encode(
+    //         stateRootProof,
+    //         withdrawalProof,
+    //         validatorFieldsProof,
+    //         validatorFields,
+    //         withdrawalFields
+    //     );
 
-    }
+    // }
 }

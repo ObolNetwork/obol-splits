@@ -16,15 +16,19 @@ import {IObolCapsuleFactory} from "src/interfaces/IObolCapsuleFactory.sol";
 /// @notice A composable state proof based staking contract
 contract ObolCapsule is Clone, IObolCapsule {
 
+    error ObolCapsule__InvalidProofs();
+
     /// -----------------------------------------------------------------------
     /// libraries
     /// -----------------------------------------------------------------------
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address;
 
-    struct Principal {
-        /// @dev exited stake 
-        uint128 exitedStake;
+    struct CapsuleData {
+        /// @dev Last submitted exit epoch
+        uint96 exitedStake;
+        /// @dev Last submitted exit epoch
+        uint64 lastSubmittedExitEpoch;
         /// @dev pending amount of stake to claim
         uint128 pendingStakeToClaim;
     }
@@ -71,10 +75,10 @@ contract ObolCapsule is Clone, IObolCapsule {
     /// -----------------------------------------------------------------------
 
     /// @notice validator pubkey hash to status
-    mapping (bytes32 validatorPubkeyHash => IProofVerifier.VALIDATOR_STATUS status) public validators;
+    // mapping (bytes32 validatorPubkeyHash => IProofVerifier.VALIDATOR_STATUS status) public validators;
 
-    /// @notice Tracks the amount of stake
-    Principal public principalAmount;
+    /// @notice Tracks capsule state
+    CapsuleData public capsuleInfo;
 
 
     constructor(
@@ -103,16 +107,6 @@ contract ObolCapsule is Clone, IObolCapsule {
     ) external payable override {
         bytes32 pubkeyHash = BeaconChainProofs.hashValidatorBLSPubkey(pubkey);
 
-       IProofVerifier.VALIDATOR_STATUS status = validators[pubkeyHash];
-
-        // @NB We don't validate stake size because EIP-7251 
-        // could enable validator effective balance top up
-
-        /// Effects
-        if (status == IProofVerifier.VALIDATOR_STATUS.INACTIVE) {
-            validators[pubkeyHash] = IProofVerifier.VALIDATOR_STATUS.ACTIVE;
-        }
-
         /// Interaction
         ethDepositContract.deposit{value: msg.value}(
             pubkey,
@@ -125,19 +119,19 @@ contract ObolCapsule is Clone, IObolCapsule {
     }
 
     /// @notice Process a validator exits
+    /// @dev !!!IMPORTANT!!! Submit exit proofs in order of least recent to most recent
     /// @param oracleTimestamp oracle timestamp 
     /// @param exitProof a merkle multi-proof of exited validators
-    // @TODO do for 1 single validator first in one block ✅
-    // then figure out for multiple validators in one block using historical summaries
-    // then figure out for multiple validators in multiple blocks historical summaries
     function processValidatorExit(
         uint64 oracleTimestamp,
         bytes calldata exitProof
     ) external returns (
-        uint256 totalExitedBalance,
-        bytes32[] memory validatorPubkeyHashses
+        uint256 totalExitedBalance
     ) {
         /// Checks
+
+        // @TODO verify withdrawal credential points to this contract
+        // how do i know which vals has been used.
 
         // we ensure the validator has exited i.e. withdrawable_epoch and exit_epoch have been set
         // we than verify the balance
@@ -145,44 +139,38 @@ contract ObolCapsule is Clone, IObolCapsule {
         
         // @TODO for slashed validators figure out how to achieve ensuring the 
         // proof is posted after the second penalty is applied
+       uint256 leastMostRecentExitEpoch = 0;
        (
             totalExitedBalance,
-            validatorPubkeyHashses
+            leastMostRecentExitEpoch
        ) = _verifyExit(oracleTimestamp, exitProof);
         
         /// Effects
-        uint256 i = 0;
-        uint256 size = validatorPubkeyHashses.length;
 
-        for (; i < size;) {
-            bytes32 validatorPubkeyHash = validatorPubkeyHashses[i];
-            
-            if (validators[validatorPubkeyHash] != IProofVerifier.VALIDATOR_STATUS.ACTIVE) {
-                revert Invalid_ValidatorPubkey(validatorPubkeyHash);
-            }
+        /// Load from  storage
+        CapsuleData memory currentCapsuleInfo = capsuleInfo;
 
-            // Write to Storage
-            validators[validatorPubkeyHash] = IProofVerifier.VALIDATOR_STATUS.WITHDRAWN;
-
-            unchecked {
-                i++;
-            }
+        if (currentCapsuleInfo.lastSubmittedExitEpoch > leastMostRecentExitEpoch) {
+            revert ObolCapsule__InvalidProofs();
         }
 
+        currentCapsuleInfo.lastSubmittedExitEpoch = uint64(leastMostRecentExitEpoch);
+        currentCapsuleInfo.pendingStakeToClaim += uint128(totalExitedBalance);
+        
         /// Write to storage
-        principalAmount.pendingStakeToClaim += uint128(totalExitedBalance);
-
+        capsuleInfo = currentCapsuleInfo;
+        
         emit ValidatorExit(
             uint256(oracleTimestamp),
             totalExitedBalance,
-            validatorPubkeyHashses
-      );
+            uint256(leastMostRecentExitEpoch)
+       );
 
     }
 
     /// @notice Distribute ETH available in the contract
     function distribute() external {
-        Principal memory currentPrincipalData = principalAmount;
+        CapsuleData memory currentCapsuleData = capsuleInfo;
         uint256 currentBalance = address(this).balance;
 
         if (currentBalance == 0) revert Invalid_Balance();
@@ -191,16 +179,16 @@ contract ObolCapsule is Clone, IObolCapsule {
             uint256 principal,
             uint256 rewards,
             uint256 fee
-        ) = _calculateDistribution(currentBalance, currentPrincipalData);
+        ) = _calculateDistribution(currentBalance, currentCapsuleData);
 
         /// Effects
         if (principal > 0) {
-            currentPrincipalData.pendingStakeToClaim -= uint128(principal);
-            currentPrincipalData.exitedStake += uint128(principal);
+            currentCapsuleData.pendingStakeToClaim -= uint128(principal);
+            currentCapsuleData.exitedStake += uint96(principal);
         }
 
         /// Write to storage
-        principalAmount = currentPrincipalData;
+        capsuleInfo = currentCapsuleData;
 
         /// Interactions
         if (principal > 0) principalRecipient().safeTransferETH(principal);
@@ -210,7 +198,7 @@ contract ObolCapsule is Clone, IObolCapsule {
         emit DistributeFunds(principal, rewards, fee);
     }
 
-    function _calculateDistribution(uint256 balance, Principal memory currentPrincipal) 
+    function _calculateDistribution(uint256 balance, CapsuleData memory currentPrincipal) 
         internal 
         view
         returns(
@@ -263,7 +251,7 @@ contract ObolCapsule is Clone, IObolCapsule {
         bytes calldata proof
     ) external view returns (
         uint256 totalExitedBalance,
-        bytes32[] memory validatorPubkeyHashses
+        uint256 mostRecentExitEpoch
     ) {
        return _verifyExit(oracleTimestamp, proof);
     }
@@ -296,12 +284,17 @@ contract ObolCapsule is Clone, IObolCapsule {
         bytes calldata proof
     ) internal view returns (
         uint256 totalExitedBalance,
-        bytes32[] memory validatorPubkeyHashses
+        uint256 mostRecentExitEpoch
     ) {
         IProofVerifier proofVerifier = capsuleFactory.getVerifier();
+        bytes32 withdrawalCredentials = bytes32(capsuleWithdrawalCredentials());
         ( 
             totalExitedBalance,
-            validatorPubkeyHashses
-        ) = proofVerifier.verifyExitProof(oracleTimestamp, proof);
+            mostRecentExitEpoch
+        ) = proofVerifier.verifyExitProof(
+            oracleTimestamp,
+            withdrawalCredentials,
+            proof
+        );
     }
 }

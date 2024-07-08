@@ -15,9 +15,10 @@ interface IProofVerifier {
 
     function verifyExitProof(
         uint256 oracleTimestamp,
+        bytes32 withdrawalCredentials,
         bytes calldata proof
     ) external view returns(
         uint256 totalExitedBalance,
-        bytes32[] memory validatorPubkeyHashses
+        uint256 mostRecentExitEpoch
     );
 }

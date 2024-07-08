@@ -13,6 +13,9 @@ contract StateProofVerifierV1 is IProofVerifier {
     using BeaconChainProofs for *;
 
     error Invalid_Inputs();
+    error StateProofVerifierV1__ValidatorSlashedMissingSecondPenalty(bytes32 pubkeyHash);
+    error StateProofVerifierV1__ValidatorNotExited(bytes32 pubkeyHash);
+    error StateProofVerifierV1__IncorrectWithdrawalCredentials(bytes32 pubkeyHash);
 
     /// @dev beacon roots contract
     address public constant BEACON_BLOCK_ROOTS_CONTRACT = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
@@ -32,108 +35,111 @@ contract StateProofVerifierV1 is IProofVerifier {
     /// @param proof withdrawal proofs 
     function verifyExitProof(
         uint256 oracleTimestamp,
+        bytes32 withdrawalCredentials,
         bytes calldata proof
     ) external view override returns (
         uint256 totalExitedBalance,
-        bytes32[] memory validatorPubkeyHashses
+        uint256 leastRecentExitEpoch
     ) {
-        // BeaconChainProofs.StateRootProof memory stateRootProof,
-        // BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
-        // bytes memory validatorFieldsProof,
-        // bytes32[][] memory validatorFields
         (
-            BeaconChainProofs.StateRootProof memory stateRootProof,
-            BeaconChainProofs.BalanceProof memory balanceProofs,
-            BeaconChainProofs.ValidatorProof memory validatorProof,
-            bytes32[] memory validatorFields
+            BeaconChainProofs.ValidatorListAndBalanceListRootProof memory vbProof,
+            BeaconChainProofs.BalanceProof memory balanceProof,
+            BeaconChainProofs.ValidatorProof memory validatorProof
         ) = abi.decode(
             proof,
             (
-                BeaconChainProofs.StateRootProof,
+                BeaconChainProofs.ValidatorListAndBalanceListRootProof,
                 BeaconChainProofs.BalanceProof,
-                BeaconChainProofs.ValidatorProof,
-                bytes32[]
-            ));
+                BeaconChainProofs.ValidatorProof
+            )
+        );
             
-        // Verify passed-in beaconStateRoot against provided block root:
-        BeaconChainProofs.verifyStateRootAgainstLatestBlockRoot({
-            latestBlockRoot: getBeaconBlockRootFromTimestamp(oracleTimestamp),
-            beaconStateRoot: stateRootProof.beaconStateRoot,
-            stateRootProof: stateRootProof.proof
+        // Verify passed-in balanceList and validatorList roots against provided block root:
+        BeaconChainProofs.verifyValidatorRootAndBalanceRootAgainstBlockRoot({
+            blockRoot: getBeaconBlockRootFromTimestamp(oracleTimestamp),
+            validatorListRoot: validatorProof.validatorListRoot,
+            balanceListRoot: balanceProof.balanceListRoot,
+            multiProof: vbProof.proof
         });
 
         return _verifyExitProofs(
-            getBeaconBlockRootFromTimestamp(oracleTimestamp),
-            withdrawalProofs,
-            validatorFieldsProofs,
-            validatorFields,
-            withdrawalFields
+            oracleTimestamp,
+            withdrawalCredentials,
+            validatorProof,
+            balanceProof
         );
     }
 
     function _verifyExitProofs(
-        
+        uint256 oracleTimestamp,
+        bytes32 withdrawalCredentials,
+        BeaconChainProofs.ValidatorProof memory validatorProof,
+        BeaconChainProofs.BalanceProof memory balanceProof
     ) internal view returns (
         uint256 totalExitedBalance,
-        bytes32[] memory validatorPubkeyHashses
-    ) {
+        uint256 leastRecentExitEpoch
+    ) {       
+        // Verify validator fields
+        BeaconChainProofs.verifyValidatorFields({
+            validatorListRoot: validatorProof.validatorListRoot,
+            validatorFields: validatorProof.validatorFields,
+            proof: validatorProof.proof,
+            validatorIndices: validatorProof.validatorIndices
+        });
+
+        // Verify validator balances
+        BeaconChainProofs.verifyValidatorsBalance({
+            balanceListRoot: balanceProof.balanceListRoot,
+            proof: balanceProof.proof,
+            validatorIndices: validatorProof.validatorIndices,
+            validatorBalances: balanceProof.validatorBalances
+        });
+
+        // All proofs are valid
+        uint256 validatorSize = validatorProof.validatorIndices.length;
+        leastRecentExitEpoch == 0;
+        for (uint256 i = 0; i < validatorSize; i++) {
+
+            bytes32[] memory validatorFields = validatorProof.validatorFields[i];
+
+            bytes32 validatorPubkeyHash = validatorFields.getPubkeyHash();
+            uint256 exitEpoch = uint256(validatorFields.getExitEpoch());
+
+            if (validatorFields.getWithdrawalCredentials() != withdrawalCredentials) {
+                revert StateProofVerifierV1__IncorrectWithdrawalCredentials(validatorPubkeyHash);
+            }
+
+            // @TODO verify that non of the validators exit epoch is < than lastsummitedExitEpoch else revert
+
+            if (validatorFields.hasValidatorExited() == false) revert StateProofVerifierV1__ValidatorNotExited(validatorPubkeyHash);
+
+            if (validatorFields.isValidatorSlashed() == true) {
+                if (validatorFields.hasSlashedValidatorRecievedSecondPenalty(oracleTimestamp) == false) {
+                    revert StateProofVerifierV1__ValidatorSlashedMissingSecondPenalty(validatorPubkeyHash);
+                }
+            }
+
+            // Write 
+            if (leastRecentExitEpoch > exitEpoch || leastRecentExitEpoch == 0) {
+                leastRecentExitEpoch = exitEpoch;
+            }
+            
+            totalExitedBalance += BeaconChainProofs.getBalanceAtIndex(
+                balanceProof.validatorBalances[i],
+                validatorProof.validatorIndices[i]
+            );
+        }
 
     }
 
-    // function _verifyWithdrawal(
-    //     bytes32 beaconStateRoot,
-    //     BeaconChainProofs.WithdrawalProof memory withdrawalProof,
-    //     bytes memory validatorFieldsProof,
-    //     bytes32[] memory validatorFields,
-    //     bytes32[] memory withdrawalFields
-    // ) internal view returns (Withdrawal memory withdrawal) {
-    //     uint64 withdrawalTimestamp = withdrawalProof.getWithdrawalTimestamp();
-    //     bytes32 validatorPubkeyHash = validatorFields.getPubkeyHash();
-
-    //     BeaconChainProofs.verifyWithdrawal({
-    //         beaconStateRoot: beaconStateRoot, 
-    //         withdrawalFields: withdrawalFields, 
-    //         withdrawalProof: withdrawalProof
-    //     });
-
-    //     uint40 validatorIndex = withdrawalFields.getValidatorIndex();
-
-    //     // Verify passed-in validatorFields against verified beaconStateRoot:
-    //     BeaconChainProofs.verifyValidatorFields({
-    //         beaconStateRoot: beaconStateRoot,
-    //         validatorFields: validatorFields,
-    //         validatorFieldsProof: validatorFieldsProof,
-    //         validatorIndex: validatorIndex
-    //     });
-
-    //     uint64 withdrawalAmountGwei = withdrawalFields.getWithdrawalAmountGwei();
-
-    //     VALIDATOR_STATUS validatorStatus = VALIDATOR_STATUS.ACTIVE;
-    //     /**
-    //      * If the withdrawal
-    //      * 's epoch comes after the validator's "withdrawable epoch," we know the validator        
-    //      * has fully withdrawn, and we process this as a full withdrawal.
-    //      */
-    //     if (withdrawalProof.getWithdrawalEpoch() >= validatorFields.getWithdrawableEpoch()) {
-    //         validatorStatus = VALIDATOR_STATUS.WITHDRAWN;
-    //     }
-
-    //     withdrawal = Withdrawal(
-    //         validatorPubkeyHash,
-    //         withdrawalAmountGwei,
-    //         withdrawalTimestamp,
-    //         validatorStatus
-    //     );
-    // }
-
     /// @dev Returns the becaon block root based on timestamp
     /// @param timestamp timestamp to fetch state root 
-    /// @return stateRoot beacon state root 
-    function getBeaconBlockRootFromTimestamp(uint256 timestamp) public view returns (bytes32 stateRoot) {
+    /// @return blockRoot beacon block root 
+    function getBeaconBlockRootFromTimestamp(uint256 timestamp) public view returns (bytes32 blockRoot) {
         (bool ret, bytes memory data) = BEACON_BLOCK_ROOTS_CONTRACT.staticcall(bytes.concat(bytes32(timestamp)));
         if (ret == false) revert Invalid_Timestamp(timestamp);
 
-        stateRoot = bytes32(data);
+        blockRoot = bytes32(data);
     }
 
 
