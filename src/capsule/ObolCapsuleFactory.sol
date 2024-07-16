@@ -36,7 +36,8 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
         address _ethDepositContract,
         address _owner,
         address _feeRecipient,
-        uint256 _feeShare
+        uint256 _feeShare,
+        uint56 _becaonChainGenesisTime
     ) {
         _initializeOwner(_owner);
 
@@ -49,7 +50,7 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
 
         stateProofVerifier = new StateProofVerifierV1{
             salt: keccak256("obol.verifier.v1")
-        }();
+        }(_becaonChainGenesisTime);
     }
 
     /// Create a new OptimisticWithdrawalRecipient clone

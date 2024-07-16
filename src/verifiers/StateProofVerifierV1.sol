@@ -17,43 +17,32 @@ contract StateProofVerifierV1 is IProofVerifier {
     error StateProofVerifierV1__ValidatorNotExited(bytes32 pubkeyHash);
     error StateProofVerifierV1__IncorrectWithdrawalCredentials(bytes32 pubkeyHash);
 
-    /// @dev beacon roots contract
+    /// @notice Address of the EIP-4788 beacon block root oracle
+    /// https://eips.ethereum.org/EIPS/eip-4788
     address public constant BEACON_BLOCK_ROOTS_CONTRACT = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
     
     /// @dev version
     uint256 public constant VERSION = 1;
 
-    /// @dev hardfork it supports
-    string public HARDFORK;
+    /// @dev Genesis time
+    uint256 public immutable GENESIS_TIME;
 
-    constructor() {
-        HARDFORK = 'cancun/deneb';
+   
+
+    constructor(uint256 genesisTime) {
+        GENESIS_TIME = genesisTime;
     }
 
     /// @dev verify Becaon chain validator withdrawals
     /// @param oracleTimestamp beacon block roots timestamp
-    /// @param proof withdrawal proofs 
+    /// @param withdrawalCredentials withdrawal credential the validator fields is expected to have
     function verifyExitProof(
         uint256 oracleTimestamp,
         bytes32 withdrawalCredentials,
-        bytes calldata proof
-    ) external view override returns (
-        uint256 totalExitedBalance,
-        uint256 leastRecentExitEpoch
-    ) {
-        (
-            BeaconChainProofs.ValidatorListAndBalanceListRootProof memory vbProof,
-            BeaconChainProofs.BalanceProof memory balanceProof,
-            BeaconChainProofs.ValidatorProof memory validatorProof
-        ) = abi.decode(
-            proof,
-            (
-                BeaconChainProofs.ValidatorListAndBalanceListRootProof,
-                BeaconChainProofs.BalanceProof,
-                BeaconChainProofs.ValidatorProof
-            )
-        );
-            
+        BeaconChainProofs.ValidatorListAndBalanceListRootProof calldata vbProof,
+        BeaconChainProofs.BalanceProof calldata balanceProof,
+        BeaconChainProofs.ValidatorProof calldata validatorProof
+    ) external view override returns (uint256 totalExitedBalanceEther) {     
         // Verify passed-in balanceList and validatorList roots against provided block root:
         BeaconChainProofs.verifyValidatorRootAndBalanceRootAgainstBlockRoot({
             blockRoot: getBeaconBlockRootFromTimestamp(oracleTimestamp),
@@ -62,23 +51,20 @@ contract StateProofVerifierV1 is IProofVerifier {
             multiProof: vbProof.proof
         });
 
-        return _verifyExitProofs(
+        totalExitedBalanceEther = _verifyExitProofs(
             oracleTimestamp,
             withdrawalCredentials,
             validatorProof,
             balanceProof
-        );
+        ) * 1 gwei;
     }
 
     function _verifyExitProofs(
         uint256 oracleTimestamp,
         bytes32 withdrawalCredentials,
-        BeaconChainProofs.ValidatorProof memory validatorProof,
-        BeaconChainProofs.BalanceProof memory balanceProof
-    ) internal view returns (
-        uint256 totalExitedBalance,
-        uint256 leastRecentExitEpoch
-    ) {       
+        BeaconChainProofs.ValidatorProof calldata validatorProof,
+        BeaconChainProofs.BalanceProof calldata balanceProof
+    ) internal view returns (uint256 totalExitedBalanceGwei) {       
         // Verify validator fields
         BeaconChainProofs.verifyValidatorFields({
             validatorListRoot: validatorProof.validatorListRoot,
@@ -97,39 +83,44 @@ contract StateProofVerifierV1 is IProofVerifier {
 
         // All proofs are valid
         uint256 validatorSize = validatorProof.validatorIndices.length;
-        leastRecentExitEpoch == 0;
+        // leastRecentExitEpoch = 0;
         for (uint256 i = 0; i < validatorSize; i++) {
 
             bytes32[] memory validatorFields = validatorProof.validatorFields[i];
 
             bytes32 validatorPubkeyHash = validatorFields.getPubkeyHash();
-            uint256 exitEpoch = uint256(validatorFields.getExitEpoch());
+            // uint256 exitEpoch = uint256(validatorFields.getExitEpoch());
 
-            if (validatorFields.getWithdrawalCredentials() != withdrawalCredentials) {
-                revert StateProofVerifierV1__IncorrectWithdrawalCredentials(validatorPubkeyHash);
-            }
-
-            // @TODO verify that non of the validators exit epoch is < than lastsummitedExitEpoch else revert
+            BeaconChainProofs.verifyValidatorWithdrawalCredentials({
+                validatorFields: validatorFields,
+                withdrawalCredentials: withdrawalCredentials
+            });
 
             if (validatorFields.hasValidatorExited() == false) revert StateProofVerifierV1__ValidatorNotExited(validatorPubkeyHash);
 
             if (validatorFields.isValidatorSlashed() == true) {
-                if (validatorFields.hasSlashedValidatorRecievedSecondPenalty(oracleTimestamp) == false) {
+                if (validatorFields.hasSlashedValidatorRecievedSecondPenalty(oracleTimestamp, GENESIS_TIME) == false) {
                     revert StateProofVerifierV1__ValidatorSlashedMissingSecondPenalty(validatorPubkeyHash);
                 }
             }
 
-            // Write 
-            if (leastRecentExitEpoch > exitEpoch || leastRecentExitEpoch == 0) {
-                leastRecentExitEpoch = exitEpoch;
-            }
-            
-            totalExitedBalance += BeaconChainProofs.getBalanceAtIndex(
+            uint256 validatorEffectiveBalanceGwei = BeaconChainProofs.getEffectiveBalanceGwei(
+                validatorFields
+            );
+
+            uint256 validatorCurrentBalance = BeaconChainProofs.getBalanceAtIndex(
                 balanceProof.validatorBalances[i],
                 validatorProof.validatorIndices[i]
             );
-        }
 
+            if (validatorCurrentBalance >= validatorEffectiveBalanceGwei) {
+                /// if current balance > effective balance - rewards part of current balance
+                totalExitedBalanceGwei += validatorEffectiveBalanceGwei;
+            } else {
+                /// if current balance < effective balance - validator slashed
+                totalExitedBalanceGwei += validatorCurrentBalance;
+            }
+        }
     }
 
     /// @dev Returns the becaon block root based on timestamp

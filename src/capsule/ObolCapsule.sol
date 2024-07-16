@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {Clone} from "solady/utils/Clone.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {IETHPOSDeposit} from "src/interfaces/IETHPOSDeposit.sol";
 import {IProofVerifier} from "src/interfaces/IProofVerifier.sol";
@@ -9,14 +8,16 @@ import {IObolCapsule} from "src/interfaces/IObolCapsule.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 import {IObolCapsuleFactory} from "src/interfaces/IObolCapsuleFactory.sol";
+import {ObolCapsuleStorageV1} from "src/capsule/ObolCapsuleStorageV1.sol";
 
 
 /// @title ObolCapsule
 /// @author Obol
 /// @notice A composable state proof based staking contract
-contract ObolCapsule is Clone, IObolCapsule {
+contract ObolCapsule is ObolCapsuleStorageV1 {
 
     error ObolCapsule__InvalidProofs();
+    error ObolCapsule__ValidatorExitProofAlreadySubmitted(uint256 validatorIndex);
 
     /// -----------------------------------------------------------------------
     /// libraries
@@ -24,21 +25,14 @@ contract ObolCapsule is Clone, IObolCapsule {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address;
 
-    struct CapsuleData {
-        /// @dev Last submitted exit epoch
-        uint96 exitedStake;
-        /// @dev Last submitted exit epoch
-        uint64 lastSubmittedExitEpoch;
-        /// @dev pending amount of stake to claim
-        uint128 pendingStakeToClaim;
-    }
-
     /// -----------------------------------------------------------------------
     /// storage - constants & immutables
     /// -----------------------------------------------------------------------
 
     uint256 internal constant ADDRESS_BITS = 160;
     uint256 internal constant PERCENTAGE_SCALE = 1e5;
+    uint256 internal constant BITS_PER_UINT256 = 256;
+    uint256 internal constant BIT_SET = 1;
 
     /// @notice This is the beacon chain deposit contract
     IETHPOSDeposit public immutable ethDepositContract;
@@ -51,6 +45,12 @@ contract ObolCapsule is Clone, IObolCapsule {
 
     /// @notice fee recipient
     address public immutable feeRecipient;
+
+    /// @dev version
+    uint256 internal constant VERSION = 0x1;
+
+    /// @dev 
+    uint256 internal constant MIN_EFFECTIVE_BALANCE = 32 ether;
 
     /// -----------------------------------------------------------------------
     /// storage - cwia offsets
@@ -68,18 +68,6 @@ contract ObolCapsule is Clone, IObolCapsule {
     // 40 = rewardAddress_offset (20) + recoveryAddress_size (address, 20
     // bytes)
     uint256 internal constant RECOVERY_ADDRESS_OFFSET = 40;
-
-    
-    /// -----------------------------------------------------------------------
-    /// storage
-    /// -----------------------------------------------------------------------
-
-    /// @notice validator pubkey hash to status
-    // mapping (bytes32 validatorPubkeyHash => IProofVerifier.VALIDATOR_STATUS status) public validators;
-
-    /// @notice Tracks capsule state
-    CapsuleData public capsuleInfo;
-
 
     constructor(
         IETHPOSDeposit _ethDepositContract,
@@ -105,13 +93,15 @@ contract ObolCapsule is Clone, IObolCapsule {
         bytes calldata signature,
         bytes32 depositDataRoot
     ) external payable override {
+        // require(msg.value == MIN_EFFECTIVE_BALANCE, "invalid stake value");
+
         bytes32 pubkeyHash = BeaconChainProofs.hashValidatorBLSPubkey(pubkey);
 
         /// Interaction
         ethDepositContract.deposit{value: msg.value}(
             pubkey,
             capsuleWithdrawalCredentials(), 
-            signature, 
+            signature,
             depositDataRoot
         );
         
@@ -119,53 +109,34 @@ contract ObolCapsule is Clone, IObolCapsule {
     }
 
     /// @notice Process a validator exits
-    /// @dev !!!IMPORTANT!!! Submit exit proofs in order of least recent to most recent
     /// @param oracleTimestamp oracle timestamp 
-    /// @param exitProof a merkle multi-proof of exited validators
+    /// @param vbProof validator list and balance list proof
+    /// @param balanceProof validator balances proof
+    /// @param validatorProof validator fields proof
     function processValidatorExit(
         uint64 oracleTimestamp,
-        bytes calldata exitProof
-    ) external returns (
-        uint256 totalExitedBalance
-    ) {
+        BeaconChainProofs.ValidatorListAndBalanceListRootProof calldata vbProof,
+        BeaconChainProofs.BalanceProof calldata balanceProof,
+        BeaconChainProofs.ValidatorProof calldata validatorProof
+    ) external returns (uint256 totalExitedBalance) {
         /// Checks
+        totalExitedBalance = _verifyExit(oracleTimestamp, vbProof, balanceProof, validatorProof);
 
-        // @TODO verify withdrawal credential points to this contract
-        // how do i know which vals has been used.
+        // Verify that the an already processed validator is being re-submitted
+        _verifyValidatorExitProofHasNotBeenSubmitted(
+            validatorProof.validatorIndices
+        );
 
-        // we ensure the validator has exited i.e. withdrawable_epoch and exit_epoch have been set
-        // we than verify the balance
-        // we then add the balance to pendingStakeToClaim
-        
-        // @TODO for slashed validators figure out how to achieve ensuring the 
-        // proof is posted after the second penalty is applied
-       uint256 leastMostRecentExitEpoch = 0;
-       (
-            totalExitedBalance,
-            leastMostRecentExitEpoch
-       ) = _verifyExit(oracleTimestamp, exitProof);
-        
         /// Effects
-
-        /// Load from  storage
-        CapsuleData memory currentCapsuleInfo = capsuleInfo;
-
-        if (currentCapsuleInfo.lastSubmittedExitEpoch > leastMostRecentExitEpoch) {
-            revert ObolCapsule__InvalidProofs();
-        }
-
-        currentCapsuleInfo.lastSubmittedExitEpoch = uint64(leastMostRecentExitEpoch);
-        currentCapsuleInfo.pendingStakeToClaim += uint128(totalExitedBalance);
         
         /// Write to storage
-        capsuleInfo = currentCapsuleInfo;
+        capsuleInfo.pendingStakeToClaim += uint128(totalExitedBalance);
+        _storeValidatorIndices(validatorProof.validatorIndices);
         
         emit ValidatorExit(
             uint256(oracleTimestamp),
-            totalExitedBalance,
-            uint256(leastMostRecentExitEpoch)
-       );
-
+            totalExitedBalance
+        );
     }
 
     /// @notice Distribute ETH available in the contract
@@ -248,12 +219,11 @@ contract ObolCapsule is Clone, IObolCapsule {
     /// @param oracleTimestamp beacon stat
     function verfiyExitProof(
         uint64 oracleTimestamp,
-        bytes calldata proof
-    ) external view returns (
-        uint256 totalExitedBalance,
-        uint256 mostRecentExitEpoch
-    ) {
-       return _verifyExit(oracleTimestamp, proof);
+        BeaconChainProofs.ValidatorListAndBalanceListRootProof calldata vbProof,
+        BeaconChainProofs.BalanceProof calldata balanceProof,
+        BeaconChainProofs.ValidatorProof calldata validatorProof
+    ) external view returns (uint256 totalExitedBalance) {
+       return _verifyExit(oracleTimestamp, vbProof, balanceProof, validatorProof);
     }
 
     /// Address that receives rewards
@@ -279,22 +249,88 @@ contract ObolCapsule is Clone, IObolCapsule {
         return abi.encodePacked(bytes1(uint8(1)), bytes11(0), address(this));
     }
 
+    /// @dev Returns if a validator exit proof has been submitted 
+    function getValidatorExitProofSubmitted(uint40 validatorIndex) external view returns (bool posted) {
+        posted = _validatorExitProofHasBeenSubmitted(validatorIndex);
+    }
+
     function _verifyExit(
         uint64 oracleTimestamp,
-        bytes calldata proof
-    ) internal view returns (
-        uint256 totalExitedBalance,
-        uint256 mostRecentExitEpoch
-    ) {
+        BeaconChainProofs.ValidatorListAndBalanceListRootProof calldata vbProof,
+        BeaconChainProofs.BalanceProof calldata balanceProof,
+        BeaconChainProofs.ValidatorProof calldata validatorProof
+    ) internal view returns ( uint256 totalExitedBalance) {
         IProofVerifier proofVerifier = capsuleFactory.getVerifier();
         bytes32 withdrawalCredentials = bytes32(capsuleWithdrawalCredentials());
         ( 
-            totalExitedBalance,
-            mostRecentExitEpoch
+            totalExitedBalance
         ) = proofVerifier.verifyExitProof(
             oracleTimestamp,
             withdrawalCredentials,
-            proof
+            vbProof,
+            balanceProof,
+            validatorProof
         );
+    }
+
+    function _setBitValue(uint256 position) internal pure returns(uint256 newValue) {
+        newValue = (newValue | ((1) << position));
+    }
+
+    function _getPositionValue(uint256 input, uint256 position) internal pure returns (uint256) {
+        uint256 mask = 1 << position;
+        uint256 maskedInput = input & mask;
+        return uint256 (maskedInput >> position);
+    }
+
+    function _isBitSet(uint256 input, uint256 position) internal pure returns (bool) {
+        return _getPositionValue(input, position) == BIT_SET;
+    }
+
+    function _convertValidatorIndexToBitPos(uint256 validatorIndex) internal pure returns (uint256 index, uint256 position) {
+        index = validatorIndex / BITS_PER_UINT256;
+        position = validatorIndex % BITS_PER_UINT256;
+    }
+
+    function _verifyValidatorExitProofHasNotBeenSubmitted(uint40[] calldata validatorIndices) internal view {
+        uint256 validatorIndicesSize = validatorIndices.length; 
+        for (uint256 i = 0; i < validatorIndicesSize; i++) {
+            if (_validatorExitProofHasBeenSubmitted(validatorIndices[i]) == true) {
+                revert ObolCapsule__ValidatorExitProofAlreadySubmitted(validatorIndices[i]);
+            }
+        }
+    }
+
+    function _validatorExitProofHasBeenSubmitted(uint40 validatorIndex) internal view returns (bool posted) {
+        (uint256 index,  uint256 position) = _convertValidatorIndexToBitPos(validatorIndex);
+        uint256 exitValidatorsMap = exitedValidators[index];
+        posted = _isBitSet(exitValidatorsMap, position);
+    }
+
+    function _storeValidatorIndices(uint40[] calldata validatorIndices) internal {
+        uint256 validatorIndicesSize = validatorIndices.length;
+        
+        uint256 prevIndex = type(uint256).max;
+        uint256 currentExitValidatorsMap;
+
+        for (uint256 i = 0; i < validatorIndicesSize; i++) {
+            (uint256 index,  uint256 position) = _convertValidatorIndexToBitPos(validatorIndices[i]);
+            if (prevIndex == type(uint256).max) {
+                // store map 
+                currentExitValidatorsMap = exitedValidators[index];
+                prevIndex = index;
+            } else if (prevIndex != index) {
+
+                // Write To Storage
+                exitedValidators[prevIndex] = currentExitValidatorsMap;
+
+                // Change
+                prevIndex = index;
+                currentExitValidatorsMap = exitedValidators[index]; 
+            }
+
+            // update bit
+            currentExitValidatorsMap = _setBitValue(position);
+        }
     }
 }

@@ -14,6 +14,7 @@ library BeaconChainProofs {
     error BeaconChainProofs__InvalidIndicesAndFields(uint256 indexSize, uint256 fieldSize);
     error BeaconChainProofs__InvalidValidatorFieldsMerkleProof();
     error BeaconChainProofs__InvalidIndicesAndBalances();
+    error BeaconChainProofs__IncorrectWithdrawalCredentials(bytes32 pubkeyHash);
 
     // constants are the number of fields and the heights of the different merkle trees used in merkleizing beacon chain containers
     uint256 internal constant NUM_BEACON_BLOCK_HEADER_FIELDS = 5;
@@ -382,6 +383,13 @@ library BeaconChainProofs {
             Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_EXIT_EPOCH_INDEX]);
     }
 
+
+    function verifyValidatorWithdrawalCredentials(bytes32[] memory validatorFields, bytes32 withdrawalCredentials) internal pure {
+        if (getWithdrawalCredentials(validatorFields) != withdrawalCredentials) {
+            revert BeaconChainProofs__IncorrectWithdrawalCredentials(getPubkeyHash(validatorFields));
+        }
+    }
+
     function isValidatorSlashed(bytes32[] memory validatorFields) internal pure returns (bool) {
         // TODO verify this value
         return validatorFields[VALIDATOR_SLASHED_INDEX] != bytes32(0);
@@ -394,8 +402,8 @@ library BeaconChainProofs {
     }
 
     /// @dev Returns if a slashed validator has reecieved second penalty
-    function hasSlashedValidatorRecievedSecondPenalty(bytes32[] memory validatorFields, uint256 oracleTimestamp) internal pure returns (bool) {
-        uint256 currentEpoch = oracleTimestamp / EPOCH;
+    function hasSlashedValidatorRecievedSecondPenalty(bytes32[] memory validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns (bool) {
+        uint256 currentEpoch = (oracleTimestamp - genesisTime) / EPOCH;
 
         uint64 withdrawalEpoch = getWithdrawableEpoch(validatorFields);
         // the reason for division by 2 https://eth2book.info/capella/annotated-spec/#slashings

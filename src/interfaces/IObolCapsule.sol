@@ -34,8 +34,7 @@ interface IObolCapsule {
     
     event ValidatorExit(
         uint256 oracleTimestamp,
-        uint256 totalExitedBalance,
-        uint256 mostRecentExitEpoch
+        uint256 totalExitedBalance
     );
 
 
