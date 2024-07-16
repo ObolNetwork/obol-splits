@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 import "forge-std/Test.sol";
 
-import { StateProofVerifierV1 } from "src/verifiers/StateProofVerifierV1.sol";
+// import { StateProofVerifierV1 } from "src/verifiers/StateProofVerifierV1.sol";
 // import { StateProofVerifierHarnessV1 } from "src/test/harness/StateProofVerifierHarnessV1.sol";
 import { ProofParser } from "./ProofParser.sol";
 import { BeaconChainProofs } from "src/libraries/BeaconChainProof.sol";
@@ -10,7 +10,7 @@ import { BeaconChainProofs } from "src/libraries/BeaconChainProof.sol";
 
 contract StateProofVerifierV1Test is Test {
 
-    StateProofVerifierV1 verifier;
+    // StateProofVerifierV1 verifier;
     // StateProofVerifierHarnessV1 harnessV1;
     ProofParser parser;
 

@@ -5,11 +5,10 @@ import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 import {IProofVerifier} from "src/interfaces/IProofVerifier.sol";
 
 
-
 /// @title StateProofVerifierV1
 /// @author Obol
 /// @notice A beacon state proof verifier staking contract
-contract StateProofVerifierV1 is IProofVerifier {
+abstract contract StateProofVerifierV1 is IProofVerifier {
     using BeaconChainProofs for *;
 
     error Invalid_Inputs();
@@ -20,14 +19,9 @@ contract StateProofVerifierV1 is IProofVerifier {
     /// @notice Address of the EIP-4788 beacon block root oracle
     /// https://eips.ethereum.org/EIPS/eip-4788
     address public constant BEACON_BLOCK_ROOTS_CONTRACT = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
-    
-    /// @dev version
-    uint256 public constant VERSION = 1;
 
     /// @dev Genesis time
     uint256 public immutable GENESIS_TIME;
-
-   
 
     constructor(uint256 genesisTime) {
         GENESIS_TIME = genesisTime;
@@ -42,7 +36,7 @@ contract StateProofVerifierV1 is IProofVerifier {
         BeaconChainProofs.ValidatorListAndBalanceListRootProof calldata vbProof,
         BeaconChainProofs.BalanceProof calldata balanceProof,
         BeaconChainProofs.ValidatorProof calldata validatorProof
-    ) external view override returns (uint256 totalExitedBalanceEther) {     
+    ) public view override returns (uint256 totalExitedBalanceEther) {     
         // Verify passed-in balanceList and validatorList roots against provided block root:
         BeaconChainProofs.verifyValidatorRootAndBalanceRootAgainstBlockRoot({
             blockRoot: getBeaconBlockRootFromTimestamp(oracleTimestamp),
@@ -96,17 +90,18 @@ contract StateProofVerifierV1 is IProofVerifier {
                 withdrawalCredentials: withdrawalCredentials
             });
 
-            if (validatorFields.hasValidatorExited() == false) revert StateProofVerifierV1__ValidatorNotExited(validatorPubkeyHash);
+            uint256 validatorEffectiveBalanceGwei = BeaconChainProofs.getEffectiveBalanceGwei(
+                validatorFields
+            );
 
+            if (validatorFields.hasValidatorExited() == false) revert StateProofVerifierV1__ValidatorNotExited(validatorPubkeyHash);
             if (validatorFields.isValidatorSlashed() == true) {
                 if (validatorFields.hasSlashedValidatorRecievedSecondPenalty(oracleTimestamp, GENESIS_TIME) == false) {
                     revert StateProofVerifierV1__ValidatorSlashedMissingSecondPenalty(validatorPubkeyHash);
                 }
             }
 
-            uint256 validatorEffectiveBalanceGwei = BeaconChainProofs.getEffectiveBalanceGwei(
-                validatorFields
-            );
+            // @TODO allow non-slashed validators to use effective balance to post proofs?
 
             uint256 validatorCurrentBalance = BeaconChainProofs.getBalanceAtIndex(
                 balanceProof.validatorBalances[i],

@@ -6,7 +6,8 @@ import {IObolCapsuleFactory} from "src/interfaces/IObolCapsuleFactory.sol";
 import {ObolCapsule} from "src/capsule/ObolCapsule.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
-import {StateProofVerifierV1} from "src/verifiers/StateProofVerifierV1.sol";
+import {BeaconProxy} from "openzeppelin/proxy/beacon/BeaconProxy.sol";
+import {Create2} from "openzeppelin/utils/Create2.sol";
 
 
 /// @title ObolCapsuleFactory
@@ -32,8 +33,12 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
 
     IProofVerifier public stateProofVerifier;
 
+    address public obolCapsuleBeacon;
+
     constructor(
+        address _obolCapsuleBeacon,
         address _ethDepositContract,
+        uint256 _genesisTime,
         address _owner,
         address _feeRecipient,
         uint256 _feeShare,
@@ -43,14 +48,16 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
 
         capsuleImplementation = new ObolCapsule(
             IETHPOSDeposit(_ethDepositContract),
-            IObolCapsuleFactory(address(this)),
+            _genesisTime,
             _feeRecipient,
             _feeShare
         );
 
-        stateProofVerifier = new StateProofVerifierV1{
-            salt: keccak256("obol.verifier.v1")
-        }(_becaonChainGenesisTime);
+        // stateProofVerifier = new StateProofVerifierV1{
+        //     salt: keccak256("obol.verifier.v1")
+        // }(_becaonChainGenesisTime);
+
+        obolCapsuleBeacon = obolCapsuleBeacon;
     }
 
     /// Create a new OptimisticWithdrawalRecipient clone
@@ -70,9 +77,22 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
 
         // would not exceed contract size limits
         // important to not reorder
-        (bytes memory data, bytes32 salt) = _createSaltAndPackData(principalRecipient, rewardRecipient, recoveryRecipient);
+        bytes32 salt = _createSalt(principalRecipient, rewardRecipient, recoveryRecipient);
 
-        capsule = address(capsuleImplementation).cloneDeterministic(data, salt);
+        capsule = Create2.deploy(
+            0,
+            salt,
+            abi.encodePacked(type(BeaconProxy).creationCode, 
+                abi.encode(obolCapsuleBeacon,  
+                    abi.encodeWithSignature(
+                        "initialize(address,address,address)",
+                        principalRecipient,
+                        rewardRecipient,
+                        recoveryRecipient
+                    )
+                )
+            )
+        );
         
         emit CreateCapsule(
             capsule,
@@ -91,51 +111,31 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
         address rewardRecipient,
         address recoveryRecipient
     ) external view returns (address capsule) {
-        (bytes memory data, bytes32 salt) = _createSaltAndPackData(
-            principalRecipient,
-            rewardRecipient,
-            recoveryRecipient
-        );
-
-        capsule = address(capsuleImplementation).predictDeterministicAddress(
-            data,
+        bytes32 salt = _createSalt(principalRecipient, rewardRecipient, recoveryRecipient);
+        capsule = Create2.computeAddress(
             salt,
-            address(this)
+            abi.encodePacked(type(BeaconProxy).creationCode, 
+                abi.encode(obolCapsuleBeacon,  
+                    abi.encodeWithSignature(
+                        "initialize(address,address,address)",
+                        principalRecipient,
+                        rewardRecipient,
+                        recoveryRecipient
+                    )
+                )
+            )
         );
-    }
-
-    /// @notice Sets a new state proof verifier contract
-    /// @param newVerifier address of newVerifier contract
-    function setNewVerifier(address newVerifier) external onlyOwner {
-        /// @TODO make it timestamp activated new verifier
-        /// this aligns with hardfork timestamps
-
-        if (address(newVerifier) == address(0)) revert Invalid__Address();
-
-        IProofVerifier oldVerifier = stateProofVerifier;
-        stateProofVerifier = IProofVerifier(newVerifier);
-
-        emit UpdateStateProofVerifier(
-            address(oldVerifier),
-            address(newVerifier)
-        );
-    }
-
-    /// @notice Returns address of the verifier contract
-    /// @return Address of verifier contract
-    function getVerifier() external view override returns (IProofVerifier) {
-        return stateProofVerifier;
     }
 
     /// @dev creates salt and packs data
-    function _createSaltAndPackData(
+    function _createSalt(
         address principalRecipient,
         address rewardRecipient,
         address recoveryRecipient
-    ) internal pure returns (bytes memory data, bytes32 salt) {
+    ) internal pure returns (bytes32 salt) {
         // would not exceed contract size limits
         // important to not reorder
-        data = abi.encodePacked(principalRecipient, rewardRecipient, recoveryRecipient);
+        bytes memory data = abi.encodePacked(principalRecipient, rewardRecipient, recoveryRecipient);
         salt = keccak256(data);
     }
 

@@ -9,6 +9,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 import {IObolCapsuleFactory} from "src/interfaces/IObolCapsuleFactory.sol";
 import {ObolCapsuleStorageV1} from "src/capsule/ObolCapsuleStorageV1.sol";
+import {StateProofVerifierV1} from "src/capsule/verifiers/StateProofVerifierV1.sol";
 
 
 /// @title ObolCapsule
@@ -37,9 +38,6 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
     /// @notice This is the beacon chain deposit contract
     IETHPOSDeposit public immutable ethDepositContract;
 
-    /// @notice capsule factory
-    IObolCapsuleFactory public immutable capsuleFactory;
-
     /// @notice fee share
     uint256 public immutable feeShare;
 
@@ -49,39 +47,33 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
     /// @dev version
     uint256 internal constant VERSION = 0x1;
 
-    /// @dev 
+    /// @dev effective balance
     uint256 internal constant MIN_EFFECTIVE_BALANCE = 32 ether;
-
-    /// -----------------------------------------------------------------------
-    /// storage - cwia offsets
-    /// -----------------------------------------------------------------------
-    
-    // principalRecipient (address, 20 bytes),
-    // rewardRecipient (address, 20 bytes),
-    // reecoveryAddress (address, 20 bytes),
-
-    // 0; first item
-    uint256 internal constant PRINCIPAL_RECIPIENT_ADDRESS_OFFSET = 0;
-    // 20 = principalAddress_offset (0) + rewardAddress_size (address, 20
-    // bytes)
-    uint256 internal constant REWARD_RECIPIENT_ADDRESS_OFFSET = 20;
-    // 40 = rewardAddress_offset (20) + recoveryAddress_size (address, 20
-    // bytes)
-    uint256 internal constant RECOVERY_ADDRESS_OFFSET = 40;
 
     constructor(
         IETHPOSDeposit _ethDepositContract,
-        IObolCapsuleFactory factory,
+        uint256 genesisTime,
         address _feeRecipient,
         uint256 _feeShare
-    ) {
+    ) StateProofVerifierV1(genesisTime) {
         if (_feeShare >= PERCENTAGE_SCALE) revert Invalid_FeeShare(_feeShare);
         if (_feeShare > 0 && _feeRecipient == address(0)) revert Invalid_FeeRecipient();
 
         ethDepositContract = _ethDepositContract;
-        capsuleFactory = factory;
         feeShare = _feeShare;
         feeRecipient = _feeRecipient;
+
+        _disableInitializers();
+    }
+
+    function initialize(
+        address _principalRecipient,
+        address _rewardRecipient,
+        address _recoveryAddress
+    ) external initializer {
+        principalRecipient = _principalRecipient;
+        rewardRecipient = _rewardRecipient;
+        recoveryAddress = _recoveryAddress;
     }
 
     /// @notice Create new validators
@@ -162,8 +154,8 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
         capsuleInfo = currentCapsuleData;
 
         /// Interactions
-        if (principal > 0) principalRecipient().safeTransferETH(principal);
-        if (rewards > 0) rewardRecipient().safeTransferETH(rewards);
+        if (principal > 0) principalRecipient.safeTransferETH(principal);
+        if (rewards > 0) rewardRecipient.safeTransferETH(rewards);
         if (fee > 0) feeRecipient.safeTransferETH(fee);
 
         emit DistributeFunds(principal, rewards, fee);
@@ -204,7 +196,7 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
     /// @param token Token to recover
     function recoverFunds(address token) external payable {
         /// checks
-        address _recoveryAddress = recoveryAddress();
+        address _recoveryAddress = recoveryAddress;
 
         /// effects
         
@@ -226,24 +218,6 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
        return _verifyExit(oracleTimestamp, vbProof, balanceProof, validatorProof);
     }
 
-    /// Address that receives rewards
-    /// @dev equivalent to address public immutable rewardRecipient;
-    function rewardRecipient() public pure returns (address) {
-        return _getArgAddress(REWARD_RECIPIENT_ADDRESS_OFFSET);
-    }
-
-    /// Address that receives rewards
-    /// @dev equivalent to address public immutable principalRecipient;
-    function principalRecipient() public pure returns (address) {
-        return _getArgAddress(PRINCIPAL_RECIPIENT_ADDRESS_OFFSET);
-    }
-
-    /// Address to recover tokens to
-    /// @dev equivalent to address public immutable recoveryAddress;
-    function recoveryAddress() public pure returns (address) {
-        return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
-    }
-
     /// @dev Encodes withdrawal credentials
     function capsuleWithdrawalCredentials() public view returns (bytes memory) {
         return abi.encodePacked(bytes1(uint8(1)), bytes11(0), address(this));
@@ -260,11 +234,10 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
         BeaconChainProofs.BalanceProof calldata balanceProof,
         BeaconChainProofs.ValidatorProof calldata validatorProof
     ) internal view returns ( uint256 totalExitedBalance) {
-        IProofVerifier proofVerifier = capsuleFactory.getVerifier();
         bytes32 withdrawalCredentials = bytes32(capsuleWithdrawalCredentials());
-        ( 
+        (
             totalExitedBalance
-        ) = proofVerifier.verifyExitProof(
+        ) = verifyExitProof(
             oracleTimestamp,
             withdrawalCredentials,
             vbProof,

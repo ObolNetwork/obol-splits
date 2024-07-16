@@ -10,7 +10,7 @@ interface IObolCapsule {
     error InvalidCallData();
     error Invalid_FeeShare(uint256 fee);
     error Invalid_FeeRecipient();
-    error Invalid_Timestamp(uint256 timestamp);
+    // error Invalid_Timestamp(uint256 timestamp);
     error Invalid_ProofTimestamp(uint256 withdrawalTimestamp, uint256 mostRecentTimestamp);
     error Invalid_ValidatorStatus();
     error Invalid_Balance();
