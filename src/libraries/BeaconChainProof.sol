@@ -390,6 +390,10 @@ library BeaconChainProofs {
         }
     }
 
+    function getEpochFromTimestamp(uint256 timestamp, uint256 genesisTime) internal pure returns(uint256 currentEpoch) {
+        currentEpoch = (timestamp - genesisTime) / EPOCH;
+    }
+
     function isValidatorSlashed(bytes32[] memory validatorFields) internal pure returns (bool) {
         // TODO verify this value
         return validatorFields[VALIDATOR_SLASHED_INDEX] != bytes32(0);
@@ -403,13 +407,18 @@ library BeaconChainProofs {
 
     /// @dev Returns if a slashed validator has reecieved second penalty
     function hasSlashedValidatorRecievedSecondPenalty(bytes32[] memory validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns (bool) {
-        uint256 currentEpoch = (oracleTimestamp - genesisTime) / EPOCH;
-
+        uint256 currentEpoch = getEpochFromTimestamp(oracleTimestamp, genesisTime);
         uint64 withdrawalEpoch = getWithdrawableEpoch(validatorFields);
         // the reason for division by 2 https://eth2book.info/capella/annotated-spec/#slashings
         uint256 expectedSecondPenaltyEpoch = withdrawalEpoch - (EPOCHS_PER_SLASHINGS_VECTOR / 2);
 
         return expectedSecondPenaltyEpoch > currentEpoch;
+    }
+
+    function hasExitEpochPassed(bytes32[] memory validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns(bool passed) {
+        uint256 currentEpoch = getEpochFromTimestamp(oracleTimestamp, genesisTime);
+        uint256 exitEpoch = getExitEpoch(validatorFields);
+        passed = currentEpoch > exitEpoch;
     }
 
 }

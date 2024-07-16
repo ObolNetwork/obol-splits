@@ -15,6 +15,8 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
     error StateProofVerifierV1__ValidatorSlashedMissingSecondPenalty(bytes32 pubkeyHash);
     error StateProofVerifierV1__ValidatorNotExited(bytes32 pubkeyHash);
     error StateProofVerifierV1__IncorrectWithdrawalCredentials(bytes32 pubkeyHash);
+    error StateProofVerifierV1__ExitEpochNotReached(bytes32 pubkeyHash);
+    error StateProofVerifierV1__LateProof(bytes32 pubkeyHash);
 
     /// @notice Address of the EIP-4788 beacon block root oracle
     /// https://eips.ethereum.org/EIPS/eip-4788
@@ -83,7 +85,6 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
             bytes32[] memory validatorFields = validatorProof.validatorFields[i];
 
             bytes32 validatorPubkeyHash = validatorFields.getPubkeyHash();
-            // uint256 exitEpoch = uint256(validatorFields.getExitEpoch());
 
             BeaconChainProofs.verifyValidatorWithdrawalCredentials({
                 validatorFields: validatorFields,
@@ -99,6 +100,12 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
                 if (validatorFields.hasSlashedValidatorRecievedSecondPenalty(oracleTimestamp, GENESIS_TIME) == false) {
                     revert StateProofVerifierV1__ValidatorSlashedMissingSecondPenalty(validatorPubkeyHash);
                 }
+            } else {
+                // Check that balance proofs are posted after exit_epoch for a non-slashed validator
+                // this is because a validator can be slashed until exit_epoch
+                if (validatorFields.hasExitEpochPassed(oracleTimestamp, GENESIS_TIME) == false) {
+                    revert StateProofVerifierV1__ExitEpochNotReached(validatorPubkeyHash);
+                }
             }
 
             // @TODO allow non-slashed validators to use effective balance to post proofs?
@@ -107,6 +114,11 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
                 balanceProof.validatorBalances[i],
                 validatorProof.validatorIndices[i]
             );
+
+            // if this balance is zero revert as it should not be zero
+            if (validatorCurrentBalance == 0) {
+                revert StateProofVerifierV1__LateProof(validatorPubkeyHash);
+            }
 
             if (validatorCurrentBalance >= validatorEffectiveBalanceGwei) {
                 /// if current balance > effective balance - rewards part of current balance
@@ -127,6 +139,5 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
 
         blockRoot = bytes32(data);
     }
-
 
 }

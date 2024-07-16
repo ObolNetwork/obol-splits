@@ -31,9 +31,7 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
     /// storage
     /// -----------------------------------------------------------------------
 
-    IProofVerifier public stateProofVerifier;
-
-    address public obolCapsuleBeacon;
+    address public immutable obolCapsuleBeacon;
 
     constructor(
         address _obolCapsuleBeacon,
@@ -53,11 +51,7 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
             _feeShare
         );
 
-        // stateProofVerifier = new StateProofVerifierV1{
-        //     salt: keccak256("obol.verifier.v1")
-        // }(_becaonChainGenesisTime);
-
-        obolCapsuleBeacon = obolCapsuleBeacon;
+        obolCapsuleBeacon = _obolCapsuleBeacon;
     }
 
     /// Create a new OptimisticWithdrawalRecipient clone
@@ -114,13 +108,15 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
         bytes32 salt = _createSalt(principalRecipient, rewardRecipient, recoveryRecipient);
         capsule = Create2.computeAddress(
             salt,
-            abi.encodePacked(type(BeaconProxy).creationCode, 
-                abi.encode(obolCapsuleBeacon,  
-                    abi.encodeWithSignature(
-                        "initialize(address,address,address)",
-                        principalRecipient,
-                        rewardRecipient,
-                        recoveryRecipient
+            keccak256(
+                abi.encodePacked(type(BeaconProxy).creationCode, 
+                    abi.encode(obolCapsuleBeacon,  
+                        abi.encodeWithSignature(
+                            "initialize(address,address,address)",
+                            principalRecipient,
+                            rewardRecipient,
+                            recoveryRecipient
+                        )
                     )
                 )
             )
