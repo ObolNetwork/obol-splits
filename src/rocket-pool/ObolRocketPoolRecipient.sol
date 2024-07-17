@@ -6,11 +6,9 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 import {ObolRocketPoolStorage} from "./ObolRocketPoolStorage.sol";
-import {IRocketDepositPool} from "../interfaces/external/rocketPool/IRocketDepositPool.sol";
 import {IRocketPoolStorage} from "../interfaces/external/rocketPool/IRocketPoolStorage.sol";
 import {IRocketPoolMinipoolManager} from "../interfaces/external/rocketPool/IRocketPoolMinipoolManager.sol";
 import {IRocketMinipool} from "../interfaces/external/rocketPool/IRocketMinipool.sol";
-import {IRETH} from "../interfaces/external/rocketPool/IRETH.sol";
 
 
 contract ObolRocketPoolRecipient is Clone {
@@ -210,20 +208,6 @@ contract ObolRocketPoolRecipient is Clone {
         emit RecoverFunds(_recoverToken, recipient, amount);
     }
     
-
-    // TODO: chat if we should create the minipool or search for vacant minipools
-    //       also, should the contract handle `preDeposit`
-    // ? How do we get the minipool address?
-    // ? where is RPL added?
-    function depositFunds() external payable {
-        if (msg.value < MINIPOOL_AMOUNT) revert InvalidDepositAmount();
-
-        ObolRocketPoolStorage _rpStorage = ObolRocketPoolStorage(rpStorage());
-        address depositAddress = _rpStorage.rocketPoolDeposit();
-        IRocketDepositPool(depositAddress).deposit{value: msg.value}();
-    }
-
-
     function distributeFunds(address _miniPool, bool _rewards, uint256 pullFlowFlag) external {
         ObolRocketPoolStorage _rpStorage = ObolRocketPoolStorage(rpStorage());
         {
@@ -234,23 +218,17 @@ contract ObolRocketPoolRecipient is Clone {
         IRocketMinipool pool = IRocketMinipool(_miniPool);
         if (!pool.userDistributeAllowed()) revert InvalidMinipool_Distribute();
 
-        address rEth = _rpStorage.rEth();
-        uint256 rEthBalanceBefore = rEth.balance;
+        uint256 balanceBefore = address(this).balance;
         pool.distributeBalance(_rewards);
-        uint256 available  = rEth.balance - rEthBalanceBefore;
-        
-        address rETH = _rpStorage.rEth();
-        IRETH(rETH).burn(available);
+        uint256 available  = address(this).balance - balanceBefore;
 
-        // TODO: what address should we use for the fee cut?
-        address _recoveryAddress = recoveryAddress();
-        if (_recoveryAddress == address(0)) revert InvalidTokenRecovery_InvalidRecipient();
+        // TODO: I don't think we need to commented code below; left it for review
+        // address _recoveryAddress = recoveryAddress();
+        // if (_recoveryAddress == address(0)) revert InvalidTokenRecovery_InvalidRecipient();
 
-        uint256 feeAmount = available * FEE_AMOUNT / FEE_PRECISION;
-        available -= feeAmount;
-        
-        // payout fees
-        _payout(_recoveryAddress, feeAmount, pullFlowFlag);
+        // uint256 feeAmount = available * FEE_AMOUNT / FEE_PRECISION;
+        // available -= feeAmount;
+        // _payout(_recoveryAddress, feeAmount, pullFlowFlag);
 
         _distribute(available, pullFlowFlag);
     }
