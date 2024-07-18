@@ -5,13 +5,15 @@ import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-/// @title OptimisticWithdrawalRecipient
+/// @title OptimisticTokenWithdrawalRecipient
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
 /// based on threshold to it's recipients
-/// @dev Only ETH can be distributed for a given deployment. There is a
-/// recovery method for tokens sent by accident.
-contract OptimisticWithdrawalRecipient is Clone {
+/// @dev Only one token can be distributed for a given deployment. There is a
+/// recovery method for non-target tokens sent by accident.
+/// Target ERC20s with very large decimals may overflow & cause issues.
+/// This contract uses token = address(0) to refer to ETH.
+contract OptimisticTokenWithdrawalRecipient is Clone {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -21,6 +23,9 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------
+
+  /// Invalid token recovery; cannot recover the OWRecipient token
+  error InvalidTokenRecovery_OWRToken();
 
   /// Invalid token recovery recipient
   error InvalidTokenRecovery_InvalidRecipient();
@@ -44,9 +49,9 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// pulling
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
 
-  /// Emitted after tokens are recovered to a recipient
+  /// Emitted after non-OWRecipient tokens are recovered to a recipient
   /// @param recoveryAddressToken Recovered token (cannot be
-  /// ETH)
+  /// OptimisticWithdrawalRecipient token)
   /// @param recipient Address receiving recovered token
   /// @param amount Amount of recovered token
   event RecoverNonOWRecipientFunds(address recoveryAddressToken, address recipient, uint256 amount);
@@ -64,14 +69,14 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// storage - constants
   /// -----------------------------------------------------------------------
 
+  address internal constant ETH_ADDRESS = address(0);
+
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
 
   uint256 internal constant ONE_WORD = 32;
   uint256 internal constant ADDRESS_BITS = 160;
 
-  /// @dev threshold for pushing balance update as reward or principal
-  uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
   uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
   uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
 
@@ -79,14 +84,25 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// storage - cwia offsets
   /// -----------------------------------------------------------------------
 
-  // recoveryAddress (address, 20 bytes),
+  // token (address, 20 bytes), recoveryAddress (address, 20 bytes),
   // tranches (uint256[], numTranches * 32 bytes)
 
   // 0; first item
-  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 0;
-  // 20 = recoveryAddress_offset (0) + recoveryAddress_size (address, 20
+  uint256 internal constant TOKEN_OFFSET = 0;
+  // 20 = token_offset (0) + token_size (address, 20 bytes)
+  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 20;
+  // 40 = recoveryAddress_offset (20) + recoveryAddress_size (address, 20
   // bytes)
-  uint256 internal constant TRANCHES_OFFSET = 20;
+  uint256 internal constant TRANCHES_OFFSET = 40;
+
+  /// @dev threshold for pushing balance update as reward or principal
+  uint256 public immutable BALANCE_CLASSIFICATION_THRESHOLD;
+
+  /// Address of ERC20 to distribute (0x0 used for ETH)
+  /// @dev equivalent to address public immutable token;
+  function token() public pure returns (address) {
+    return _getArgAddress(TOKEN_OFFSET);
+  }
 
   /// Address to recover non-OWR tokens to
   /// @dev equivalent to address public immutable recoveryAddress;
@@ -123,9 +139,10 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// constructor
   /// -----------------------------------------------------------------------
 
-  // solhint-disable-next-line no-empty-blocks
   /// clone implementation doesn't use constructor
-  constructor() {}
+  constructor(uint256 threshold) {
+    BALANCE_CLASSIFICATION_THRESHOLD = threshold;
+  }
 
   /// -----------------------------------------------------------------------
   /// functions
@@ -160,9 +177,11 @@ contract OptimisticWithdrawalRecipient is Clone {
   function recoverFunds(address nonOWRToken, address recipient) external payable {
     /// checks
 
+    // revert if caller tries to recover OWRecipient token
+    if (nonOWRToken == token()) revert InvalidTokenRecovery_OWRToken();
+
     // if recoveryAddress is set, recipient must match it
     // else, recipient must be one of the OWR recipients
-
     address _recoveryAddress = recoveryAddress();
     if (_recoveryAddress == address(0)) {
       // ensure txn recipient is a valid OWR recipient
@@ -179,8 +198,14 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// interactions
 
     // recover non-target token
-    uint256 amount = ERC20(nonOWRToken).balanceOf(address(this));
-    nonOWRToken.safeTransfer(recipient, amount);
+    uint256 amount;
+    if (nonOWRToken == ETH_ADDRESS) {
+      amount = address(this).balance;
+      recipient.safeTransferETH(amount);
+    } else {
+      amount = ERC20(nonOWRToken).balanceOf(address(this));
+      nonOWRToken.safeTransfer(recipient, amount);
+    }
 
     emit RecoverNonOWRecipientFunds(nonOWRToken, recipient, amount);
   }
@@ -188,13 +213,15 @@ contract OptimisticWithdrawalRecipient is Clone {
   /// Withdraw token balance for account `account`
   /// @param account Address to withdraw on behalf of
   function withdraw(address account) external {
+    address _token = token();
     uint256 tokenAmount = pullBalances[account];
     unchecked {
       // shouldn't underflow; fundsPendingWithdrawal = sum(pullBalances)
       fundsPendingWithdrawal -= uint128(tokenAmount);
     }
     pullBalances[account] = 0;
-    account.safeTransferETH(tokenAmount);
+    if (_token == ETH_ADDRESS) account.safeTransferETH(tokenAmount);
+    else _token.safeTransfer(account, tokenAmount);
 
     emit Withdrawal(account, tokenAmount);
   }
@@ -238,9 +265,12 @@ contract OptimisticWithdrawalRecipient is Clone {
     /// effects
 
     // load storage into memory
-    uint256 currentbalance = address(this).balance;
+    // fetch the token we want to distribute
+    address _token = token();
+    uint256 currentbalance = _token == ETH_ADDRESS ? address(this).balance : ERC20(_token).balanceOf(address(this));
     uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
+
     uint256 _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
 
     (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
@@ -287,9 +317,9 @@ contract OptimisticWithdrawalRecipient is Clone {
     // when later external calls fail (bc balance is emptied early)
 
     // pay out principal
-    _payout(principalRecipient, _principalPayout, pullFlowFlag);
+    _payout(_token, principalRecipient, _principalPayout, pullFlowFlag);
     // pay out reward
-    _payout(rewardRecipient, _rewardPayout, pullFlowFlag);
+    _payout(_token, rewardRecipient, _rewardPayout, pullFlowFlag);
 
     if (pullFlowFlag == PULL) {
       if (_principalPayout > 0 || _rewardPayout > 0) {
@@ -301,13 +331,15 @@ contract OptimisticWithdrawalRecipient is Clone {
     emit DistributeFunds(_principalPayout, _rewardPayout, pullFlowFlag);
   }
 
-  function _payout(address recipient, uint256 payoutAmount, uint256 pullFlowFlag) internal {
+  function _payout(address payoutToken, address recipient, uint256 payoutAmount, uint256 pullFlowFlag) internal {
     if (payoutAmount > 0) {
       if (pullFlowFlag == PULL) {
         // Write to Storage
         pullBalances[recipient] += payoutAmount;
-      } else {
+      } else if (payoutToken == ETH_ADDRESS) {
         recipient.safeTransferETH(payoutAmount);
+      } else {
+        payoutToken.safeTransfer(recipient, payoutAmount);
       }
     }
   }
