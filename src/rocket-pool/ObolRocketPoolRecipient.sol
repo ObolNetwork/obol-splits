@@ -164,8 +164,7 @@ contract ObolRocketPoolRecipient is Clone {
     address miniPoolManager = _rpStorage.rocketPoolMinipoolManager();
     if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert InvalidMinipool_Address();
 
-    address _delegate = IRocketMinipoolBase(_miniPool).getEffectiveDelegate();
-    uint256 nodeRefundBalance = IRocketMinipoolDelegate(_delegate).getNodeRefundBalance();
+    uint256 nodeRefundBalance = IRocketMinipoolDelegate(_miniPool).getNodeRefundBalance();
     uint256 balance = _miniPool.balance;
     return balance - nodeRefundBalance;
   }
