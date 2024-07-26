@@ -65,7 +65,6 @@ contract ObolRocketPoolRecipient is Clone {
   /// -----------------------------------------------------------------------
 
   address internal constant ETH_ADDRESS = address(0);
-  uint256 internal constant MINIPOOL_AMOUNT = 8 ether;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
@@ -261,10 +260,7 @@ contract ObolRocketPoolRecipient is Clone {
       if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert InvalidMinipool_Address();
     }
 
-    address _delegate = IRocketMinipoolBase(_miniPool).getEffectiveDelegate();
-    IRocketMinipoolDelegate pool = IRocketMinipoolDelegate(_delegate);
-
-    pool.distributeBalance(_rewards);
+    IRocketMinipoolDelegate(_miniPool).distributeBalance(_rewards);
 
     uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
