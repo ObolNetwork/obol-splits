@@ -47,7 +47,7 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
             multiProof: vbProof.proof
         });
 
-        totalExitedBalanceEther = _verifyExitProofs(
+        totalExitedBalanceEther = _verifyValidatorAndBalanceProofs(
             oracleTimestamp,
             withdrawalCredentials,
             validatorProof,
@@ -55,7 +55,7 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
         ) * 1 gwei;
     }
 
-    function _verifyExitProofs(
+    function _verifyValidatorAndBalanceProofs(
         uint256 oracleTimestamp,
         bytes32 withdrawalCredentials,
         BeaconChainProofs.ValidatorProof calldata validatorProof,
@@ -86,6 +86,7 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
 
             bytes32 validatorPubkeyHash = validatorFields.getPubkeyHash();
 
+            // Verify withdrawal credentials
             BeaconChainProofs.verifyValidatorWithdrawalCredentials({
                 validatorFields: validatorFields,
                 withdrawalCredentials: withdrawalCredentials
@@ -116,9 +117,9 @@ abstract contract StateProofVerifierV1 is IProofVerifier {
             );
 
             // if this balance is zero revert as it should not be zero
-            if (validatorCurrentBalance == 0) {
-                revert StateProofVerifierV1__LateProof(validatorPubkeyHash);
-            }
+            // if (validatorCurrentBalance == 0) {
+            //     revert StateProofVerifierV1__LateProof(validatorPubkeyHash);
+            // }
 
             if (validatorCurrentBalance >= validatorEffectiveBalanceGwei) {
                 /// if current balance > effective balance - rewards part of current balance

@@ -5,7 +5,6 @@ import {IProofVerifier} from "src/interfaces/IProofVerifier.sol";
 import {IObolCapsuleFactory} from "src/interfaces/IObolCapsuleFactory.sol";
 import {ObolCapsule} from "src/capsule/ObolCapsule.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
-import {Ownable} from "solady/auth/Ownable.sol";
 import {BeaconProxy} from "openzeppelin/proxy/beacon/BeaconProxy.sol";
 import {Create2} from "openzeppelin/utils/Create2.sol";
 
@@ -13,10 +12,10 @@ import {Create2} from "openzeppelin/utils/Create2.sol";
 /// @title ObolCapsuleFactory
 /// @author Obol
 /// @notice A factory contract for cheaply deploying ObolCapsule
-contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
+contract ObolCapsuleFactory is IObolCapsuleFactory {
 
-    /// @notice capsule implementation
-    ObolCapsule public immutable capsuleImplementation;
+    /// @notice capsule implementation beacon
+    address public immutable obolCapsuleBeacon;
 
     /// @dev number of address bits
     uint256 internal constant ADDRESS_BITS = 160;
@@ -31,26 +30,8 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
     /// storage
     /// -----------------------------------------------------------------------
 
-    address public immutable obolCapsuleBeacon;
 
-    constructor(
-        address _obolCapsuleBeacon,
-        address _ethDepositContract,
-        uint256 _genesisTime,
-        address _owner,
-        address _feeRecipient,
-        uint256 _feeShare,
-        uint56 _becaonChainGenesisTime
-    ) {
-        _initializeOwner(_owner);
-
-        capsuleImplementation = new ObolCapsule(
-            IETHPOSDeposit(_ethDepositContract),
-            _genesisTime,
-            _feeRecipient,
-            _feeShare
-        );
-
+    constructor(address _obolCapsuleBeacon) {
         obolCapsuleBeacon = _obolCapsuleBeacon;
     }
 
@@ -123,13 +104,12 @@ contract ObolCapsuleFactory is Ownable, IObolCapsuleFactory {
         );
     }
 
-    /// @dev creates salt and packs data
+    /// @dev creates salt
     function _createSalt(
         address principalRecipient,
         address rewardRecipient,
         address recoveryRecipient
     ) internal pure returns (bytes32 salt) {
-        // would not exceed contract size limits
         // important to not reorder
         bytes memory data = abi.encodePacked(principalRecipient, rewardRecipient, recoveryRecipient);
         salt = keccak256(data);

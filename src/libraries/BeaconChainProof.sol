@@ -10,6 +10,8 @@ import "../libraries/Endian.sol";
 //BeaconState Spec: https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#beaconstate
 library BeaconChainProofs {
     error BeaconChainProofs__InvalidValidatorRootandBalanceRootProof();
+    error BeaconChainProofs__InvalidProofSize();
+
     error BeaconChainProofs__InvalidValidatorField(uint256 index);
     error BeaconChainProofs__InvalidIndicesAndFields(uint256 indexSize, uint256 fieldSize);
     error BeaconChainProofs__InvalidValidatorFieldsMerkleProof();
@@ -17,7 +19,6 @@ library BeaconChainProofs {
     error BeaconChainProofs__IncorrectWithdrawalCredentials(bytes32 pubkeyHash);
 
     // constants are the number of fields and the heights of the different merkle trees used in merkleizing beacon chain containers
-    uint256 internal constant NUM_BEACON_BLOCK_HEADER_FIELDS = 5;
     uint256 internal constant BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT = 3;
     uint256 internal constant BEACON_STATE_TREE_HEIGHT = 5;
 
@@ -28,30 +29,8 @@ library BeaconChainProofs {
     uint256 internal constant BEACON_STATE_FIELD_TREE_HEIGHT = 5;
     uint256 internal constant BALANCE_TREE_HEIGHT = 38;
 
-    uint256 internal constant NUM_ETH1_DATA_FIELDS = 3;
-    uint256 internal constant ETH1_DATA_FIELD_TREE_HEIGHT = 2;
-
     uint256 internal constant NUM_VALIDATOR_FIELDS = 8;
     uint256 internal constant VALIDATOR_FIELD_TREE_HEIGHT = 3;
-
-    uint256 internal constant NUM_EXECUTION_PAYLOAD_HEADER_FIELDS = 15;
-    uint256 internal constant EXECUTION_PAYLOAD_HEADER_FIELD_TREE_HEIGHT = 4;
-
-    uint256 internal constant NUM_EXECUTION_PAYLOAD_FIELDS = 15;
-    uint256 internal constant EXECUTION_PAYLOAD_FIELD_TREE_HEIGHT = 4;
-
-    // HISTORICAL_ROOTS_LIMIT	 = 2**24, so tree height is 24
-    uint256 internal constant HISTORICAL_ROOTS_TREE_HEIGHT = 24;
-
-    // HISTORICAL_BATCH is root of state_roots and block_root, so number of leaves =  2^1
-    uint256 internal constant HISTORICAL_BATCH_TREE_HEIGHT = 1;
-
-    // SLOTS_PER_HISTORICAL_ROOT = 2**13, so tree height is 13
-    uint256 internal constant STATE_ROOTS_TREE_HEIGHT = 13;
-    uint256 internal constant BLOCK_ROOTS_TREE_HEIGHT = 13;
-
-    //HISTORICAL_ROOTS_LIMIT = 2**24, so tree height is 24
-    uint256 internal constant HISTORICAL_SUMMARIES_TREE_HEIGHT = 24;
 
     //Index of block_summary_root in historical_summary container
     uint256 internal constant BLOCK_SUMMARY_ROOT_INDEX = 0;
@@ -73,22 +52,10 @@ library BeaconChainProofs {
     uint256 internal constant PROPOSER_INDEX_INDEX = 1;
     uint256 internal constant STATE_ROOT_INDEX = 3;
     uint256 internal constant BODY_ROOT_INDEX = 4;
-    
+
+    //  in beacon state https://github.com/ethereum/consensus-specs/blob/dev/specs/capella/beacon-chain.md#beaconstate
     uint256 internal constant VALIDATOR_LIST_INDEX = 11;
     uint256 internal constant BALANCE_LIST_INDEX = 12;
-
-    // in beacon state https://github.com/ethereum/consensus-specs/blob/dev/specs/capella/beacon-chain.md#beaconstate
-    uint256 internal constant HISTORICAL_BATCH_STATE_ROOT_INDEX = 1;
-    uint256 internal constant BEACON_STATE_SLOT_INDEX = 2;
-    uint256 internal constant LATEST_BLOCK_HEADER_ROOT_INDEX = 4;
-    uint256 internal constant BLOCK_ROOTS_INDEX = 5;
-    uint256 internal constant STATE_ROOTS_INDEX = 6;
-    uint256 internal constant HISTORICAL_ROOTS_INDEX = 7;
-    uint256 internal constant ETH_1_ROOT_INDEX = 8;
-    uint256 internal constant VALIDATOR_TREE_ROOT_INDEX = 11;
-    uint256 internal constant BALANCE_TREE_ROOT_INDEX = 12;
-    uint256 internal constant EXECUTION_PAYLOAD_HEADER_INDEX = 24;
-    uint256 internal constant HISTORICAL_SUMMARIES_INDEX = 27;
 
     // in validator https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#validator
     uint256 internal constant VALIDATOR_PUBKEY_INDEX = 0;
@@ -98,33 +65,7 @@ library BeaconChainProofs {
     uint256 internal constant VALIDATOR_EXIT_EPOCH_INDEX = 6;
     uint256 internal constant VALIDATOR_WITHDRAWABLE_EPOCH_INDEX = 7;
 
-    // in execution payload header
-    uint256 internal constant TIMESTAMP_INDEX = 9;
-    uint256 internal constant WITHDRAWALS_ROOT_INDEX = 14;
-
-    //in execution payload
-    uint256 internal constant WITHDRAWALS_INDEX = 14;
-
-    // in withdrawal
-    uint256 internal constant WITHDRAWAL_VALIDATOR_INDEX_INDEX = 1;
-    uint256 internal constant WITHDRAWAL_VALIDATOR_AMOUNT_INDEX = 3;
-
-    //In historicalBatch
-    uint256 internal constant HISTORICALBATCH_STATEROOTS_INDEX = 1;
-
     //Misc Constants
-
-    /// @notice The number of slots each epoch in the beacon chain
-    uint64 internal constant SLOTS_PER_EPOCH = 32;
-
-    /// @notice The number of seconds in a slot in the beacon chain
-    uint64 internal constant SECONDS_PER_SLOT = 12;
-
-    /// @notice Number of seconds per epoch: 384 == 32 slots/epoch * 12 seconds/slot 
-    uint64 internal constant SECONDS_PER_EPOCH = SLOTS_PER_EPOCH * SECONDS_PER_SLOT;
-
-    bytes8 internal constant UINT64_MASK = 0xffffffffffffffff;
-
     /// @notice Far future epoch. used as exit epoch for non-exited validators
     /// @dev https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md?plain=1#L185
     uint256 internal constant FAR_FUTURE_EPOCH = (2**64) - 1;
@@ -174,9 +115,7 @@ library BeaconChainProofs {
             revert BeaconChainProofs__InvalidIndicesAndFields(indicesSize, validatorFieldsSize);
         }
         
-
         Merkle.Node[] memory validatorFieldNodes = new Merkle.Node[](validatorFieldsSize);
-
         for (uint256 i = 0; i < validatorFields.length; i++) {
             if (validatorFields[i].length != (2 ** VALIDATOR_FIELD_TREE_HEIGHT)) {
                 revert BeaconChainProofs__InvalidValidatorField(i);
@@ -191,16 +130,6 @@ library BeaconChainProofs {
          * There is an additional layer added by hashing the root with the length of the validator list
          */
         uint256 numLayers = VALIDATOR_TREE_HEIGHT + 1;
-
-
-       
-        // require(
-        //     validatorFieldsProof.length == 32 * ((VALIDATOR_TREE_HEIGHT + 1) + BEACON_STATE_FIELD_TREE_HEIGHT),
-        //     "BeaconChainProofs.verifyValidatorFields: Proof has incorrect length"
-        // );
-        // uint256 index = (VALIDATOR_TREE_ROOT_INDEX << (VALIDATOR_TREE_HEIGHT + 1)) | uint256(validatorIndex);
-
-        // verify the proof of the validatorRoot against the validator list root
 
         if (
             Merkle.verifyMultiProofInclusionSha256(
@@ -283,15 +212,20 @@ library BeaconChainProofs {
         bytes32 validatorListRoot,
         bytes32 balanceListRoot,
         bytes32[] memory multiProof
-    ) internal view {        
+    ) internal view {      
+        // verify proof size
+        uint256 proofSize = 9;
+        if (multiProof.length != proofSize) {
+            revert BeaconChainProofs__InvalidProofSize();
+        }
         /// This proof combines two proofs, so its index accounts for the relative position of leaves in two trees:
         /// - beaconBlockRoot
         /// |                            HEIGHT: BEACON_BLOCK_HEADER_TREE_HEIGHT
-        /// -- beaconStateRoot, validatorListRoot
+        /// -- beaconStateRoot 
         /// |                            HEIGHT: BEACON_STATE_TREE_HEIGHT
-        /// ---- balancesContainerRoot
-        uint256 balanceIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | VALIDATOR_LIST_INDEX;
-        uint256 validatorIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_INDEX;
+        /// ---- balancesContainerRoot, validatorListRoot
+        uint256 balanceIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_INDEX;
+        uint256 validatorIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | VALIDATOR_LIST_INDEX;
 
         uint256 numLayers = BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT;
 
@@ -307,6 +241,13 @@ library BeaconChainProofs {
                 numLayers
             ) == false) {
             revert BeaconChainProofs__InvalidValidatorRootandBalanceRootProof();
+        }
+    }
+
+    /// @notice This function verifies a validator withdrawal credentials
+    function verifyValidatorWithdrawalCredentials(bytes32[] memory validatorFields, bytes32 withdrawalCredentials) internal pure {
+        if (getWithdrawalCredentials(validatorFields) != withdrawalCredentials) {
+            revert BeaconChainProofs__IncorrectWithdrawalCredentials(getPubkeyHash(validatorFields));
         }
     }
 
@@ -381,13 +322,6 @@ library BeaconChainProofs {
     function getExitEpoch(bytes32[] memory validatorFields) internal pure returns (uint64) {
         return 
             Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_EXIT_EPOCH_INDEX]);
-    }
-
-
-    function verifyValidatorWithdrawalCredentials(bytes32[] memory validatorFields, bytes32 withdrawalCredentials) internal pure {
-        if (getWithdrawalCredentials(validatorFields) != withdrawalCredentials) {
-            revert BeaconChainProofs__IncorrectWithdrawalCredentials(getPubkeyHash(validatorFields));
-        }
     }
 
     function getEpochFromTimestamp(uint256 timestamp, uint256 genesisTime) internal pure returns(uint256 currentEpoch) {

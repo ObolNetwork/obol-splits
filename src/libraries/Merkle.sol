@@ -31,29 +31,10 @@ library Merkle {
 
     /// @dev Proof Length should be a non-zero multiple of 32
     error Merkle__IncorrectProofLength();
-
     error Merkle__MismatchLeavesAndIndices();
-
     error Merkle__InsufficientProofElements();
-
     error Merkle__RootNotConstructed();
 
-    /**
-     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up
-     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt
-     * hash matches the root of the tree. The tree is built assuming `leaf` is
-     * the 0 indexed `index`'th leaf from the bottom left of the tree.
-     *
-     * Note this is for a Merkle tree using the sha256 hash function
-     */
-    function verifyInclusionSha256(
-        bytes memory proof,
-        bytes32 root,
-        bytes32 leaf,
-        uint256 index
-    ) internal view returns (bool) {
-        return processInclusionProofSha256(proof, leaf, index) == root;
-    }
 
     function verifyMultiProofInclusionSha256(
         bytes32 expectedRoot,
@@ -64,155 +45,23 @@ library Merkle {
         return processMultiInclusionProofSha256(proof, leaves, numLayers) == expectedRoot;
     }
 
-    /**
-     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up
-     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt
-     * hash matches the root of the tree. The tree is built assuming `leaf` is
-     * the 0 indexed `index`'th leaf from the bottom left of the tree.
-     *
-     * _Available since v4.4._
-     *
-     * Note this is for a Merkle tree using the sha256 hash function
-     */
-    function processInclusionProofSha256(
-        bytes memory proof,
-        bytes32 leaf,
-        uint256 index
-    ) internal view returns (bytes32) {
-        require(
-            proof.length != 0 && proof.length % 32 == 0,
-            "Merkle.processInclusionProofSha256: proof length should be a non-zero multiple of 32"
-        );
-        bytes32[1] memory computedHash = [leaf];
-        for (uint256 i = 32; i <= proof.length; i += 32) {
-            if (index % 2 == 0) {
-                // if ith bit of index is 0, then computedHash is a left sibling
-                assembly {
-                    mstore(0x00, mload(computedHash))
-                    mstore(0x20, mload(add(proof, i)))
-                    if iszero(staticcall(sub(gas(), 2000), 2, 0x00, 0x40, computedHash, 0x20)) {
-                        revert(0, 0)
-                    }
-                    index := div(index, 2)
-                }
-            } else {
-                // if ith bit of index is 1, then computedHash is a right sibling
-                assembly {
-                    mstore(0x00, mload(add(proof, i)))
-                    mstore(0x20, mload(computedHash))
-                    if iszero(staticcall(sub(gas(), 2000), 2, 0x00, 0x40, computedHash, 0x20)) {
-                        revert(0, 0)
-                    }
-                    index := div(index, 2)
-                }
-            }
-        }
-        return computedHash[0];
-    }
-
      /**
      * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up
      * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt
      * hash matches the root of the tree. The tree is built assuming `leaf` is
      * the 0 indexed `index`'th leaf from the bottom left of the tree.
      *
-     * _Available since v4.4._
+     *
      *
      * Note this is for a Merkle tree using the sha256 hash function
      */
-
-    // function processMultiInclusionProofSha256(
-    //     bytes32[] memory proof,
-    //     Node[] memory leaves,
-    //     uint256 numLayers
-    // ) internal view returns (bytes32) {
-    //     uint256 proofIndex = 0;
-    //     uint256 leavesLength = leaves.length;
-    //     uint256 proofLength = proof.length;
-
-    //     // Create an array to hold the current layer of nodes
-    //     Node[] memory currentLayer = new Node[](leavesLength);
-
-    //     for (uint256 i = 0; i < leavesLength; i++) {
-    //         currentLayer[i] = leaves[i];
-    //     }
-
-    //     // Process each layer
-    //     for (uint256 l = 0; l < numLayers; l++) {
-    //         // Calculate the number of pairs in this layer
-    //         uint256 numPairs = div_ceil(currentLayer.length, 2);
-
-    //         // Create an array for the next layer
-    //         Node[] memory nextLayer = new Node[](numPairs);
-    //         uint256 size = 0;
-
-    //         // Process each pair
-    //         for (uint256 i = 0; i < currentLayer.length; i += 2) {
-    //             Node memory leftNode = currentLayer[i];
-    //             uint256 leftIndex = leftNode.index;
-    //             bytes32 leftLeaf = leftNode.leaf;
-
-    //             bytes32 rightLeaf;
-    //             uint256 rightIndex = leftIndex ^ 1;
-
-    //             if (i + 1 < currentLayer.length && currentLayer[i + 1].index == rightIndex) {
-    //                 rightLeaf = currentLayer[i + 1].leaf;
-    //             } else {
-    //                 if (proofIndex >= proofLength) {
-    //                     revert Merkle__InsufficientProofElements();
-    //                 }
-    //                 rightLeaf = proof[proofIndex];
-    //                 proofIndex++;
-    //             }
-
-    //             bytes32 parentLeaf;
-    //             if (leftIndex & 1 == 0) {
-    //                 parentLeaf = sha256(abi.encodePacked(leftLeaf, rightLeaf));
-    //             } else {
-    //                 parentLeaf = sha256(abi.encodePacked(rightLeaf, leftLeaf));
-    //             }
-
-    //             uint256 parentIndex = leftIndex >> 1;
-    //             nextLayer[size] = Node(parentLeaf, parentIndex);
-    //             size++;
-    //         }
-
-    //         // Resize nextLayer to the actual size
-    //         Node[] memory resizedNextLayer = new Node[](size);
-    //         for (uint256 i = 0; i < size; i++) {
-    //             resizedNextLayer[i] = nextLayer[i];
-    //         }
-
-    //         // Move to the next layer
-    //         currentLayer = sort(resizedNextLayer);
-    //     }
-
-    //     if (currentLayer.length != 1) {
-    //         revert Merkle__RootNotConstructed();
-    //     }
-
-    //     return currentLayer[0].leaf;
-    // }
-
     function processMultiInclusionProofSha256(
         bytes32[] memory proof,
         Node[] memory leaves,
         uint256 numLayers
     ) internal view returns (bytes32 ) {
-        // if (validLeaveIndices(indices) == false) {
-        //     revert Merkle__IndicesOutOfOrder();
-        // }
         uint256 proofIndex = 0;
-        uint256 leavesLength = leaves.length;
-        uint256 proofLength = proof.length;
-
-        // Create an array to hold the current layer of nodes
-        Node[] memory currentLayer = new Node[](leavesLength);
-
-        for (uint256 i = 0; i < leavesLength; i++) {
-            currentLayer[i] = leaves[i];
-        }
-
+        Node[] memory currentLayer = sort(leaves);
         // Process each layer
         for (uint256 l = 0; l < numLayers; l++) {
             // Calculate the number of pairs in this layer
@@ -221,37 +70,33 @@ library Merkle {
             // console.log(numPairs);
             // uint256 numPairs = (size % 2) == 0 ? size : (size + 1) / 2;
             // Create an array for the next layer
-            Node[] memory nextLayer = new Node[](0);
-            // uint256[] memory nextIndices = new uint256[](numPairs);
 
-            // Process each pair
-            uint256 size = 0;
+            // console.log("====================== Layer -> ", l);
+            // logIndices(currentLayer);
+
+            Node[] memory nextLayer = new Node[](0);
+
             for (uint256 i = 0; i < currentLayer.length; i++) {
-                console.logString("logging layer 1002");
 
                 Node memory currentLeaf = currentLayer[i];
                 uint256 index = currentLeaf.index;
                 bytes32 leaf = currentLeaf.leaf;
 
-                uint256 siblingIndex = index ^ 1;
                 bytes32 siblingLeaf;
+                uint256 siblingIndex = index ^ 1;
 
-                // console.logString("logging layer 10048484");
-                // console.log(siblingIndex);
-                // console.log(proofIndex);
+                {
+                    (Node memory value, bool foundNode) = contains(currentLayer, siblingIndex);
 
-                (Node memory value, bool found) = contains(currentLayer, siblingIndex);
-
-                if (found == true) {
-                    siblingLeaf = value.leaf;
-                } else if (proofIndex < proofLength) {
-                    siblingLeaf = proof[proofIndex];
-                    proofIndex += 1;
-                    console.logString("2i23o2i - logging layer 10048484");
-                } else {
-                    revert Merkle__InsufficientProofElements();
+                    if (foundNode == true) {
+                        siblingLeaf = value.leaf;
+                    } else if (proofIndex < proof.length) {
+                        siblingLeaf = proof[proofIndex];
+                        proofIndex += 1;
+                    } else {
+                        revert Merkle__InsufficientProofElements();
+                    }
                 }
-                console.logString("logging layer 100");
 
                 bytes32 parentLeaf;
                 if (index & 1 == 0) {
@@ -261,30 +106,26 @@ library Merkle {
                 }
 
                 uint256 nextIndex = index >> 1;
-                (value, found) = contains(nextLayer, nextIndex);
+                (, bool found) = contains(nextLayer, nextIndex);
                 
-                console.logString("logging layer testnet");
 
                 if (found == false) {
-                    size += 1;
                     nextLayer = append(nextLayer, Node(parentLeaf, nextIndex));
                 }
 
-                console.logString("result logging layer testnet");
+                console.log("Range Debug");
+                console.log("index -> ", index);
+                console.log("siblingIndex -> ", siblingIndex);
+                console.log("proofIndex -> ", proofIndex);
+                console.log("leaf");
+                console.logBytes32(leaf);
+                console.log("sibling -> ");
+                console.logBytes32(siblingLeaf);
+                console.log("nextLayerIndex -> ", nextIndex);
+
             }
 
-            console.logString("=========== logging layer ==============");
-            for (uint i  = 0;  i < nextLayer.length; i++) {
-                console.log(nextLayer[i].index);
-                console.logBytes32(nextLayer[i].leaf);
-            }
-            console.logString("============= logging layer ================");
-
-            // Move to the next layer
-            // currentLayer = new Node[](nextLayer.length);
             currentLayer = sort(nextLayer);
-            // currentIndices = nextIndices;
-            // n = numPairs;
         }
 
         Node memory root = currentLayer[0];
@@ -375,14 +216,26 @@ library Merkle {
     }
 
     function sort(Node[] memory myArray)
-        public
-        pure
+        internal
+        view
         returns (Node[] memory)
     {
+
         uint256 n = myArray.length;
 
         if (n == 1) {
             return myArray;
+        }
+
+        if (n == 2) {
+            if (myArray[0].index < myArray[1].index) {
+                return myArray;
+            } else {
+                Node memory temp = myArray[0];
+                myArray[0] = myArray[1];
+                myArray[1] = temp;
+                return myArray;
+            }
         }
 
         for (uint256 i = 1; i < n; i++) {
@@ -396,19 +249,17 @@ library Merkle {
 
             myArray[uint256(j + 1)] = myArray[i];
         }
+
         return myArray;
     }
 
+    function logIndices(Node[] memory values) internal view {
+        // indices = new uint256[](values.length);
 
-
-    function validIndices(uint256[] memory indices) internal pure returns (bool valid) {
-        unchecked {
-            uint256 loopLength = indices.length - 1;
-            for (uint256 i = 0; i < loopLength; ++i) {
-                // overflow should be impossible in array access math
-                if (indices[i] >= indices[i + 1]) return false;
-            }
+        for(uint i = 0; i < values.length; i++) {
+            // indices[i] = values[i].index;
+            console.log(values[i].index);
         }
-        return true;
     }
+
 }

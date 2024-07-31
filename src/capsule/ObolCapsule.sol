@@ -85,8 +85,6 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
         bytes calldata signature,
         bytes32 depositDataRoot
     ) external payable override {
-        // require(msg.value == MIN_EFFECTIVE_BALANCE, "invalid stake value");
-
         bytes32 pubkeyHash = BeaconChainProofs.hashValidatorBLSPubkey(pubkey);
 
         /// Interaction
@@ -114,7 +112,7 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
         /// Checks
         totalExitedBalance = _verifyExit(oracleTimestamp, vbProof, balanceProof, validatorProof);
 
-        // Verify that the an already processed validator is being re-submitted
+        // Verify that the an already processed validator is not being re-submitted
         _verifyValidatorExitProofHasNotBeenSubmitted(
             validatorProof.validatorIndices
         );
@@ -162,7 +160,7 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
     }
 
     function _calculateDistribution(uint256 balance, CapsuleData memory currentPrincipal) 
-        internal 
+        internal
         view
         returns(
             uint256 principal,
@@ -187,7 +185,7 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
 
     function _calculateRewardDistribution(uint256 amount) internal view returns (uint256 reward, uint256 fee) {
         // charge obol fee on rewards
-        fee = ( amount * feeShare) / PERCENTAGE_SCALE;
+        fee = (amount * feeShare) / PERCENTAGE_SCALE;
         // transfer to reward recipient
         reward = amount - fee;
     }
@@ -228,6 +226,8 @@ contract ObolCapsule is ObolCapsuleStorageV1 {
         posted = _validatorExitProofHasBeenSubmitted(validatorIndex);
     }
 
+    /// @dev verify exit proofs
+    /// @param oracleTimestamp passed in oracle timestamp
     function _verifyExit(
         uint64 oracleTimestamp,
         BeaconChainProofs.ValidatorListAndBalanceListRootProof calldata vbProof,
