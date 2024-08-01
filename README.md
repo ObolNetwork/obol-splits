@@ -76,8 +76,8 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 |----------------------|-------------------------------------------------------------------------------------------------|
 | ObolLidoSplitFactory | [0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449](https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449) |
 | ObolLidoSplit       | [0x22bdC6609de39E569546184Bff4ba4716d34fEBd](https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd) |
-| OptimisticWithdrawalRecipientFactory | [0x9028b97bdB7545c4C82dbB3953522e5a1345a09c](https://holesky.etherscan.io/address/0x9028b97bdB7545c4C82dbB3953522e5a1345a09c) |
-| OptimisticWithdrawalRecipient        | [0x68D2Fd526FbB21d3513Cd58BAC38B103B1a474Ff](https://holesky.etherscan.io/address/0x68D2Fd526FbB21d3513Cd58BAC38B103B1a474Ff) |
+| OptimisticWithdrawalRecipientFactory | [0xc0961353fcc43a99e3041db07ac646720e116256](https://holesky.etherscan.io/address/0xc0961353fcc43a99e3041db07ac646720e116256) |
+| OptimisticWithdrawalRecipient        | [0xa70eb35c1ee7f96688ea5e530ddf1ebedd0c8259](https://holesky.etherscan.io/address/0xa70eb35c1ee7f96688ea5e530ddf1ebedd0c8259) |
 | OptimisticTokenWithdrawalRecipientFactory | [0xD6c9f28062834185FF65D61388D9E2d9D804Fc03](https://holesky.etherscan.io/address/0xD6c9f28062834185FF65D61388D9E2d9D804Fc03) |
 | OptimisticTokenWithdrawalRecipient        | [0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6](https://holesky.etherscan.io/address/0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6) |
 
