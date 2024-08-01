@@ -76,8 +76,11 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 |----------------------|-------------------------------------------------------------------------------------------------|
 | ObolLidoSplitFactory | [0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449](https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449) |
 | ObolLidoSplit       | [0x22bdC6609de39E569546184Bff4ba4716d34fEBd](https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd) |
-| OptimisticWithdrawalRecipientFactory | [0x7fec4add6b5ee2b6c1cba232bc6db754794cb6df](https://holesky.etherscan.io/address/0x7fec4add6b5ee2b6c1cba232bc6db754794cb6df) |
-| OptimisticWithdrawalRecipient        | [0x8c55787F913A62a41A6CB7943e91827a02beB663](https://holesky.etherscan.io/address/0x8c55787F913A62a41A6CB7943e91827a02beB663) |
+| OptimisticWithdrawalRecipientFactory | [0x9028b97bdB7545c4C82dbB3953522e5a1345a09c](https://holesky.etherscan.io/address/0x9028b97bdB7545c4C82dbB3953522e5a1345a09c) |
+| OptimisticWithdrawalRecipient        | [0x68D2Fd526FbB21d3513Cd58BAC38B103B1a474Ff](https://holesky.etherscan.io/address/0x68D2Fd526FbB21d3513Cd58BAC38B103B1a474Ff) |
+| OptimisticTokenWithdrawalRecipientFactory | [0xD6c9f28062834185FF65D61388D9E2d9D804Fc03..](https://holesky.etherscan.io/address/0xD6c9f28062834185FF65D61388D9E2d9D804Fc03) |
+| OptimisticTokenWithdrawalRecipient        | [0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6](https://holesky.etherscan.io/address/0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6) |
+
 
 ### Mainnet Contracts
 | Contract Type                        | Address                                                                                             |
@@ -93,13 +96,13 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 | Contract Type                        | Address                                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
 | OptimisticTokenWithdrawalRecipientFactory | [0x417C41a1A49316dFdC317C1459d04C9959a67972..](https://gnosisscan.io/address/0x417C41a1A49316dFdC317C1459d04C9959a67972) |
-| OptimisticWithdrawalRecipient        | [0xdd94984658d4B9C45dDF1652287c15A672021894](https://gnosisscan.io/address/0xdd94984658d4B9C45dDF1652287c15A672021894) |
+| OptimisticTokenWithdrawalRecipient        | [0xdd94984658d4B9C45dDF1652287c15A672021894](https://gnosisscan.io/address/0xdd94984658d4B9C45dDF1652287c15A672021894) |
 
 ### Gnosis Chain Chiado Contracts
 | Contract Type                        | Address                                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
 | OptimisticTokenWithdrawalRecipientFactory | [0x417C41a1A49316dFdC317C1459d04C9959a67972](https://gnosis-chiado.blockscout.com/address/0x417C41a1A49316dFdC317C1459d04C9959a67972) |
-| OptimisticWithdrawalRecipient        | [0xdd94984658d4b9c45ddf1652287c15a672021894](https://gnosis-chiado.blockscout.com/address/0xdd94984658d4b9c45ddf1652287c15a672021894) |
+| OptimisticTokenWithdrawalRecipient        | [0xdd94984658d4b9c45ddf1652287c15a672021894](https://gnosis-chiado.blockscout.com/address/0xdd94984658d4b9c45ddf1652287c15a672021894) |
 
 
 ### Versioning
