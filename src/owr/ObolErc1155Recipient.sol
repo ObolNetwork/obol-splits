@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {ERC1155} from "solady/tokens/ERC1155.sol";
 import {LibString} from "solady/utils/LibString.sol";
@@ -19,7 +20,7 @@ import "forge-std/console.sol";
 
 /// @notice OWR principal recipient
 /// @dev handles rewards and principal of OWR
-contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
+contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receiver {
   using SafeTransferLib for address;
 
   struct Partition {
@@ -52,6 +53,8 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   address private constant ETH_ADDRESS = address(0x0);
   uint256 private constant ETH_DEPOSIT_AMOUNT = 32 ether;
   uint256 private constant MIN_ETH_EXIT_AMOUNT = 16 ether;
+
+  uint256 private constant ADMIN_ROLE = 1000;
 
   error OwrNotValid();
   error ClaimFailed();
@@ -341,7 +344,8 @@ contract ObolErc1155Recipient is ERC1155, Ownable, IERC1155Receiver {
   }
   function _validateWithdrawalCredentials(bytes calldata _credentials, address _owr) private pure returns (bool) {
     address _address = address(uint160(bytes20(_credentials[12:32])));
-    return _address == _owr;
+    bytes1 _firstByte = _credentials[0];
+    return _address == _owr && _firstByte == 0x01;
   }
 
   /// -----------------------------------------------------------------------

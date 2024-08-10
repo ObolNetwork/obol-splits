@@ -26,6 +26,9 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
   ObolErc1155RecipientMock recipient;
   DepositContractMock depositContract;
   PullSplitMock pullSplitMock;
+
+  uint256 private _counter;
+
   string constant BASE_URI = "https://github.com";
   uint256 internal constant ETH_STAKE = 32 ether;
   address internal constant ETH_ADDRESS = address(0);
@@ -103,6 +106,15 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     assertEq(recipient.ownerOf(firstToken), address(this));
     assertEq(recipient.ownerOf(1), address(this));
     assertEq(recipient.getPartitionTokensLength(0), 2);
+  }
+
+  function testMintGas_owrErc1155() public {
+    bytes memory withdrawalCreds = _createBytesWithAddress(address(OWR_ADDRESS));
+    recipient.createPartition(1000, OWR_ADDRESS);
+
+    for(uint256 i; i < 10; i++) {
+      recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: _generateRandomBytes(), withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
+    }
   }
 
   
@@ -184,5 +196,15 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
         }
 
         return result;
+  }
+
+  function _generateRandomBytes() private returns (bytes memory) {
+    uint256 length = 20;
+    bytes memory randomBytes = new bytes(length);
+    for (uint256 i = 0; i < length; i++) {
+      _counter++;
+      randomBytes[i] = bytes1(uint8(uint256(keccak256(abi.encodePacked(_counter, msg.sender, i))) % 256));
+    }
+    return randomBytes;
   }
 }
