@@ -5,7 +5,6 @@ import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-import {ObolRocketPoolStorage} from "./ObolRocketPoolStorage.sol";
 import {IRocketPoolMinipoolManager} from "../interfaces/external/rocketPool/IRocketPoolMinipoolManager.sol";
 import {IRocketMinipoolDelegate} from "../interfaces/external/rocketPool/IRocketMinipoolDelegate.sol";
 import {IRocketMinipoolBase} from "../interfaces/external/rocketPool/IRocketMinipoolBase.sol";
@@ -31,7 +30,7 @@ contract ObolRocketPoolRecipient is Clone {
   error InvalidTokenRecovery_InvalidRecipient();
 
   /// Invalid minipool
-  error InvalidMinipool_Address();
+  error Invalid_Address();
 
   /// Invalid distribution
   error InvalidDistribution_TooLarge();
@@ -60,6 +59,7 @@ contract ObolRocketPoolRecipient is Clone {
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
+  IRocketPoolStorage public immutable rpStorage;
 
   /// -----------------------------------------------------------------------
   /// storage - constants
@@ -85,19 +85,13 @@ contract ObolRocketPoolRecipient is Clone {
   /// storage - cwia offsets
   /// -----------------------------------------------------------------------
 
-  uint256 internal constant STORAGE_ADDRESS_OFFSET = 0;
-
-  // token (address, 20 bytes), recoveryAddress (address, 20 bytes),
+  // recoveryAddress (address, 20 bytes),
   // tranches (uint256[], numTranches * 32 bytes)
 
-  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 20;
-  // 20 = recoveryAddress_offset (0) + recoveryAddress_size (address, 20
+  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 0;
+  // 0 = recoveryAddress_offset (0) + recoveryAddress_size (address, 20
   // bytes)
-  uint256 internal constant TRANCHES_OFFSET = 40;
-
-  function rpStorage() public pure returns (address) {
-    return _getArgAddress(STORAGE_ADDRESS_OFFSET);
-  }
+  uint256 internal constant TRANCHES_OFFSET = 20;
 
   /// Address to recover non-OWR tokens to
   /// @dev equivalent to address public immutable recoveryAddress;
@@ -136,7 +130,10 @@ contract ObolRocketPoolRecipient is Clone {
 
   // solhint-disable-next-line no-empty-blocks
   /// clone implementation doesn't use constructor
-  constructor() {}
+  constructor(address _rpStorage) {
+    if (_rpStorage == address(0)) revert Invalid_Address();
+    rpStorage = IRocketPoolStorage(_rpStorage);
+  }
 
   /// -----------------------------------------------------------------------
   /// functions
@@ -163,9 +160,9 @@ contract ObolRocketPoolRecipient is Clone {
   }
 
   function viewRewards(address _miniPool) public view returns (uint256) {
-    IRocketPoolStorage _rpStorage = IRocketPoolStorage(rpStorage());
-    address miniPoolManager = _rpStorage.getAddress(keccak256(abi.encodePacked("contract.address", STORAGE_MINIPOOL_MANAGER)));
-    if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert InvalidMinipool_Address();
+    address miniPoolManager =
+      rpStorage.getAddress(keccak256(abi.encodePacked("contract.address", STORAGE_MINIPOOL_MANAGER)));
+    if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert Invalid_Address();
 
     uint256 nodeRefundBalance = IRocketMinipoolDelegate(_miniPool).getNodeRefundBalance();
     uint256 balance = _miniPool.balance;
@@ -259,9 +256,9 @@ contract ObolRocketPoolRecipient is Clone {
 
   function _distributeFunds(address _miniPool, bool _rewards, uint256 pullFlowFlag) internal {
     {
-      IRocketPoolStorage _rpStorage = IRocketPoolStorage(rpStorage());
-      address miniPoolManager = _rpStorage.getAddress(keccak256(abi.encodePacked("contract.address", STORAGE_MINIPOOL_MANAGER)));
-      if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert InvalidMinipool_Address();
+      address miniPoolManager =
+        rpStorage.getAddress(keccak256(abi.encodePacked("contract.address", STORAGE_MINIPOOL_MANAGER)));
+      if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert Invalid_Address();
     }
 
     IRocketMinipoolDelegate(_miniPool).distributeBalance(_rewards);

@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import {ObolRocketPoolRecipientFactory} from "src/rocket-pool/ObolRocketPoolRecipientFactory.sol";
 import {ObolRocketPoolRecipient} from "src/rocket-pool/ObolRocketPoolRecipient.sol";
-import {ObolRocketPoolStorage} from "src/rocket-pool/ObolRocketPoolStorage.sol";
 import {RocketPoolTestHelper} from "./RocketPoolTestHelper.t.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";

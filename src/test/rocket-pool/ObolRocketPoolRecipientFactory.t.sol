@@ -2,11 +2,11 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {ObolRocketPoolStorage} from "src/rocket-pool/ObolRocketPoolStorage.sol";
 import {ObolRocketPoolRecipientFactory} from "src/rocket-pool/ObolRocketPoolRecipientFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 import {RocketPoolTestHelper} from "./RocketPoolTestHelper.t.sol";
+import {RPStorageMock} from "./mocks/RPStorageMock.sol";
 
 contract ObolRocketPoolRecipientFactoryTest is RocketPoolTestHelper, Test {
   event CreateObolRocketPoolRecipient(
@@ -21,8 +21,8 @@ contract ObolRocketPoolRecipientFactoryTest is RocketPoolTestHelper, Test {
   address public ENS_REVERSE_REGISTRAR_GOERLI = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
   ObolRocketPoolRecipientFactory rpRecipientFactoryModule;
-  ObolRocketPoolStorage rpStorage;
   MockERC20 mERC20;
+  RPStorageMock rpStorage;
   address public recoveryAddress;
   address public principalRecipient;
   address public rewardRecipient;
@@ -31,8 +31,6 @@ contract ObolRocketPoolRecipientFactoryTest is RocketPoolTestHelper, Test {
   function setUp() public {
     mERC20 = new MockERC20("Test Token", "TOK", 18);
     mERC20.mint(type(uint256).max);
-
-    rpStorage = new ObolRocketPoolStorage();
 
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI,
@@ -45,6 +43,7 @@ contract ObolRocketPoolRecipientFactoryTest is RocketPoolTestHelper, Test {
       bytes.concat(bytes32(0))
     );
 
+    rpStorage = new RPStorageMock();
     rpRecipientFactoryModule = new ObolRocketPoolRecipientFactory(
       address(rpStorage), "demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this)
     );

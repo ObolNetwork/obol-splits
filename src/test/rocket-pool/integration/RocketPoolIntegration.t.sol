@@ -5,20 +5,19 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {ObolRocketPoolRecipientFactory} from "src/rocket-pool/ObolRocketPoolRecipientFactory.sol";
 import {ObolRocketPoolRecipient} from "src/rocket-pool/ObolRocketPoolRecipient.sol";
-import {ObolRocketPoolStorage} from "src/rocket-pool/ObolRocketPoolStorage.sol";
 import {RocketPoolTestHelper} from "../RocketPoolTestHelper.t.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {IENSReverseRegistrar} from "../../../interfaces/IENSReverseRegistrar.sol";
 import {IRocketPoolMinipoolManager} from "src/interfaces/external/rocketPool/IRocketPoolMinipoolManager.sol";
 import {IRocketMinipoolDelegate} from "src/interfaces/external/rocketPool/IRocketMinipoolDelegate.sol";
 import {IRocketMinipoolBase} from "src/interfaces/external/rocketPool/IRocketMinipoolBase.sol";
+import {IRocketPoolStorage} from "src/interfaces/external/rocketPool/IRocketPoolStorage.sol";
 
 contract RocketPoolIntegrationTest is RocketPoolTestHelper, Test {
   using SafeTransferLib for address;
 
   ObolRocketPoolRecipient public rpModule;
   ObolRocketPoolRecipientFactory public rpFactory;
-  ObolRocketPoolStorage rpStorage;
   address internal recoveryAddress;
 
   ObolRocketPoolRecipient public rpRecipient;
@@ -31,6 +30,7 @@ contract RocketPoolIntegrationTest is RocketPoolTestHelper, Test {
   address public constant MINIPOOL = 0x5cF493b240f27D1d55038C9b5CAebB0E0849519E;
   address public constant MINIPOOL_WITHDRAWAL_ADDRESS = 0x38ed4462C9F4CD13B03E355a33Ef8AE6B65E53D4;
   address public ENS_REVERSE_REGISTRAR_MAINNET = 0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb;
+  address public constant RP_STORAGE = 0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46;
 
   function setUp() public {
     uint256 rpcBlock = 20_382_513;
@@ -47,10 +47,8 @@ contract RocketPoolIntegrationTest is RocketPoolTestHelper, Test {
       bytes.concat(bytes32(0))
     );
 
-    rpStorage = new ObolRocketPoolStorage();
-    rpFactory = new ObolRocketPoolRecipientFactory(
-      address(rpStorage), "demo.obol.eth", ENS_REVERSE_REGISTRAR_MAINNET, address(this)
-    );
+    rpFactory =
+      new ObolRocketPoolRecipientFactory(RP_STORAGE, "demo.obol.eth", ENS_REVERSE_REGISTRAR_MAINNET, address(this));
 
     rpModule = rpFactory.rpRecipientImplementation();
 
@@ -62,14 +60,14 @@ contract RocketPoolIntegrationTest is RocketPoolTestHelper, Test {
 
     rpRecipient =
       rpFactory.createObolRocketPoolRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
-
-    rpStorage.setMinipoolManager(MINIPOOL_MANAGER);
   }
 
   function testRocketPoolRecipientViewInteractions() public {
     // simulate calls from RocketPoolRecipient
     vm.startPrank(address(rpRecipient));
-    address _manager = rpStorage.rocketPoolMinipoolManager();
+    address _manager = IRocketPoolStorage(RP_STORAGE).getAddress(
+      keccak256(abi.encodePacked("contract.address", "rocketMinipoolManager"))
+    );
     bool _poolExists = IRocketPoolMinipoolManager(_manager).getMinipoolExists(MINIPOOL);
     // test delegate
     bool _distributionAllowed = IRocketMinipoolDelegate(MINIPOOL).userDistributeAllowed();

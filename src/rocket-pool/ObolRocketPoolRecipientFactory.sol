@@ -25,7 +25,7 @@ contract ObolRocketPoolRecipientFactory {
   error Invalid__ThresholdTooLarge(uint256 threshold);
 
   /// Invalid address
-  error InvalidAddress();
+  error Invalid__Address();
 
   /// -----------------------------------------------------------------------
   /// events
@@ -55,14 +55,14 @@ contract ObolRocketPoolRecipientFactory {
   /// ObolRocketPoolRecipient implementation address
   ObolRocketPoolRecipient public immutable rpRecipientImplementation;
 
-  address public immutable obolRpStorage;
+  address public immutable rpStorage;
 
   constructor(address _rpStorage, string memory _ensName, address _ensReverseRegistrar, address _ensOwner) {
-    if (_rpStorage == address(0)) revert InvalidAddress();
+    if (_rpStorage == address(0)) revert Invalid__Address();
 
-    obolRpStorage = _rpStorage;
+    rpStorage = _rpStorage;
 
-    rpRecipientImplementation = new ObolRocketPoolRecipient();
+    rpRecipientImplementation = new ObolRocketPoolRecipient(_rpStorage);
     IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
     IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
   }
@@ -95,12 +95,12 @@ contract ObolRocketPoolRecipientFactory {
 
     // would not exceed contract size limits
     // important to not reorder
-    bytes memory data = abi.encodePacked(obolRpStorage, recoveryAddress, principalData, rewardData);
+    bytes memory data = abi.encodePacked(recoveryAddress, principalData, rewardData);
 
     rpRecipient = ObolRocketPoolRecipient(address(rpRecipientImplementation).clone(data));
 
     emit CreateObolRocketPoolRecipient(
-      address(rpRecipient), obolRpStorage, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake
+      address(rpRecipient), rpStorage, recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake
     );
   }
 }
