@@ -9,6 +9,7 @@ import {ObolRocketPoolStorage} from "./ObolRocketPoolStorage.sol";
 import {IRocketPoolMinipoolManager} from "../interfaces/external/rocketPool/IRocketPoolMinipoolManager.sol";
 import {IRocketMinipoolDelegate} from "../interfaces/external/rocketPool/IRocketMinipoolDelegate.sol";
 import {IRocketMinipoolBase} from "../interfaces/external/rocketPool/IRocketMinipoolBase.sol";
+import {IRocketPoolStorage} from "../interfaces/external/rocketPool/IRocketPoolStorage.sol";
 
 contract ObolRocketPoolRecipient is Clone {
   /// -----------------------------------------------------------------------
@@ -76,6 +77,9 @@ contract ObolRocketPoolRecipient is Clone {
   uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 4 ether;
   uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
   uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
+
+  /// @dev RocketPool storage names
+  string constant STORAGE_MINIPOOL_MANAGER = "rocketMinipoolManager";
 
   /// -----------------------------------------------------------------------
   /// storage - cwia offsets
@@ -159,8 +163,8 @@ contract ObolRocketPoolRecipient is Clone {
   }
 
   function viewRewards(address _miniPool) public view returns (uint256) {
-    ObolRocketPoolStorage _rpStorage = ObolRocketPoolStorage(rpStorage());
-    address miniPoolManager = _rpStorage.rocketPoolMinipoolManager();
+    IRocketPoolStorage _rpStorage = IRocketPoolStorage(rpStorage());
+    address miniPoolManager = _rpStorage.getAddress(keccak256(abi.encodePacked("contract.address", STORAGE_MINIPOOL_MANAGER)));
     if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert InvalidMinipool_Address();
 
     uint256 nodeRefundBalance = IRocketMinipoolDelegate(_miniPool).getNodeRefundBalance();
@@ -254,9 +258,9 @@ contract ObolRocketPoolRecipient is Clone {
   }
 
   function _distributeFunds(address _miniPool, bool _rewards, uint256 pullFlowFlag) internal {
-    ObolRocketPoolStorage _rpStorage = ObolRocketPoolStorage(rpStorage());
     {
-      address miniPoolManager = _rpStorage.rocketPoolMinipoolManager();
+      IRocketPoolStorage _rpStorage = IRocketPoolStorage(rpStorage());
+      address miniPoolManager = _rpStorage.getAddress(keccak256(abi.encodePacked("contract.address", STORAGE_MINIPOOL_MANAGER)));
       if (!IRocketPoolMinipoolManager(miniPoolManager).getMinipoolExists(_miniPool)) revert InvalidMinipool_Address();
     }
 

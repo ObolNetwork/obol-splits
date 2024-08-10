@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import {Ownable} from "solady/auth/Ownable.sol";
 
+/// @dev deprecated
 //https://docs.rocketpool.net/overview/contracts-integrations
 contract ObolRocketPoolStorage is Ownable {
   // address internal constant RP_DEPOSIT = 0xDD3f50F8A6CafbE9b31a427582963f465E745AF8;

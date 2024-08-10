@@ -12,6 +12,7 @@ import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
 import {RPMinipoolManagerMock} from "./mocks/RPMinipoolManagerMock.sol";
 import {RPMinipoolMock} from "./mocks/RPMinipoolMock.sol";
+import {RPStorageMock} from "./mocks/RPStorageMock.sol";
 
 contract ObolRocketPoolRecipientTest is RocketPoolTestHelper, Test {
   using SafeTransferLib for address;
@@ -24,7 +25,7 @@ contract ObolRocketPoolRecipientTest is RocketPoolTestHelper, Test {
 
   ObolRocketPoolRecipient public rpModule;
   ObolRocketPoolRecipientFactory public rpFactory;
-  ObolRocketPoolStorage rpStorage;
+  RPStorageMock rpStorage;
   address internal recoveryAddress;
 
   ObolRocketPoolRecipient public rpRecipient;
@@ -51,7 +52,7 @@ contract ObolRocketPoolRecipientTest is RocketPoolTestHelper, Test {
       bytes.concat(bytes32(0))
     );
 
-    rpStorage = new ObolRocketPoolStorage();
+    rpStorage = new RPStorageMock();
     rpFactory = new ObolRocketPoolRecipientFactory(
       address(rpStorage), "demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this)
     );
