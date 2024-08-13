@@ -15,7 +15,6 @@ import {IPullSplit} from "src/interfaces/external/splits/IPullSplit.sol";
 import {IENSReverseRegistrar} from "../../interfaces/external/IENSReverseRegistrar.sol";
 import {IObolErc1155Recipient} from "src/interfaces/IObolErc1155Recipient.sol";
 
-
 import {PullSplitMock} from "./mocks/PullSplitMock.sol";
 import {DepositContractMock} from "./mocks/DepositContractMock.sol";
 import {ObolErc1155ReceiverMock} from "./mocks/ObolErc1155ReceiverMock.sol";
@@ -71,7 +70,7 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
 
   function testCreatePartition_owrErc1155() public {
     address owrAddress = makeAddr("owrAddress");
-    recipient.createPartition(10, owrAddress);
+    recipient.createPartition(10, owrAddress, _generateDepositInfo(10, false, false));
     (uint256 maxSupply, address owr, address operator) = recipient.partitions(0);
     assertEq(maxSupply, 10);
     assertEq(owr, owrAddress);
@@ -81,26 +80,19 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
 
   function testWithdrawCredentials_owrErc1155() public {
     address owrAddress = 0x747515655BaC1A8CcD1dA01ed0F9aeEac464c8B6;
-    recipient.createPartition(10, owrAddress);
-
     vm.expectRevert();
-    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: "0x", sig: "0x", root: bytes32(0)}));
+    recipient.createPartition(1, owrAddress, _generateDepositInfo(1, true, false));
   }
 
   function testPubKey_owrErc1155() public {
-    bytes memory withdrawalCreds = _createBytesWithAddress(address(OWR_ADDRESS));
-    recipient.createPartition(10, OWR_ADDRESS);
-    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
     vm.expectRevert();
-    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
-
+    recipient.createPartition(10, OWR_ADDRESS, _generateDepositInfo(10, false, true));
   }
 
   function testMint_owrErc1155() public {
-    bytes memory withdrawalCreds = _createBytesWithAddress(address(OWR_ADDRESS));
-    recipient.createPartition(10, OWR_ADDRESS);
-    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
-    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x1", withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
+    recipient.createPartition(10, OWR_ADDRESS, _generateDepositInfo(10, false, false));
+    recipient.mint{value: 32 ether}(0);
+    recipient.mint{value: 32 ether}(0);
 
     uint256 firstToken = recipient.partitionTokens(0, 0);
     assertEq(recipient.ownerOf(firstToken), address(this));
@@ -109,15 +101,13 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
   }
 
   function testMintGas_owrErc1155() public {
-    bytes memory withdrawalCreds = _createBytesWithAddress(address(OWR_ADDRESS));
-    recipient.createPartition(1000, OWR_ADDRESS);
+    // 117707542 gas ( 0.1 ETH for 1 gwei price )
+    recipient.createPartition(1000, OWR_ADDRESS, _generateDepositInfo(1000, false, false));
 
-    for(uint256 i; i < 10; i++) {
-      recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: _generateRandomBytes(), withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
-    }
+    // 1193591940 gas ( 1.1 ETH for 1 gwei price )
+    recipient.createPartition(10_000, OWR_ADDRESS, _generateDepositInfo(10_000, false, false));
   }
 
-  
   function testRewards_owrErc1155() public {
     vm.mockCall(
       ENS_REVERSE_REGISTRAR_GOERLI,
@@ -132,28 +122,30 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     OptimisticPullWithdrawalRecipientFactory owrFactory =
       new OptimisticPullWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
 
-    OptimisticPullWithdrawalRecipient owrETH =
-      owrFactory.createOWRecipient(ETH_ADDRESS, address(pullSplitMock), address(this), address(pullSplitMock), ETH_STAKE);
-      
-    bytes memory withdrawalCreds = _createBytesWithAddress(address(owrETH));
-    recipient.createPartition(10, address(owrETH));
-    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
+    OptimisticPullWithdrawalRecipient owrETH = owrFactory.createOWRecipient(
+      ETH_ADDRESS, address(pullSplitMock), address(this), address(pullSplitMock), ETH_STAKE
+    );
+
+    recipient.createPartition(10, address(owrETH), _generateDepositInfo(10, false, false));
+    recipient.mint{value: 32 ether}(0);
 
     address(owrETH).safeTransferETH(1 ether);
     assertEq(address(owrETH).balance, 1 ether);
 
-    recipient.distributeRewards(0, address(this), IPullSplit.PullSplitConfiguration({
-      recipients: new address[](0),
-      allocations: new uint256[](0),
-      totalAllocation: 0,
-      distributionIncentive: 0
-    }));
+    recipient.distributeRewards(
+      0,
+      address(this),
+      IPullSplit.PullSplitConfiguration({
+        recipients: new address[](0),
+        allocations: new uint256[](0),
+        totalAllocation: 0,
+        distributionIncentive: 0
+      })
+    );
 
     uint256 claimable = recipient.claimable(address(this));
     assertEq(claimable, 1 ether);
   }
-
-  
 
   function testBurn_owrErc1155() public {
     vm.mockCall(
@@ -169,12 +161,12 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     OptimisticPullWithdrawalRecipientFactory owrFactory =
       new OptimisticPullWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
 
-    OptimisticPullWithdrawalRecipient owrETH =
-      owrFactory.createOWRecipient(ETH_ADDRESS, address(pullSplitMock), address(recipient), address(pullSplitMock), ETH_STAKE);
+    OptimisticPullWithdrawalRecipient owrETH = owrFactory.createOWRecipient(
+      ETH_ADDRESS, address(pullSplitMock), address(recipient), address(pullSplitMock), ETH_STAKE
+    );
 
-    bytes memory withdrawalCreds = _createBytesWithAddress(address(owrETH));
-    recipient.createPartition(2, address(owrETH));
-    recipient.mint{value: 32 ether}(0, IObolErc1155Recipient.DepositInfo({pubkey: "0x", withdrawal_credentials: withdrawalCreds, sig: "0x", root: bytes32(0)}));
+    recipient.createPartition(2, address(owrETH), _generateDepositInfo(2, false, false));
+    recipient.mint{value: 32 ether}(0);
 
     address(owrETH).safeTransferETH(32 ether);
     assertEq(address(owrETH).balance, 32 ether);
@@ -185,17 +177,16 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     assertEq(balanceBefore + 32 ether, balanceAfter);
   }
 
-
   function _createBytesWithAddress(address addr) private pure returns (bytes memory) {
-        bytes20 addrBytes = bytes20(addr);
-        bytes memory result = new bytes(32);
-        result[0] = 0x01;
+    bytes20 addrBytes = bytes20(addr);
+    bytes memory result = new bytes(32);
+    result[0] = 0x01;
 
-        for (uint256 i = 12; i < 32; i++) {
-            result[i] = addrBytes[i-12];
-        }
+    for (uint256 i = 12; i < 32; i++) {
+      result[i] = addrBytes[i - 12];
+    }
 
-        return result;
+    return result;
   }
 
   function _generateRandomBytes() private returns (bytes memory) {
@@ -206,5 +197,20 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
       randomBytes[i] = bytes1(uint8(uint256(keccak256(abi.encodePacked(_counter, msg.sender, i))) % 256));
     }
     return randomBytes;
+  }
+
+  function _generateDepositInfo(uint256 count, bool wrongWithdrawalCred, bool wrongPubKey)
+    private
+    returns (IObolErc1155Recipient.DepositInfo[] memory depositInfos)
+  {
+    depositInfos = new IObolErc1155Recipient.DepositInfo[](count);
+    for (uint256 i; i < count; i++) {
+      depositInfos[i] = IObolErc1155Recipient.DepositInfo({
+        pubkey: wrongPubKey ? bytes("0x1") : _generateRandomBytes(),
+        withdrawal_credentials: wrongWithdrawalCred ? bytes("0x1") : _createBytesWithAddress(address(OWR_ADDRESS)),
+        sig: "0x",
+        root: bytes32(0)
+      });
+    }
   }
 }

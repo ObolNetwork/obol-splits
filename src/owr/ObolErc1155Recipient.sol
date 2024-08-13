@@ -3,7 +3,6 @@ pragma solidity 0.8.19;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
-import {Ownable} from "solady/auth/Ownable.sol";
 import {ERC1155} from "solady/tokens/ERC1155.sol";
 import {LibString} from "solady/utils/LibString.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
@@ -16,11 +15,9 @@ import {ISplitMain, SplitConfiguration} from "src/interfaces/external/splits/ISp
 import {IOptimisticPullWithdrawalRecipient} from "../interfaces/IOptimisticPullWithdrawalRecipient.sol";
 import {IObolErc1155Recipient} from "../interfaces/IObolErc1155Recipient.sol";
 
-import "forge-std/console.sol";
-
 /// @notice OWR principal recipient
 /// @dev handles rewards and principal of OWR
-contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receiver {
+contract ObolErc1155Recipient is ERC1155, OwnableRoles, IERC1155Receiver {
   using SafeTransferLib for address;
 
   struct Partition {
@@ -29,12 +26,16 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
     address operator;
   }
 
-  uint256 public tokenId;
   uint256 public partitionId;
   mapping(uint256 _partitionId => Partition) public partitions;
-  mapping(uint256 _partitionId => uint256[] _tokenIds) public partitionTokens;
-  mapping(address _owr => uint256 _partitionId) public owrsPartition; 
+  mapping(uint256 _partitionId => uint256[] _tokenIds) public partitionTokens; // TODO: refactor by adding it to
+    // Partition struct
+  mapping(uint256 _partitionId => IObolErc1155Recipient.DepositInfo[] _depositInfos) public partitionDepositInfos;
+  mapping(uint256 _partitionId => uint256 depositInfoPointer) public depositInfoIndex;
 
+  mapping(address _owr => uint256 _partitionId) public owrsPartition;
+
+  uint256 public tokenId;
   mapping(uint256 _tokenId => uint256 _partitionId) public tokensPartition;
   mapping(uint256 _tokenId => address _owner) public ownerOf;
 
@@ -66,11 +67,14 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
   error InvalidBurnAmount(uint256 necessary, uint256 received);
   error PubKeyUsed();
   error WithdrawCredentialsNotValid();
+  error AllDepositInfoConsumed();
 
   event PartitionCreated(address indexed _owr, uint256 indexed _partitionId, uint256 indexed _maxSupply);
   event Minted(uint256 indexed _partitionId, uint256 indexed _mintedId, address indexed _sender);
   event Claimed(address indexed _account, address indexed _token, uint256 _amount);
-  event RewardsDistributed(address indexed _token, uint256 indexed _tokenId, address indexed _account, uint256 _amount, uint256 _totalRewards);
+  event RewardsDistributed(
+    address indexed _token, uint256 indexed _tokenId, address indexed _account, uint256 _amount, uint256 _totalRewards
+  );
 
   constructor(string memory baseUri_, address _owner, address _depositContract) {
     _baseUri = baseUri_;
@@ -117,8 +121,30 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
   /// @notice creates a new partition
   /// @param maxSupply the maximum number of unique tokens
   /// @param owr the Optimistic Withdrawal Recipient address
-  function createPartition(uint256 maxSupply, address owr) external {
+  function createPartition(uint256 maxSupply, address owr, IObolErc1155Recipient.DepositInfo[] calldata depositInfos)
+    external
+    onlyOwnerOrRoles(ADMIN_ROLE)
+  {
     uint256 _id = partitionId;
+    if (depositInfos.length != maxSupply) revert PartitionNotValid();
+
+    for (uint256 i; i < maxSupply; i++) {
+      IObolErc1155Recipient.DepositInfo calldata _depositInfo = depositInfos[i];
+
+      _validateWithdrawalCredentials(_depositInfo.withdrawal_credentials, owr);
+      if (_usedPubKeys[_depositInfo.pubkey]) revert PubKeyUsed();
+      _usedPubKeys[_depositInfo.pubkey] = true;
+
+      partitionDepositInfos[_id].push(
+        IObolErc1155Recipient.DepositInfo({
+          withdrawal_credentials: _depositInfo.withdrawal_credentials,
+          pubkey: _depositInfo.pubkey,
+          root: _depositInfo.root,
+          sig: _depositInfo.sig
+        })
+      );
+    }
+
     partitions[_id] = Partition({maxSupply: maxSupply, owr: owr, operator: msg.sender});
     owrsPartition[owr] = _id;
 
@@ -128,18 +154,19 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
 
   /// @notice mints a new token and deposits to ETH deposit contract
   /// @param _partitionId the partition to assign it to
-  /// @param depositInfo deposit data needed for `DepositContract`
   /// @return mintedId id of the minted NFT
-  function mint(uint256 _partitionId, IObolErc1155Recipient.DepositInfo calldata depositInfo) external payable returns (uint256 mintedId) {
-
+  function mint(uint256 _partitionId) external payable returns (uint256 mintedId) {
     // validation
+    if (depositInfoIndex[_partitionId] == partitionDepositInfos[_partitionId].length - 1) {
+      revert AllDepositInfoConsumed();
+    }
     if (partitions[_partitionId].owr == address(0)) revert PartitionNotValid();
     if (partitionTokens[_partitionId].length + 1 > partitions[_partitionId].maxSupply) revert PartitionSupplyReached();
     if (msg.value != ETH_DEPOSIT_AMOUNT) revert DepositAmountNotValid();
-    if (_usedPubKeys[depositInfo.pubkey]) revert PubKeyUsed();
-    if (!_validateWithdrawalCredentials(depositInfo.withdrawal_credentials, partitions[_partitionId].owr)) revert WithdrawCredentialsNotValid();
 
-    _usedPubKeys[depositInfo.pubkey] = true;
+    IObolErc1155Recipient.DepositInfo memory depositInfo =
+      partitionDepositInfos[_partitionId][depositInfoIndex[_partitionId]];
+    depositInfoIndex[_partitionId] += 1;
 
     // deposit first to ETH deposit contract
     depositContract.deposit{value: ETH_DEPOSIT_AMOUNT}(
@@ -172,7 +199,8 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
     if (!isOwnerOf(_tokenId)) revert InvalidOwner();
 
     // retrieve OWR
-    IOptimisticPullWithdrawalRecipient _owr = IOptimisticPullWithdrawalRecipient(partitions[tokensPartition[_tokenId]].owr);
+    IOptimisticPullWithdrawalRecipient _owr =
+      IOptimisticPullWithdrawalRecipient(partitions[tokensPartition[_tokenId]].owr);
     if (address(_owr) == address(0)) revert OwrNotValid();
 
     // retrieve ETH from the OWR
@@ -195,7 +223,8 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
     if (!isOwnerOf(_tokenId)) revert InvalidOwner();
 
     // retrieve OWR
-    IOptimisticPullWithdrawalRecipient _owr = IOptimisticPullWithdrawalRecipient(partitions[tokensPartition[_tokenId]].owr);
+    IOptimisticPullWithdrawalRecipient _owr =
+      IOptimisticPullWithdrawalRecipient(partitions[tokensPartition[_tokenId]].owr);
     if (address(_owr) == address(0)) revert OwrNotValid();
 
     // retrieve ETH from the OWR
@@ -203,7 +232,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
 
     // withdraw from the OWR
     uint256 pullBalance = _owr.getPullBalance(address(this));
-    uint256 toWithdraw = pullBalance < ETH_DEPOSIT_AMOUNT ? pullBalance: ETH_DEPOSIT_AMOUNT;
+    uint256 toWithdraw = pullBalance < ETH_DEPOSIT_AMOUNT ? pullBalance : ETH_DEPOSIT_AMOUNT;
     _owr.withdraw(address(this), toWithdraw);
 
     _burn(msg.sender, _tokenId, 1);
@@ -214,7 +243,6 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
     (bool sent,) = msg.sender.call{value: toWithdraw}("");
     if (!sent) revert TransferFailed();
   }
-
 
   /// @notice triggers `OWR.distributeFunds` and updates claimable balances for partition
   /// @param _tokenId token id
@@ -250,7 +278,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
       }
     }
   }
-  
+
   /// @notice claim rewards
   /// @dev for ETH, `_token` should be `address(0)`
   /// @param _user the account to claim for
@@ -258,9 +286,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
     uint256 _amount = claimable[_user];
 
     // send `_token` to user
-    if (_amount > 0) {
-      _user.safeTransferETH(_amount);
-    }
+    if (_amount > 0) _user.safeTransferETH(_amount);
 
     // reset `claimable` for `_user` and `_token`
     claimable[_user] = 0;
@@ -342,6 +368,7 @@ contract ObolErc1155Recipient is ERC1155, Ownable, OwnableRoles, IERC1155Receive
   function _useBeforeTokenTransfer() internal pure override returns (bool) {
     return true;
   }
+
   function _validateWithdrawalCredentials(bytes calldata _credentials, address _owr) private pure returns (bool) {
     address _address = address(uint160(bytes20(_credentials[12:32])));
     bytes1 _firstByte = _credentials[0];
