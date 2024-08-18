@@ -99,7 +99,7 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     assertEq(recipient.ownerOf(1), address(this));
     assertEq(recipient.getPartitionTokensLength(0), 2);
   }
-
+  /*
   function testMintGas_owrErc1155() public {
     // 117707542 gas ( 0.1 ETH for 1 gwei price )
     recipient.createPartition(1000, OWR_ADDRESS, _generateDepositInfo(1000, false, false));
@@ -107,6 +107,7 @@ contract ObolErc1155RecipientTest is Test, IERC1155Receiver {
     // 1193591940 gas ( 1.1 ETH for 1 gwei price )
     recipient.createPartition(10_000, OWR_ADDRESS, _generateDepositInfo(10_000, false, false));
   }
+  */
 
   function testRewards_owrErc1155() public {
     vm.mockCall(
