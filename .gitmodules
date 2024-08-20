@@ -15,3 +15,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate
+[submodule "lib/collateral"]
+	path = lib/collateral
+	url = https://github.com/symbioticfi/collateral
