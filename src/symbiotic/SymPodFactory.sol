@@ -3,5 +3,7 @@ pragma solidity 0.8.19;
 
 
 contract SymPodFactory {
-    
+    function createSymPod() external {
+
+    }
 }
