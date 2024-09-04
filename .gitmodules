@@ -18,3 +18,6 @@
 [submodule "lib/collateral"]
 	path = lib/collateral
 	url = https://github.com/symbioticfi/collateral
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
