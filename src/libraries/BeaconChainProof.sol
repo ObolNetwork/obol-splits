@@ -17,6 +17,8 @@ library BeaconChainProofs {
     error BeaconChainProofs__InvalidValidatorFieldsMerkleProof();
     error BeaconChainProofs__InvalidIndicesAndBalances();
     error BeaconChainProofs__IncorrectWithdrawalCredentials(bytes32 pubkeyHash);
+    error BeaconChainProofs__InvalidValidatorRootProof();
+    error BeaconChainProofs__InvalidBalanceRootProof();
 
     // constants are the number of fields and the heights of the different merkle trees used in merkleizing beacon chain containers
     uint256 internal constant BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT = 3;
@@ -62,6 +64,7 @@ library BeaconChainProofs {
     uint256 internal constant VALIDATOR_WITHDRAWAL_CREDENTIALS_INDEX = 1;
     uint256 internal constant VALIDATOR_BALANCE_INDEX = 2;
     uint256 internal constant VALIDATOR_SLASHED_INDEX = 3;
+    uint256 internal constant VALIDATOR_ACTIVATION_EPOCH_INDEX = 5;
     uint256 internal constant VALIDATOR_EXIT_EPOCH_INDEX = 6;
     uint256 internal constant VALIDATOR_WITHDRAWABLE_EPOCH_INDEX = 7;
 
@@ -84,15 +87,23 @@ library BeaconChainProofs {
     }
 
     struct ValidatorProof {
-        bytes32 validatorListRoot;
         bytes32[][] validatorFields;
         bytes32[] proof;
         uint40[] validatorIndices;
     }
 
-    struct BalanceProof {
+    struct BalanceContainerProof {
         bytes32 balanceListRoot;
         bytes32[] proof;
+    }
+
+    struct ValidatorListContainerProof {
+        bytes32 validatorListRoot;
+        bytes32[] proof;
+    }
+    struct BalanceProof {
+        bytes32[] proof;
+        uint40[] validatorIndices;
         bytes32[] validatorBalances;
     }
     
@@ -148,7 +159,7 @@ library BeaconChainProofs {
         bytes32[] memory proof,
         uint40[] memory validatorIndices,
         bytes32[] memory validatorBalances
-    ) internal view {
+    ) internal view returns (uint256[] memory actualValidatorBalances) { 
         
         uint256 validatorBalancesSize = validatorBalances.length;
         if (validatorBalancesSize != validatorIndices.length) {
@@ -162,9 +173,12 @@ library BeaconChainProofs {
         /**
          * 
          */
+        actualValidatorBalances = new uint256[](validatorBalancesSize);
         for (uint256 i = 0; i < validatorBalancesSize; i++) {
             uint256 index = validatorIndices[i] / 4;
             balanceNodes[i] = Merkle.Node(validatorBalances[i], index);
+
+            actualValidatorBalances[i] = uint256(getBalanceAtIndex(validatorBalances[i], validatorIndices[i]));
         }
 
         if (
@@ -176,29 +190,6 @@ library BeaconChainProofs {
             ) == false) {
             revert BeaconChainProofs__InvalidValidatorFieldsMerkleProof();
         }
-
-        // require(
-        //     proof.proof.length == 32 * (BEACON_BLOCK_HEADER_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT),
-        //     "BeaconChainProofs.verifyBalanceContainer: Proof has incorrect length"
-        // );
-
-        // /// This proof combines two proofs, so its index accounts for the relative position of leaves in two trees:
-        // /// - beaconBlockRoot
-        // /// |                            HEIGHT: BEACON_BLOCK_HEADER_TREE_HEIGHT
-        // /// -- beaconStateRoot
-        // /// |                            HEIGHT: BEACON_STATE_TREE_HEIGHT
-        // /// ---- balancesContainerRoot
-        // uint256 index = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_CONTAINER_INDEX;
-        
-        // require(
-        //     Merkle.verifyInclusionSha256({
-        //         proof: proof.proof,
-        //         root: beaconBlockRoot,
-        //         leaf: proof.balanceContainerRoot,
-        //         index: index
-        //     }),
-        //     "BeaconChainProofs.verifyBalanceContainer: invalid balance container proof"
-        // );
     }
 
     
@@ -244,8 +235,87 @@ library BeaconChainProofs {
         }
     }
 
+    /// @notice This function verifies validatorListRoot against the block root. 
+    /// @param blockRoot merkle root of the beacon block
+    /// @param validatorListRoot  is hashtree root of the latest validator list in the beacon state
+    /// @param proof proof
+    function verifyValidatorListRootAgainstBlockRoot(
+        bytes32 blockRoot,
+        bytes32 validatorListRoot,
+        bytes32[] memory proof
+    ) internal view {      
+        // verify proof size
+        // uint256 proofSize = 9;
+        // if (multiProof.length != proofSize) {
+        //     revert BeaconChainProofs__InvalidProofSize();
+        // }
+        /// This proof combines two proofs, so its index accounts for the relative position of leaves in two trees:
+        /// - beaconBlockRoot
+        /// |                            HEIGHT: BEACON_BLOCK_HEADER_TREE_HEIGHT
+        /// -- beaconStateRoot 
+        /// |                            HEIGHT: BEACON_STATE_TREE_HEIGHT
+        /// ---- balancesContainerRoot, validatorListRoot
+        // uint256 balanceIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_INDEX;
+        uint256 validatorIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | VALIDATOR_LIST_INDEX;
+
+        uint256 numLayers = BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT;
+
+        Merkle.Node[] memory leaves = new Merkle.Node[](1);
+        leaves[0] = Merkle.Node(validatorListRoot, validatorIndex);
+        // leaves[1] = Merkle.Node(balanceListRoot, balanceIndex);
+
+        if (
+            Merkle.verifyMultiProofInclusionSha256(
+                blockRoot,
+                proof,
+                leaves,
+                numLayers
+            ) == false) {
+            revert BeaconChainProofs__InvalidValidatorRootProof();
+        }
+    }
+
+        /// @notice Verify a merkle proof of the beacon state's balances container against the beacon block root
+    /// @dev This proof starts at the balance container root, proves through the beacon state root, and
+    /// continues proving through the beacon block root. As a result, this proof will contain elements
+    /// of a `StateRootProof` under the same block root, with the addition of proving the balances field
+    /// within the beacon state.
+    /// @dev This is used to make checkpoint proofs more efficient, as a checkpoint will verify multiple balances
+    /// against the same balance container root.
+    /// @param beaconBlockRoot merkle root of the beacon block
+    /// @param proof a beacon balance container root and merkle proof of its inclusion under `beaconBlockRoot`
+    function verifyBalanceRootAgainstBlockRoot(
+        bytes32 beaconBlockRoot,
+        BalanceContainerProof calldata proof
+    ) internal view {
+        require(
+            proof.proof.length == 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT),
+            "BeaconChainProofs.verifyBalanceContainer: Proof has incorrect length"
+        );
+
+        /// This proof combines two proofs, so its index accounts for the relative position of leaves in two trees:
+        /// - beaconBlockRoot
+        /// |                            HEIGHT: BEACON_BLOCK_HEADER_TREE_HEIGHT
+        /// -- beaconStateRoot
+        /// |                            HEIGHT: BEACON_STATE_TREE_HEIGHT
+        /// ---- balancesContainerRoot
+        uint256 index = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_INDEX;
+
+        // if (Merkle.verifyInclusionSha256({
+        //         proof: proof.proof,
+        //         root: beaconBlockRoot,
+        //         leaf: proof.balanceListRoot,
+        //         index: index
+        // }) == false) {
+        //     revert BeaconChainProofs__InvalidBalanceRootProof();
+        // }
+    }
+
     /// @notice This function verifies a validator withdrawal credentials
-    function verifyValidatorWithdrawalCredentials(bytes32[] memory validatorFields, bytes32 withdrawalCredentials) internal pure {
+    function verifyValidatorWithdrawalCredentials(
+        bytes32[] calldata validatorFields,
+        bytes32 withdrawalCredentials
+    ) internal pure {
         if (getWithdrawalCredentials(validatorFields) != withdrawalCredentials) {
             revert BeaconChainProofs__IncorrectWithdrawalCredentials(getPubkeyHash(validatorFields));
         }
@@ -293,12 +363,12 @@ library BeaconChainProofs {
     /**
      * @dev Retrieves a validator's pubkey hash
      */
-    function getPubkeyHash(bytes32[] memory validatorFields) internal pure returns (bytes32) {
+    function getPubkeyHash(bytes32[] calldata validatorFields) internal pure returns (bytes32) {
         return 
             validatorFields[VALIDATOR_PUBKEY_INDEX];
     }
 
-    function getWithdrawalCredentials(bytes32[] memory validatorFields) internal pure returns (bytes32) {
+    function getWithdrawalCredentials(bytes32[] calldata validatorFields) internal pure returns (bytes32) {
         return
             validatorFields[VALIDATOR_WITHDRAWAL_CREDENTIALS_INDEX];
     }
@@ -306,7 +376,7 @@ library BeaconChainProofs {
     /**
      * @dev Retrieves a validator's effective balance (in gwei)
      */
-    function getEffectiveBalanceGwei(bytes32[] memory validatorFields) internal pure returns (uint64) {
+    function getEffectiveBalanceGwei(bytes32[] calldata validatorFields) internal pure returns (uint64) {
         return 
             Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_BALANCE_INDEX]);
     }
@@ -314,12 +384,12 @@ library BeaconChainProofs {
     /**
      * @dev Retrieves a validator's withdrawable epoch
      */
-    function getWithdrawableEpoch(bytes32[] memory validatorFields) internal pure returns (uint64) {
+    function getWithdrawableEpoch(bytes32[] calldata validatorFields) internal pure returns (uint64) {
         return 
             Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_WITHDRAWABLE_EPOCH_INDEX]);
     }
 
-    function getExitEpoch(bytes32[] memory validatorFields) internal pure returns (uint64) {
+    function getExitEpoch(bytes32[] calldata validatorFields) internal pure returns (uint64) {
         return 
             Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_EXIT_EPOCH_INDEX]);
     }
@@ -328,19 +398,24 @@ library BeaconChainProofs {
         currentEpoch = (timestamp - genesisTime) / EPOCH;
     }
 
-    function isValidatorSlashed(bytes32[] memory validatorFields) internal pure returns (bool) {
+    function isValidatorSlashed(bytes32[] calldata validatorFields) internal pure returns (bool) {
         // TODO verify this value
         return validatorFields[VALIDATOR_SLASHED_INDEX] != bytes32(0);
     }
 
+    /// @dev Retrieves a validator's activation epoch
+    function getActivationEpoch(bytes32[] calldata validatorFields) internal pure returns (uint64) {
+        return Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_ACTIVATION_EPOCH_INDEX]);
+    }
+
     /// @dev Returns if a validator has been exited
-    function hasValidatorExited(bytes32[] memory validatorFields) internal pure returns (bool) {
+    function hasValidatorExited(bytes32[] calldata validatorFields) internal pure returns (bool) {
         uint256 exitEpoch = getExitEpoch(validatorFields);
         return exitEpoch != FAR_FUTURE_EPOCH;
     }
 
     /// @dev Returns if a slashed validator has reecieved second penalty
-    function hasSlashedValidatorRecievedSecondPenalty(bytes32[] memory validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns (bool) {
+    function hasSlashedValidatorRecievedSecondPenalty(bytes32[] calldata validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns (bool) {
         uint256 currentEpoch = getEpochFromTimestamp(oracleTimestamp, genesisTime);
         uint64 withdrawalEpoch = getWithdrawableEpoch(validatorFields);
         // the reason for division by 2 https://eth2book.info/capella/annotated-spec/#slashings
@@ -349,7 +424,7 @@ library BeaconChainProofs {
         return expectedSecondPenaltyEpoch > currentEpoch;
     }
 
-    function hasExitEpochPassed(bytes32[] memory validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns(bool passed) {
+    function hasExitEpochPassed(bytes32[] calldata validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns(bool passed) {
         uint256 currentEpoch = getEpochFromTimestamp(oracleTimestamp, genesisTime);
         uint256 exitEpoch = getExitEpoch(validatorFields);
         passed = currentEpoch > exitEpoch;
