@@ -7,6 +7,12 @@ import {ERC4626} from "solady/tokens/ERC4626.sol";
 import {ISymPod} from "src/interfaces/ISymPod.sol";
 
 abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, ReentrancyGuard {
+  ///@dev pod name
+  string internal podName;
+
+  /// @dev pod symbol
+  string internal podSymbol;
+
   /// @dev hardfork it supports
   string public HARDFORK;
 
@@ -16,7 +22,7 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   /// @dev admin
   address public admin;
 
-  /// @dev Address that receives withdrawn funds
+  /// @dev Address that receives withdrawn fundsof
   address public withdrawalAddress;
 
   /// @dev Address to recover tokens to

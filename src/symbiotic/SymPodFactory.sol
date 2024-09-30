@@ -35,10 +35,13 @@ contract SymPodFactory is ISymPodFactory {
   /// @param admin Address to perform admin duties on SymPod
   /// @param withdrawalAddress Address to receive principal + rewards
   /// @param recoveryRecipient Address to recover tokens to
-  function createSymPod(address admin, address withdrawalAddress, address recoveryRecipient)
-    external
-    returns (address symPod)
-  {
+  function createSymPod(
+    string memory podName,
+    string memory podSymbol,
+    address admin,
+    address withdrawalAddress,
+    address recoveryRecipient
+  ) external returns (address symPod) {
     /// checks
 
     if (admin == address(0)) revert SymPodFactory__InvalidAdmin();
@@ -54,7 +57,14 @@ contract SymPodFactory is ISymPodFactory {
         type(BeaconProxy).creationCode,
         abi.encode(
           symPodBeacon,
-          abi.encodeWithSignature("initialize(address,address,address)", admin, withdrawalAddress, recoveryRecipient)
+          abi.encodeWithSignature(
+            "initialize(string,string,address,address,address)",
+            podName,
+            podSymbol,
+            admin,
+            withdrawalAddress,
+            recoveryRecipient
+          )
         )
       )
     );
@@ -66,11 +76,13 @@ contract SymPodFactory is ISymPodFactory {
   /// @param admin principal address to receive principal stake
   /// @param withdrawalAddress reward addresss to receive rewards
   /// @param recoveryRecipient recovery address
-  function predictSymPodAddress(address admin, address withdrawalAddress, address recoveryRecipient)
-    external
-    view
-    returns (address symPod)
-  {
+  function predictSymPodAddress(
+    string memory podName,
+    string memory podSymbol,
+    address admin,
+    address withdrawalAddress,
+    address recoveryRecipient
+  ) external view returns (address symPod) {
     bytes32 salt = _createSalt(admin, withdrawalAddress, recoveryRecipient);
     symPod = Create2.computeAddress(
       salt,
@@ -79,7 +91,14 @@ contract SymPodFactory is ISymPodFactory {
           type(BeaconProxy).creationCode,
           abi.encode(
             symPodBeacon,
-            abi.encodeWithSignature("initialize(address,address,address)", admin, withdrawalAddress, recoveryRecipient)
+            abi.encodeWithSignature(
+              "initialize(string,string,address,address,address)",
+              podName,
+              podSymbol,
+              admin,
+              withdrawalAddress,
+              recoveryRecipient
+            )
           )
         )
       )

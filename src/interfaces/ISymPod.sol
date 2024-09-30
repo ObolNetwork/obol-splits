@@ -14,7 +14,7 @@ interface ISymPod {
         // receiver address
         address to;
         // amount to transfer
-        uint128 weiAmount;
+        uint128 amountInWei;
         // timestamp the withdrawal becomses valid
         uint128 timestamp;
     }
@@ -80,7 +80,8 @@ interface ISymPod {
     error SymPod__CompletePreviousCheckPoint();
     error SymPod__CannotActivateCheckPoint();
     error SymPod__RevertIfNoBalance();
-
+    error SymPod__OngoingCheckpoint();
+    error SymPod__WithdrawalsPaused();
 
 
     /// @dev Emitted on stake on SymPod
