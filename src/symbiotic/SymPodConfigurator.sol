@@ -47,20 +47,15 @@ contract SymPodConfigurator is ISymPodConfigurator, Ownable {
   function unpauseWithdrawals() external onlyOwner {
     _unpause(WITHDRAWAL_INDEX);
   }
-
-  function paused(uint256 index) public view returns (bool) {
-    uint256 mask = 1 << index;
-    return ((_pauseMap & mask) != 0);
-  }
   
   /// @dev Returns if Checkpoint is paused or not
   function isCheckPointPaused() external view returns (bool isPaused) {
-    isPaused = paused(CHECKPOINT_INDEX);
+    isPaused = _paused(CHECKPOINT_INDEX);
   }
 
   /// @notice Returns if SymPod withdrawals are paused
   function isWithdrawalsPaused() external view returns (bool isPaused) {
-    isPaused = paused(WITHDRAWAL_INDEX);
+    isPaused = _paused(WITHDRAWAL_INDEX);
   }
   
   function _pause(uint8 index) internal {
@@ -77,5 +72,10 @@ contract SymPodConfigurator is ISymPodConfigurator, Ownable {
     _pauseMap &= ~mask;
 
     emit Unpaused(msg.sender, index, _pauseMap);
+  }
+
+  function _paused(uint256 index) internal view returns (bool) {
+    uint256 mask = 1 << index;
+    return ((_pauseMap & mask) != 0);
   }
 }
