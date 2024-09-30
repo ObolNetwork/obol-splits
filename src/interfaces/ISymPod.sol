@@ -82,6 +82,7 @@ interface ISymPod {
     error SymPod__RevertIfNoBalance();
     error SymPod__OngoingCheckpoint();
     error SymPod__WithdrawalsPaused();
+    error SymPod__AmountTooLarge();
 
 
     /// @dev Emitted on stake on SymPod

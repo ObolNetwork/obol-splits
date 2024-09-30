@@ -57,7 +57,7 @@ library BeaconChainProofs {
 
     //  in beacon state https://github.com/ethereum/consensus-specs/blob/dev/specs/capella/beacon-chain.md#beaconstate
     uint256 internal constant VALIDATOR_LIST_INDEX = 11;
-    uint256 internal constant BALANCE_LIST_INDEX = 12;
+    uint256 internal constant BALANCE_LIST_ROOT_INDEX = 12;
 
     // in validator https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#validator
     uint256 internal constant VALIDATOR_PUBKEY_INDEX = 0;
@@ -94,12 +94,12 @@ library BeaconChainProofs {
 
     struct BalanceContainerProof {
         bytes32 balanceListRoot;
-        bytes32[] proof;
+        bytes proof;
     }
 
     struct ValidatorListContainerProof {
         bytes32 validatorListRoot;
-        bytes32[] proof;
+        bytes proof;
     }
     struct BalanceProof {
         bytes32[] proof;
@@ -192,21 +192,16 @@ library BeaconChainProofs {
         }
     }
 
-    
-    /// @notice This function verifies validatorListRoot and BalanceListRoot against the block root. 
-    /// @param blockRoot merkle root of the beacon block
-    /// @param validatorListRoot is the beacon chain state root to be proven against.
-    /// @param balanceListRoot is the provided merkle proof
-    /// @param multiProof is hashtree root of the latest block header in the beacon state
-    function verifyValidatorRootAndBalanceRootAgainstBlockRoot(
-        bytes32 blockRoot,
-        bytes32 validatorListRoot,
-        bytes32 balanceListRoot,
-        bytes32[] memory multiProof
-    ) internal view {      
-        // verify proof size
-        uint256 proofSize = 9;
-        if (multiProof.length != proofSize) {
+    /// @notice This function verifies validatorListRoot against the block root. 
+    /// @param beaconBlockRoot merkle root of the beacon block
+    /// @param proof proof
+    function verifyValidatorListRootAgainstBlockRoot(
+        bytes32 beaconBlockRoot,
+        ValidatorListContainerProof calldata proof
+    ) internal view {
+        if (
+            proof.proof.length == 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
+        ) {
             revert BeaconChainProofs__InvalidProofSize();
         }
         /// This proof combines two proofs, so its index accounts for the relative position of leaves in two trees:
@@ -214,68 +209,20 @@ library BeaconChainProofs {
         /// |                            HEIGHT: BEACON_BLOCK_HEADER_TREE_HEIGHT
         /// -- beaconStateRoot 
         /// |                            HEIGHT: BEACON_STATE_TREE_HEIGHT
-        /// ---- balancesContainerRoot, validatorListRoot
-        uint256 balanceIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_INDEX;
+        /// ---- validatorListRoot
         uint256 validatorIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | VALIDATOR_LIST_INDEX;
 
-        uint256 numLayers = BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT;
-
-        Merkle.Node[] memory leaves = new Merkle.Node[](2);
-        leaves[0] = Merkle.Node(validatorListRoot, validatorIndex);
-        leaves[1] = Merkle.Node(balanceListRoot, balanceIndex);
-
-        if (
-            Merkle.verifyMultiProofInclusionSha256(
-                blockRoot,
-                multiProof,
-                leaves,
-                numLayers
-            ) == false) {
-            revert BeaconChainProofs__InvalidValidatorRootandBalanceRootProof();
+        if (Merkle.verifyInclusionSha256({
+                proof: proof.proof,
+                root: beaconBlockRoot,
+                leaf: proof.validatorListRoot,
+                index: validatorIndex
+        }) == false) {
+            revert BeaconChainProofs__InvalidBalanceRootProof();
         }
     }
 
-    /// @notice This function verifies validatorListRoot against the block root. 
-    /// @param blockRoot merkle root of the beacon block
-    /// @param validatorListRoot  is hashtree root of the latest validator list in the beacon state
-    /// @param proof proof
-    function verifyValidatorListRootAgainstBlockRoot(
-        bytes32 blockRoot,
-        bytes32 validatorListRoot,
-        bytes32[] memory proof
-    ) internal view {      
-        // verify proof size
-        // uint256 proofSize = 9;
-        // if (multiProof.length != proofSize) {
-        //     revert BeaconChainProofs__InvalidProofSize();
-        // }
-        /// This proof combines two proofs, so its index accounts for the relative position of leaves in two trees:
-        /// - beaconBlockRoot
-        /// |                            HEIGHT: BEACON_BLOCK_HEADER_TREE_HEIGHT
-        /// -- beaconStateRoot 
-        /// |                            HEIGHT: BEACON_STATE_TREE_HEIGHT
-        /// ---- balancesContainerRoot, validatorListRoot
-        // uint256 balanceIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_INDEX;
-        uint256 validatorIndex = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | VALIDATOR_LIST_INDEX;
-
-        uint256 numLayers = BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT;
-
-        Merkle.Node[] memory leaves = new Merkle.Node[](1);
-        leaves[0] = Merkle.Node(validatorListRoot, validatorIndex);
-        // leaves[1] = Merkle.Node(balanceListRoot, balanceIndex);
-
-        if (
-            Merkle.verifyMultiProofInclusionSha256(
-                blockRoot,
-                proof,
-                leaves,
-                numLayers
-            ) == false) {
-            revert BeaconChainProofs__InvalidValidatorRootProof();
-        }
-    }
-
-        /// @notice Verify a merkle proof of the beacon state's balances container against the beacon block root
+    /// @notice Verify a merkle proof of the beacon state's balances container against the beacon block root
     /// @dev This proof starts at the balance container root, proves through the beacon state root, and
     /// continues proving through the beacon block root. As a result, this proof will contain elements
     /// of a `StateRootProof` under the same block root, with the addition of proving the balances field
@@ -288,27 +235,28 @@ library BeaconChainProofs {
         bytes32 beaconBlockRoot,
         BalanceContainerProof calldata proof
     ) internal view {
-        require(
-            proof.proof.length == 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT),
-            "BeaconChainProofs.verifyBalanceContainer: Proof has incorrect length"
-        );
+        if (
+            proof.proof.length == 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
+        ) {
+            revert BeaconChainProofs__InvalidProofSize();
+        }
 
         /// This proof combines two proofs, so its index accounts for the relative position of leaves in two trees:
         /// - beaconBlockRoot
         /// |                            HEIGHT: BEACON_BLOCK_HEADER_TREE_HEIGHT
         /// -- beaconStateRoot
         /// |                            HEIGHT: BEACON_STATE_TREE_HEIGHT
-        /// ---- balancesContainerRoot
-        uint256 index = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_INDEX;
+        /// ---- balancesListRoot
+        uint256 index = (STATE_ROOT_INDEX << (BEACON_STATE_TREE_HEIGHT)) | BALANCE_LIST_ROOT_INDEX;
 
-        // if (Merkle.verifyInclusionSha256({
-        //         proof: proof.proof,
-        //         root: beaconBlockRoot,
-        //         leaf: proof.balanceListRoot,
-        //         index: index
-        // }) == false) {
-        //     revert BeaconChainProofs__InvalidBalanceRootProof();
-        // }
+        if (Merkle.verifyInclusionSha256({
+                proof: proof.proof,
+                root: beaconBlockRoot,
+                leaf: proof.balanceListRoot,
+                index: index
+        }) == false) {
+            revert BeaconChainProofs__InvalidBalanceRootProof();
+        }
     }
 
     /// @notice This function verifies a validator withdrawal credentials

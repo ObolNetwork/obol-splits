@@ -28,7 +28,6 @@ library Merkle {
 
     /// @dev Indices should be sorted from lowest to highest
     error Merkle__IndicesOutOfOrder();
-
     /// @dev Proof Length should be a non-zero multiple of 32
     error Merkle__IncorrectProofLength();
     error Merkle__MismatchLeavesAndIndices();
@@ -45,7 +44,7 @@ library Merkle {
         return processMultiInclusionProofSha256(proof, leaves, numLayers) == expectedRoot;
     }
 
-        /**
+    /**
      * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up
      * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt
      * hash matches the root of the tree. The tree is built assuming `leaf` is
@@ -172,15 +171,15 @@ library Merkle {
                     nextLayer = append(nextLayer, Node(parentLeaf, nextIndex));
                 }
 
-                console.log("Range Debug");
-                console.log("index -> ", index);
-                console.log("siblingIndex -> ", siblingIndex);
-                console.log("proofIndex -> ", proofIndex);
-                console.log("leaf");
-                console.logBytes32(leaf);
-                console.log("sibling -> ");
-                console.logBytes32(siblingLeaf);
-                console.log("nextLayerIndex -> ", nextIndex);
+                // console.log("Range Debug");
+                // console.log("index -> ", index);
+                // console.log("siblingIndex -> ", siblingIndex);
+                // console.log("proofIndex -> ", proofIndex);
+                // console.log("leaf");
+                // console.logBytes32(leaf);
+                // console.log("sibling -> ");
+                // console.logBytes32(siblingLeaf);
+                // console.log("nextLayerIndex -> ", nextIndex);
 
             }
 

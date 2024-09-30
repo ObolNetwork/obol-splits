@@ -5,6 +5,9 @@ import "forge-std/Test.sol";
 
 contract SymPodConfiguratorTest is Test {
 
+    event Paused(address sender, uint256 index, uint256 map);
+    event Unpaused(address sender, uint256 index, uint256 map);
+
     error Unauthorized();
 
     SymPodConfigurator podConfigurator;
@@ -23,6 +26,13 @@ contract SymPodConfiguratorTest is Test {
 
     function test_CanPauseCheckPoint() external {
         vm.prank(symPodConfiguratorOwner);
+        vm.expectEmit(
+            true,
+            true,
+            true,
+            true
+        );
+        emit Paused(symPodConfiguratorOwner, 0, 1);
         podConfigurator.pauseCheckPoint();
 
         assertEq(
@@ -42,6 +52,13 @@ contract SymPodConfiguratorTest is Test {
         podConfigurator.pauseCheckPoint();
 
         vm.prank(symPodConfiguratorOwner);
+        vm.expectEmit(
+            true,
+            true,
+            true,
+            true
+        );
+        emit Unpaused(symPodConfiguratorOwner, 0, 0);
         podConfigurator.unpauseCheckPoint();
 
         assertEq(

@@ -208,9 +208,8 @@ contract SymPod is SymPodStorageV1 {
 
     // verify list root
     BeaconChainProofs.verifyValidatorListRootAgainstBlockRoot({
-      blockRoot: getParentBeaconBlockRoot(beaconTimestamp),
-      validatorListRoot: validatorListRootProof.validatorListRoot,
-      proof: validatorListRootProof.proof
+      beaconBlockRoot: getParentBeaconBlockRoot(beaconTimestamp),
+      proof: validatorListRootProof
     });
 
     // verify validator fiels against validator list root
@@ -246,8 +245,10 @@ contract SymPod is SymPodStorageV1 {
 
   /// @dev Finalize withdrawal
   /// @param withdrawalKey Generated withdrawal key
-  /// @param acceptLowerThan configuration to accept withdrawal lower than the weiAmount
-  function completeWithdraw(bytes32 withdrawalKey, bool acceptLowerThan) external {
+  /// @param exactAmount configuration to accept withdrawal equal to the weiAmount
+  /// This is required because it's possible for a validator get slashed after initWithdraw has 
+  /// been called.
+  function completeWithdraw(bytes32 withdrawalKey, bool exactAmount) external {
     // Ensure withdrawal is not paused
     if (symPodConfigurator.isWithdrawalsPaused() == true) revert SymPod__WithdrawalsPaused();
     // Ensure no active checkpoint
@@ -258,8 +259,11 @@ contract SymPod is SymPodStorageV1 {
 
     address withdrawAddress = withdrawalInfo.to;
     if (withdrawAddress == address(0)) revert SymPod__InvalidWithdrawalKey();
-    if (withdrawalInfo.timestamp >= block.timestamp) revert SymPod__WithdrawDelayPeriod();
-    if (withdrawalInfo.amountInWei > cachedAvailableToWithdrawInWei && acceptLowerThan == false) {
+    if (withdrawalInfo.timestamp > block.timestamp) revert SymPod__WithdrawDelayPeriod();
+    if (exactAmount == false) {
+      // ensure that it's being called by either admin or 
+    }
+    if (withdrawalInfo.amountInWei > cachedAvailableToWithdrawInWei && exactAmount == true) {
       revert SymPod__InsufficientBalance();
     }
 
@@ -271,6 +275,8 @@ contract SymPod is SymPodStorageV1 {
     // Write to Storage
     _burn(withdrawAddress, sharesToBurn);
     delete withdrawalQueue[withdrawalKey];
+    // update the total restaked eth 
+    totalRestakedETH -= amountToTransfer;
     // update the available execution layer eth
     withdrawableRestakedExecutionLayerGwei -= uint64(amountToTransfer / GWEI_TO_WEI);
 
@@ -283,46 +289,44 @@ contract SymPod is SymPodStorageV1 {
 
   /// @notice Slash callback for burning collateral.
   /// @dev A slashing does not incur
-  /// @param slashedShares amount of shares to slash
+  /// @param amountInWei amount of eth to slash
   /// @param captureTimestamp time point when the stake was captured
   /// @dev Only the slasher can call this function.
-  function onSlash(uint256 slashedShares, uint48 captureTimestamp)
+  function onSlash(uint256 amountInWei, uint48 captureTimestamp)
     external
     nonReentrant
     returns (bytes32 withdrawalKey)
   {
     if (msg.sender != slasher) revert SymPod__NotSlasher();
+    if (amountInWei > totalAssets()) revert SymPod__AmountTooLarge();
 
-    uint256 assets = convertToAssets(slashedShares);
+    withdrawalKey = _getWithdrawalKey(amountInWei, captureTimestamp);
 
-    _burn(msg.sender, slashedShares);
+    withdrawalQueue[withdrawalKey] = WithdrawalInfo(msg.sender, uint128(amountInWei), uint128(block.timestamp));
 
-    withdrawalKey = _getWithdrawalKey(assets, captureTimestamp);
-
-    withdrawalQueue[withdrawalKey] = WithdrawalInfo(msg.sender, uint128(assets), uint128(block.timestamp));
-
-    emit WithdrawalInitiated(withdrawalKey, assets, captureTimestamp);
+    emit WithdrawalInitiated(withdrawalKey, amountInWei, captureTimestamp);
   }
 
   /// @notice Verify a multiple validator withdrawal credentials
   /// @param beaconTimestamp timestamp for beacon block oracle root
-  /// @param validatorListRoot merkle root of the validator list container
-  /// @param validatorListRootProof proof for
+  /// @param validatorContainerProof the validator list container
+  /// @param validatorProof proof for
   function verifyValidatorWithdrawalCredentials(
     uint64 beaconTimestamp,
-    bytes32 validatorListRoot,
-    bytes32[] calldata validatorListRootProof,
+    BeaconChainProofs.ValidatorListContainerProof calldata validatorContainerProof,
     BeaconChainProofs.ValidatorProof calldata validatorProof
   ) external {
     // Verify passed-in `validatorListRoot` against the beacon block root
     BeaconChainProofs.verifyValidatorListRootAgainstBlockRoot({
-      blockRoot: getParentBeaconBlockRoot(beaconTimestamp),
-      validatorListRoot: validatorListRoot,
-      proof: validatorListRootProof
+      beaconBlockRoot: getParentBeaconBlockRoot(beaconTimestamp),
+      proof: validatorContainerProof
     });
 
-    uint256 totalAmountToBeRestakedWei = _verifyWithdrawalCredentials(validatorListRoot, validatorProof);
-
+    uint256 totalAmountToBeRestakedWei = _verifyWithdrawalCredentials(
+      validatorContainerProof.validatorListRoot,
+      validatorProof
+    );
+    
     _increaseBalance(admin, totalAmountToBeRestakedWei);
   }
 
