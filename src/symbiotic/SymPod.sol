@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 // import {ICollateral} from "collateral/interfaces/ICollateral.sol";
 
 import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
-import {SymPodStorageV1} from "src/symbiotic/SymPodStorageV1.sol";
+import {SymPodStorageV1, ISymPod} from "src/symbiotic/SymPodStorageV1.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ISymPodConfigurator} from "src/interfaces/ISymPodConfigurator.sol";
@@ -21,14 +21,15 @@ contract SymPod is SymPodStorageV1 {
   /// @dev gwei to wei
   uint256 public constant GWEI_TO_WEI = 1 gwei;
 
-  /// @dev ERC4788 oracle
-  address public constant BEACON_ROOTS_ORACLE_ADDRESS = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
-
   /// @notice Length of the EIP-4788 beacon block root ring buffer
   uint256 internal constant BEACON_ROOTS_HISTORY_BUFFER_LENGTH = 8191;
 
   /// @dev address used as ETH token
-  address public constant ETH_ADDRESS = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
+  address public constant ETH_ADDRESS = 0x0000000000000000000000000000000000000000;
+
+  /// @dev ERC4788 oracle
+  /// 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02
+  address public immutable BEACON_ROOTS_ORACLE_ADDRESS;
 
   /// @dev ETH2 deposit contract
   IETH2DepositContract public immutable ETH2_DEPOSIT_CONTRACT;
@@ -39,10 +40,15 @@ contract SymPod is SymPodStorageV1 {
   /// @dev SymPod Configurator
   ISymPodConfigurator public immutable symPodConfigurator;
 
-  constructor(address _symPodConfigurator, address _eth2DepositContract, uint256 _withdrawDelayPeriod) {
+  constructor(address _symPodConfigurator, address _eth2DepositContract, address _beaconRootsOracle, uint256 _withdrawDelayPeriod) {
+    if (_symPodConfigurator == address(0)) revert SymPod__InvalidAddress();
+    if (_eth2DepositContract == address(0)) revert SymPod__InvalidAddress();
+    if (_withdrawDelayPeriod == 0) revert SymPod__InvalidDelayPeriod();
+
     symPodConfigurator = ISymPodConfigurator(_symPodConfigurator);
     ETH2_DEPOSIT_CONTRACT = IETH2DepositContract(_eth2DepositContract);
     WITHDRAW_DELAY_PERIOD = _withdrawDelayPeriod;
+    BEACON_ROOTS_ORACLE_ADDRESS = _beaconRootsOracle;
   }
 
   /// @notice payable fallback function that receives ether deposited to the contract
@@ -159,7 +165,7 @@ contract SymPod is SymPodStorageV1 {
 
       // Update validator info memory
       currentValidatorInfo.restakedBalanceGwei = newValidatorBalanceGwei;
-      currentValidatorInfo.lastCheckpointedAt = currentCheckPointTimestamp;
+      currentValidatorInfo.lastCheckpointedAt = uint64(currentCheckpointTimestamp);
       if (newValidatorBalanceGwei == 0) {
         currentValidatorInfo.status = VALIDATOR_STATUS.WITHDRAWN;
         // reaching here means balanceDelta will be negative
@@ -230,15 +236,21 @@ contract SymPod is SymPodStorageV1 {
   function initWithdraw(uint256 amountInWei, uint256 nonce) external onlyAdmin returns (bytes32 withdrawalKey) {
     // Ensure withdrawal is not paused
     if (symPodConfigurator.isWithdrawalsPaused() == true) revert SymPod__WithdrawalsPaused();
-    if (amountInWei > (withdrawableRestakedExecutionLayerGwei * GWEI_TO_WEI)) revert SymPod__InsufficientBalance();
+    // prevents queueing of withdrawals
+    if ((amountInWei + pendingAmountToWithrawWei) > (withdrawableRestakedExecutionLayerGwei * GWEI_TO_WEI)) revert SymPod__InsufficientBalance();
 
     withdrawalKey = _getWithdrawalKey(amountInWei, nonce);
 
     uint256 withdrawalTimestamp = block.timestamp + WITHDRAW_DELAY_PERIOD;
 
     // Write to Storage
-    withdrawalQueue[withdrawalKey] =
-      WithdrawalInfo(withdrawalAddress, uint128(amountInWei), uint128(withdrawalTimestamp));
+    pendingAmountToWithrawWei += uint64(amountInWei);
+    withdrawalQueue[withdrawalKey] = WithdrawalInfo(
+      msg.sender,
+      withdrawalAddress,
+      uint128(amountInWei),
+      uint128(withdrawalTimestamp)
+    );
 
     emit WithdrawalInitiated(withdrawalKey, amountInWei, withdrawalTimestamp);
   }
@@ -246,7 +258,7 @@ contract SymPod is SymPodStorageV1 {
   /// @dev Finalize withdrawal
   /// @param withdrawalKey Generated withdrawal key
   /// @param exactAmount configuration to accept withdrawal equal to the weiAmount
-  /// This is required because it's possible for a validator get slashed after initWithdraw has 
+  /// This is required because it's possible for a validator get slashed after initWithdraw has
   /// been called.
   function completeWithdraw(bytes32 withdrawalKey, bool exactAmount) external {
     // Ensure withdrawal is not paused
@@ -261,27 +273,31 @@ contract SymPod is SymPodStorageV1 {
     if (withdrawAddress == address(0)) revert SymPod__InvalidWithdrawalKey();
     if (withdrawalInfo.timestamp > block.timestamp) revert SymPod__WithdrawDelayPeriod();
     if (exactAmount == false) {
-      // ensure that it's being called by either admin or 
+      // ensure that it's being called by either admin or slasher
     }
     if (withdrawalInfo.amountInWei > cachedAvailableToWithdrawInWei && exactAmount == true) {
       revert SymPod__InsufficientBalance();
     }
 
-    uint256 sharesToBurn = convertToShares(withdrawalInfo.amountInWei);
     uint256 amountToTransfer = cachedAvailableToWithdrawInWei >= withdrawalInfo.amountInWei
       ? withdrawalInfo.amountInWei
       : cachedAvailableToWithdrawInWei;
 
+    uint256 sharesToBurn = convertToShares(amountToTransfer);
+
     // Write to Storage
-    _burn(withdrawAddress, sharesToBurn);
+    _burn(withdrawalInfo.owner, sharesToBurn);
     delete withdrawalQueue[withdrawalKey];
-    // update the total restaked eth 
+    // update pending amount to withdraw
+    // We use amountInWei here because if the user doesn't want exact amount
+    // we need still need to deduct the amountInWei
+    pendingAmountToWithrawWei -=  uint64(withdrawalInfo.amountInWei);
+    // update the total restaked eth
     totalRestakedETH -= amountToTransfer;
     // update the available execution layer eth
     withdrawableRestakedExecutionLayerGwei -= uint64(amountToTransfer / GWEI_TO_WEI);
 
     // Interactions
-
     emit WithdrawalFinalized(withdrawalKey, amountToTransfer, withdrawalInfo.amountInWei);
 
     withdrawAddress.safeTransferETH(amountToTransfer);
@@ -289,22 +305,25 @@ contract SymPod is SymPodStorageV1 {
 
   /// @notice Slash callback for burning collateral.
   /// @dev A slashing does not incur
-  /// @param amountInWei amount of eth to slash
+  /// @param amountOfShares amount of shares to burn
   /// @param captureTimestamp time point when the stake was captured
   /// @dev Only the slasher can call this function.
-  function onSlash(uint256 amountInWei, uint48 captureTimestamp)
-    external
-    nonReentrant
-    returns (bytes32 withdrawalKey)
-  {
+  function onSlash(uint256 amountOfShares, uint48 captureTimestamp) external nonReentrant returns (bytes32 withdrawalKey) {
+    /**
+     * TODO confirm if the slasher can hold tokens in symbiotic architecture
+     */
     if (msg.sender != slasher) revert SymPod__NotSlasher();
-    if (amountInWei > totalAssets()) revert SymPod__AmountTooLarge();
+    if (amountOfShares > balanceOf(msg.sender)) revert SymPod__InvalidAmountOfShares();
 
+    uint256 amountInWei = convertToAssets(amountOfShares);
+    if (amountInWei > totalAssets()) revert SymPod__AmountTooLarge();
     withdrawalKey = _getWithdrawalKey(amountInWei, captureTimestamp);
 
-    withdrawalQueue[withdrawalKey] = WithdrawalInfo(msg.sender, uint128(amountInWei), uint128(block.timestamp));
+    // Write to Storage
+    pendingAmountToWithrawWei += uint64(amountInWei);
+    withdrawalQueue[withdrawalKey] = WithdrawalInfo(msg.sender, msg.sender, uint128(amountInWei), uint128(block.timestamp));
 
-    emit WithdrawalInitiated(withdrawalKey, amountInWei, captureTimestamp);
+    emit Slashed(withdrawalKey, amountInWei, captureTimestamp);
   }
 
   /// @notice Verify a multiple validator withdrawal credentials
@@ -322,11 +341,9 @@ contract SymPod is SymPodStorageV1 {
       proof: validatorContainerProof
     });
 
-    uint256 totalAmountToBeRestakedWei = _verifyWithdrawalCredentials(
-      validatorContainerProof.validatorListRoot,
-      validatorProof
-    );
-    
+    uint256 totalAmountToBeRestakedWei =
+      _verifyWithdrawalCredentials(validatorContainerProof.validatorListRoot, validatorProof);
+
     _increaseBalance(admin, totalAmountToBeRestakedWei);
   }
 
@@ -484,8 +501,10 @@ contract SymPod is SymPodStorageV1 {
     // check that there is no ongoing checkpoints
     if (currentCheckPointTimestamp != 0) revert SymPod__CompletePreviousCheckPoint();
 
-    // prevent checkpoint from being start twice in a block
-    if (lastCheckpointTimestamp != uint64(block.timestamp)) revert SymPod__CannotActivateCheckPoint();
+    // prevent checkpoint from being able to start twice in a block
+    // This is necessary because in _verifyCheckPointProof we skip for a validator
+    // when its lastCheckpointedAt >= currentCheckPointTimestamp
+    if (lastCheckpointTimestamp == uint64(block.timestamp)) revert SymPod__CannotActivateCheckPoint();
 
     // fetch the pod balance minus already accounted balance
     uint64 podBalanceGwei = uint64(address(this).balance / GWEI_TO_WEI) - withdrawableRestakedExecutionLayerGwei;

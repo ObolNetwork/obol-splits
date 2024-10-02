@@ -11,6 +11,8 @@ interface ISymPod {
 
     /// @notice Info for withdrawal requests
     struct WithdrawalInfo {
+        // address that holds the hsares
+        address owner;
         // receiver address
         address to;
         // amount to transfer
@@ -83,6 +85,8 @@ interface ISymPod {
     error SymPod__OngoingCheckpoint();
     error SymPod__WithdrawalsPaused();
     error SymPod__AmountTooLarge();
+    error SymPod__InvalidDelayPeriod();
+    error SymPod__InvalidAmountOfShares();
 
 
     /// @dev Emitted on stake on SymPod
@@ -119,6 +123,12 @@ interface ISymPod {
         bytes32 withdrawalkey,
         uint256 amount,
         uint256 withdrawalTimestamp
+    );
+
+    event Slashed(
+        bytes32 withdrawalkey,
+        uint256 amount,
+        uint256 captureTimestamp
     );
 
     event WithdrawalFinalized(

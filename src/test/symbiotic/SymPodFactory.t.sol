@@ -4,6 +4,8 @@ import {SymPodFactory} from "src/symbiotic/SymPodFactory.sol";
 import {SymPodBeacon} from "src/symbiotic/SymPodBeacon.sol";
 import {SymPod} from "src/symbiotic/SymPod.sol";
 import {SymPodConfigurator} from "src/symbiotic/SymPodConfigurator.sol";
+import {MockBeaconRootOracle} from "src/test/utils/mocks/MockBeaconRootOracle.sol";
+import {MockETH2Deposit} from "src/test/utils/mocks/MockETH2Deposit.sol";
 import "forge-std/Test.sol";
 
 
@@ -30,12 +32,15 @@ contract SymPodFactoryTest is Test {
         podAdmin = makeAddr("podAdmin");
         withdrawalAddress = makeAddr("withdrawalAddress");
         recoveryRecipient = makeAddr("recoveryRecipient");
+        MOCK_ETH2_DEPOSIT_CONTRACT = address(new MockETH2Deposit());
 
         podConfigurator = new SymPodConfigurator(symPodConfiguratorOwner);
+        MockBeaconRootOracle beaconRootOracle = new MockBeaconRootOracle();
         
         podImplementation = new SymPod(
             address(podConfigurator),
             MOCK_ETH2_DEPOSIT_CONTRACT,
+            address(beaconRootOracle),
             WITHDRAWAL_DELAY_PERIOD
         );
         podBeacon = new SymPodBeacon(

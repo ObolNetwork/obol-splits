@@ -4,7 +4,6 @@ pragma solidity 0.8.19;
 import {ISymPodConfigurator} from "src/interfaces/ISymPodConfigurator.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 
-
 /// @title SymPodConfigurator
 /// @author Obol
 /// @notice Provides configuration settings for a SymPod
@@ -47,7 +46,7 @@ contract SymPodConfigurator is ISymPodConfigurator, Ownable {
   function unpauseWithdrawals() external onlyOwner {
     _unpause(WITHDRAWAL_INDEX);
   }
-  
+
   /// @dev Returns if Checkpoint is paused or not
   function isCheckPointPaused() external view returns (bool isPaused) {
     isPaused = _paused(CHECKPOINT_INDEX);
@@ -57,7 +56,7 @@ contract SymPodConfigurator is ISymPodConfigurator, Ownable {
   function isWithdrawalsPaused() external view returns (bool isPaused) {
     isPaused = _paused(WITHDRAWAL_INDEX);
   }
-  
+
   function _pause(uint8 index) internal {
     uint256 mask = 1 << (index & 0xff);
     // Write to Storage

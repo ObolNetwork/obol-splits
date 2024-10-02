@@ -6,6 +6,9 @@ import {ReentrancyGuard} from "openzeppelin/security/ReentrancyGuard.sol";
 import {ERC4626} from "solady/tokens/ERC4626.sol";
 import {ISymPod} from "src/interfaces/ISymPod.sol";
 
+/// @title SymPodStorageV1
+/// @author Obol
+/// @notice The storage layout for SymPod
 abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, ReentrancyGuard {
   ///@dev pod name
   string internal podName;
@@ -40,8 +43,11 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   /// @dev withdrawable execution layer ETH
   uint64 public withdrawableRestakedExecutionLayerGwei;
 
+  /// @dev pending to withdraw
+  uint64 public pendingAmountToWithrawWei;
+
   /// @dev checkpoint
-  Checkpoint currentCheckPoint;
+  Checkpoint public currentCheckPoint;
 
   /// @dev pubKeyHash to validator info mapping
   mapping(uint256 validatorIndex => Validator validator) public validatorInfo;
@@ -56,6 +62,9 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   /// @dev Address of entity that can slash the pod i.e. withdraw from the pod
   /// without any delay
   address public slasher;
+
+  /// @notice to make the storage layout compatible and future upgradeable
+  uint256[64] __gap;
 
   modifier onlyAdmin() {
     if (msg.sender != admin) revert SymPod__Unauthorized();

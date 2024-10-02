@@ -27,8 +27,6 @@ library BeaconChainProofs {
     uint256 internal constant NUM_BEACON_BLOCK_BODY_FIELDS = 11;
     uint256 internal constant BEACON_BLOCK_BODY_FIELD_TREE_HEIGHT = 4;
 
-    uint256 internal constant NUM_BEACON_STATE_FIELDS = 21;
-    uint256 internal constant BEACON_STATE_FIELD_TREE_HEIGHT = 5;
     uint256 internal constant BALANCE_TREE_HEIGHT = 38;
 
     uint256 internal constant NUM_VALIDATOR_FIELDS = 8;
@@ -50,10 +48,8 @@ library BeaconChainProofs {
     uint256 internal constant EXECUTION_PAYLOAD_INDEX = 9;
 
     // in beacon block header https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#beaconblockheader
-    uint256 internal constant SLOT_INDEX = 0;
-    uint256 internal constant PROPOSER_INDEX_INDEX = 1;
     uint256 internal constant STATE_ROOT_INDEX = 3;
-    uint256 internal constant BODY_ROOT_INDEX = 4;
+
 
     //  in beacon state https://github.com/ethereum/consensus-specs/blob/dev/specs/capella/beacon-chain.md#beaconstate
     uint256 internal constant VALIDATOR_LIST_INDEX = 11;
@@ -360,22 +356,6 @@ library BeaconChainProofs {
     function hasValidatorExited(bytes32[] calldata validatorFields) internal pure returns (bool) {
         uint256 exitEpoch = getExitEpoch(validatorFields);
         return exitEpoch != FAR_FUTURE_EPOCH;
-    }
-
-    /// @dev Returns if a slashed validator has reecieved second penalty
-    function hasSlashedValidatorRecievedSecondPenalty(bytes32[] calldata validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns (bool) {
-        uint256 currentEpoch = getEpochFromTimestamp(oracleTimestamp, genesisTime);
-        uint64 withdrawalEpoch = getWithdrawableEpoch(validatorFields);
-        // the reason for division by 2 https://eth2book.info/capella/annotated-spec/#slashings
-        uint256 expectedSecondPenaltyEpoch = withdrawalEpoch - (EPOCHS_PER_SLASHINGS_VECTOR / 2);
-
-        return expectedSecondPenaltyEpoch > currentEpoch;
-    }
-
-    function hasExitEpochPassed(bytes32[] calldata validatorFields, uint256 oracleTimestamp, uint256 genesisTime) internal pure returns(bool passed) {
-        uint256 currentEpoch = getEpochFromTimestamp(oracleTimestamp, genesisTime);
-        uint256 exitEpoch = getExitEpoch(validatorFields);
-        passed = currentEpoch > exitEpoch;
     }
 
 }
