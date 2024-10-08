@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.19;
+import "forge-std/Test.sol";
 
-contract MockBeaconRootOracle {
+contract MockBeaconRootOracle is Test {
 
     mapping(uint => bytes32) beaconBlockRoots;
 
@@ -11,6 +12,7 @@ contract MockBeaconRootOracle {
         require(msg.data.length == 32, "MockEIP4788Oracle.fallback: malformed msg.data");
 
         uint timestamp = abi.decode(msg.data, (uint));
+
         require(timestamp != 0, "MockEIP4788Oracle.fallback: timestamp is 0");
 
         bytes32 blockRoot = beaconBlockRoots[timestamp];

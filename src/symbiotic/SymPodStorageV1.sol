@@ -46,14 +46,14 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   /// @dev pending to withdraw
   uint64 public pendingAmountToWithrawWei;
 
-  /// @dev checkpoint
-  Checkpoint public currentCheckPoint;
+  /// @dev current checkpoint information
+  Checkpoint internal currentCheckPoint;
 
   /// @dev pubKeyHash to validator info mapping
-  mapping(uint256 validatorIndex => Validator validator) public validatorInfo;
+  mapping(bytes32 validatorPubKeyHash => EthValidator validator) internal validatorInfo;
 
   /// @dev withdrawal data
-  mapping(bytes32 withdrawalKey => WithdrawalInfo info) public withdrawalQueue;
+  mapping(bytes32 withdrawalKey => WithdrawalInfo info) internal withdrawalQueue;
 
   /// @dev tracks exited validator balance per checkpoint timestamp
   mapping(uint64 => uint64) public checkpointBalanceExitedGwei;
@@ -64,7 +64,7 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   address public slasher;
 
   /// @notice to make the storage layout compatible and future upgradeable
-  uint256[64] __gap;
+  uint256[40] private __gap;
 
   modifier onlyAdmin() {
     if (msg.sender != admin) revert SymPod__Unauthorized();

@@ -23,6 +23,7 @@ contract SymPodFactoryTest is Test {
     address podAdmin;
     address withdrawalAddress;
     address recoveryRecipient;
+    address slasher;
 
     uint256 WITHDRAWAL_DELAY_PERIOD = 2 seconds;
     address MOCK_ETH2_DEPOSIT_CONTRACT;
@@ -32,6 +33,7 @@ contract SymPodFactoryTest is Test {
         podAdmin = makeAddr("podAdmin");
         withdrawalAddress = makeAddr("withdrawalAddress");
         recoveryRecipient = makeAddr("recoveryRecipient");
+        slasher = makeAddr("slasher");
         MOCK_ETH2_DEPOSIT_CONTRACT = address(new MockETH2Deposit());
 
         podConfigurator = new SymPodConfigurator(symPodConfiguratorOwner);
@@ -55,6 +57,7 @@ contract SymPodFactoryTest is Test {
         SymPod createdPod = SymPod(payable(podFactory.createSymPod(
             podName,
             podSymbol,
+            slasher,
             podAdmin,
             withdrawalAddress,
             recoveryRecipient
@@ -77,6 +80,7 @@ contract SymPodFactoryTest is Test {
         address predictedAddress = podFactory.predictSymPodAddress(
             podName,
             podSymbol,
+            slasher,
             podAdmin,
             withdrawalAddress,
             recoveryRecipient
@@ -84,6 +88,7 @@ contract SymPodFactoryTest is Test {
         address createdPod = podFactory.createSymPod(
             podName,
             podSymbol,
+            slasher,
             podAdmin,
             withdrawalAddress,
             recoveryRecipient

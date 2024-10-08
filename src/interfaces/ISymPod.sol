@@ -21,18 +21,19 @@ interface ISymPod {
         uint128 timestamp;
     }
 
-    struct Validator {
+    struct EthValidator {
         // index of the validator in the beacon chain
-        // uint64 validatorIndex;
+        uint40 validatorIndex;
         // amount of beacon chain ETH restaked on EigenLayer in gwei
         uint64 restakedBalanceGwei;
-        //timestamp of the validator's most recent balance update
+        // timestamp of the validator's most recent balance update
         uint64 lastCheckpointedAt;
         // status of the validator
         VALIDATOR_STATUS status;
     }
 
     struct Checkpoint {
+        /// @dev beacon block root
         bytes32 beaconBlockRoot;
         uint24 proofsRemaining;
         uint64 podBalanceGwei;
@@ -87,6 +88,9 @@ interface ISymPod {
     error SymPod__AmountTooLarge();
     error SymPod__InvalidDelayPeriod();
     error SymPod__InvalidAmountOfShares();
+    error SymPod__AmountInWei();
+    error SymPod__WithdrawalKeyExists();
+    error SymPod__InvalidTimestamp();
 
 
     /// @dev Emitted on stake on SymPod
@@ -99,7 +103,13 @@ interface ISymPod {
         uint256 amount
     );
 
-    event Initialized(address indexed pod, address admin, address withdrawalAddress, address recoveryRecipient);
+    event Initialized(
+        address indexed pod,
+        address slasher,
+        address admin,
+        address withdrawalAddress,
+        address recoveryRecipient
+    );
 
     event CheckpointCreated(
         uint256 timestamp,
@@ -138,6 +148,7 @@ interface ISymPod {
     );
 
     event ValidatorRestaked(
+        bytes32 validatorPubKeyHash,
         uint256 validatorIndex,
         uint256 restakedBalanceGwei,
         uint256 lastCheckpointedAt

@@ -5,4 +5,4 @@ out/
 broadcast
 remappings.txt
 env/
-*.json
+result.json

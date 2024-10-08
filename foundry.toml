@@ -14,7 +14,7 @@ remappings = [
 solc_version = '0.8.19'
 gas_reports = ["*"]
 fs_permissions = [{ access = "read-write", path = "./"}]
-
+gas_limit = "18446744073709551615"
 
 [rpc_endpoints]
 goerli = "${GOERLI_RPC_URL}"

@@ -14,6 +14,16 @@ contract BeaconChainProofHarness {
         });
     }
 
+    function verifyBalanceRootAgainstBlockRoot(
+        bytes32 blockRoot,
+        BeaconChainProofs.BalanceContainerProof calldata vProof
+    ) external view {
+        BeaconChainProofs.verifyBalanceRootAgainstBlockRoot({
+            beaconBlockRoot: blockRoot,
+            proof: vProof
+        });
+    }
+
     function verifyValidatorBalancesProof(
         bytes32 balanceListRoot,
         bytes32[] memory proof,
@@ -39,6 +49,12 @@ contract BeaconChainProofHarness {
             validatorFields: validatorFields,
             proof: proof,
             validatorIndices: validatorIndices
+        });
+    }
+
+   function getPubkeyHash(bytes32[] calldata validatorFields) public pure returns (bytes32) {
+        return BeaconChainProofs.getPubkeyHash({
+            validatorFields: validatorFields
         });
     }
 }

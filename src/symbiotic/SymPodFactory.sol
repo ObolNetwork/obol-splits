@@ -38,6 +38,7 @@ contract SymPodFactory is ISymPodFactory {
   function createSymPod(
     string memory podName,
     string memory podSymbol,
+    address slasher,
     address admin,
     address withdrawalAddress,
     address recoveryRecipient
@@ -58,9 +59,10 @@ contract SymPodFactory is ISymPodFactory {
         abi.encode(
           symPodBeacon,
           abi.encodeWithSignature(
-            "initialize(string,string,address,address,address)",
+            "initialize(string,string,address,address,address,address)",
             podName,
             podSymbol,
+            slasher,
             admin,
             withdrawalAddress,
             recoveryRecipient
@@ -68,8 +70,6 @@ contract SymPodFactory is ISymPodFactory {
         )
       )
     );
-
-    emit CreateSymPod(symPod, admin, withdrawalAddress, recoveryRecipient);
   }
 
   /// @notice Predict SymPod address
@@ -79,6 +79,7 @@ contract SymPodFactory is ISymPodFactory {
   function predictSymPodAddress(
     string memory podName,
     string memory podSymbol,
+    address slasher,
     address admin,
     address withdrawalAddress,
     address recoveryRecipient
@@ -92,9 +93,10 @@ contract SymPodFactory is ISymPodFactory {
           abi.encode(
             symPodBeacon,
             abi.encodeWithSignature(
-              "initialize(string,string,address,address,address)",
+              "initialize(string,string,address,address,address,address,address)",
               podName,
               podSymbol,
+              slasher,
               admin,
               withdrawalAddress,
               recoveryRecipient

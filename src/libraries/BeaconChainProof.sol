@@ -97,9 +97,10 @@ library BeaconChainProofs {
         bytes32 validatorListRoot;
         bytes proof;
     }
+
     struct BalanceProof {
         bytes32[] proof;
-        uint40[] validatorIndices;
+        bytes32[] validatorPubKeyHashes;
         bytes32[] validatorBalances;
     }
     
@@ -196,7 +197,7 @@ library BeaconChainProofs {
         ValidatorListContainerProof calldata proof
     ) internal view {
         if (
-            proof.proof.length == 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
+            proof.proof.length != 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
         ) {
             revert BeaconChainProofs__InvalidProofSize();
         }
@@ -214,7 +215,7 @@ library BeaconChainProofs {
                 leaf: proof.validatorListRoot,
                 index: validatorIndex
         }) == false) {
-            revert BeaconChainProofs__InvalidBalanceRootProof();
+            revert BeaconChainProofs__InvalidValidatorRootProof();
         }
     }
 
@@ -232,7 +233,7 @@ library BeaconChainProofs {
         BalanceContainerProof calldata proof
     ) internal view {
         if (
-            proof.proof.length == 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
+            proof.proof.length != 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
         ) {
             revert BeaconChainProofs__InvalidProofSize();
         }
@@ -252,16 +253,6 @@ library BeaconChainProofs {
                 index: index
         }) == false) {
             revert BeaconChainProofs__InvalidBalanceRootProof();
-        }
-    }
-
-    /// @notice This function verifies a validator withdrawal credentials
-    function verifyValidatorWithdrawalCredentials(
-        bytes32[] calldata validatorFields,
-        bytes32 withdrawalCredentials
-    ) internal pure {
-        if (getWithdrawalCredentials(validatorFields) != withdrawalCredentials) {
-            revert BeaconChainProofs__IncorrectWithdrawalCredentials(getPubkeyHash(validatorFields));
         }
     }
 
@@ -343,19 +334,12 @@ library BeaconChainProofs {
     }
 
     function isValidatorSlashed(bytes32[] calldata validatorFields) internal pure returns (bool) {
-        // TODO verify this value
         return validatorFields[VALIDATOR_SLASHED_INDEX] != bytes32(0);
     }
 
     /// @dev Retrieves a validator's activation epoch
     function getActivationEpoch(bytes32[] calldata validatorFields) internal pure returns (uint64) {
         return Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_ACTIVATION_EPOCH_INDEX]);
-    }
-
-    /// @dev Returns if a validator has been exited
-    function hasValidatorExited(bytes32[] calldata validatorFields) internal pure returns (bool) {
-        uint256 exitEpoch = getExitEpoch(validatorFields);
-        return exitEpoch != FAR_FUTURE_EPOCH;
     }
 
 }
