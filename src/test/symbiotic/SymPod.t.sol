@@ -790,4 +790,13 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
 }
 
 
-// One more test 
+// One more test
+contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
+    function setUp() public override {
+        super.setUp();
+    }
+
+    function test_verifyExpiredBalance() external {
+        
+    }
+}

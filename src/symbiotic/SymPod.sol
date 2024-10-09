@@ -345,6 +345,7 @@ contract SymPod is SymPodStorageV1 {
   function onSlash(uint256 amountOfShares, uint48 captureTimestamp) 
     external 
     nonReentrant 
+    override
     returns (bytes32 withdrawalKey, uint256 amountSlashedInWei) 
   {
     if (msg.sender != slasher) revert SymPod__NotSlasher();

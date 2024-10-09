@@ -165,4 +165,11 @@ interface ISymPod {
         bytes32 depositDataRoot
     ) external payable;
 
+    function onSlash(uint256 amountOfShares, uint48 captureTimestamp) external returns (bytes32 withdrawalKey, uint256 amountSlashedInWei);
+
+    function completeWithdraw(bytes32 withdrawalKey)
+    external 
+    returns (uint256 amount);
+
+
 }
