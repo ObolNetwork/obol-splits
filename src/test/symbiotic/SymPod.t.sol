@@ -792,11 +792,86 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
 
 // One more test
 contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
+    uint64 timestamp;
+    uint256 sizeOfValidators;
+    BeaconChainProofs.ValidatorListContainerProof validatorContainerProof;
+    BeaconChainProofs.ValidatorProof validatorFieldsProof;
+
+    bytes32 validatorPubKeyHash;
+
     function setUp() public override {
         super.setUp();
+
+        string memory validatorFieldsProofFilePath = "./src/test/test-data/mainnet/slashed/ValidatorFields-proof_deneb_mainnet_slot_9575417_slashed.json";
+        string memory validatorListRootProofFilePath = "./src/test/test-data/mainnet/slashed/ValidatorListRootProof-proof_deneb_mainnet_slot_9575417_slashed.json";
+
+        proofParser.setJSONPath(validatorListRootProofFilePath);
+        blockRoot = proofParser.getBlockRoot();
+
+        vm.warp(10000 seconds);
+
+        timestamp = uint64(block.timestamp - 1_000);
+        console.log("changes");
+        console.logBytes32(blockRoot);
+        console.log(timestamp);
+
+        validatorContainerProof = BeaconChainProofs.ValidatorListContainerProof({
+            validatorListRoot: proofParser.getValidatorListRoot(),
+            proof: proofParser.getValidatorListRootProofAgainstBlockRoot()
+        });
+
+        proofParser.setJSONPath(validatorFieldsProofFilePath);
+        uint40[] memory validatorIndices = proofParser.getValidatorIndices();
+        sizeOfValidators = validatorIndices.length;
+        validatorFieldsProof = BeaconChainProofs.ValidatorProof({
+            validatorFields: proofParser.getValidatorFields(validatorIndices.length),
+            proof: proofParser.getValidatorFieldsProof(),
+            validatorIndices: validatorIndices
+        });
+
+        beaconRootOracle.setBlockRoot(timestamp, blockRoot);
+        beaconRootOracle.setBlockRoot(uint64(block.timestamp), blockRoot);
+
+        validatorPubKeyHash = validatorFieldsProof.validatorFields[0][BeaconChainProofs.VALIDATOR_PUBKEY_INDEX];
+
+    }
+
+    function test_CannotVerifyExpiredBalanceIfValidatorNotActive() external {
+        vm.expectRevert(ISymPod.SymPod__InvalidValidatorState.selector);
+        createdHarnessPod.verifyExpiredBalance({
+            beaconTimestamp: timestamp,
+            validatorListRootProof: validatorContainerProof,
+            validatorFieldsProof: validatorFieldsProof
+        });
+    }
+
+    function test_CannotVerifyIfInvaldBeaconTimestamp() external {
+        createdHarnessPod.changeValidatorLastCheckpointedAt(validatorPubKeyHash, timestamp + 10);
+
+        vm.expectRevert(ISymPod.SymPod__InvalidBeaconTimestamp.selector);
+        createdHarnessPod.verifyExpiredBalance({
+            beaconTimestamp: timestamp,
+            validatorListRootProof: validatorContainerProof,
+            validatorFieldsProof: validatorFieldsProof
+        });
+    }
+
+    function test_CannotVerifyIfValidatorNotSlashed() external {
+        // vm.expectRevert(ISymPod.SymPod__InvalidValidatorState.selector);
+        // use here
+
     }
 
     function test_verifyExpiredBalance() external {
-        
+        // we are proving only one validator
+        createdHarnessPod.changeValidatorStateToActive(validatorPubKeyHash);
+
+        // @TODO check created checkpoint events
+        createdHarnessPod.verifyExpiredBalance({
+            beaconTimestamp: timestamp,
+            validatorListRootProof: validatorContainerProof,
+            validatorFieldsProof: validatorFieldsProof
+        });
+
     }
 }

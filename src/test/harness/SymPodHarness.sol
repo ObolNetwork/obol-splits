@@ -18,10 +18,11 @@ contract SymPodHarness is SymPod, Test {
     }
 
     function changeValidatorStateToActive(bytes32 pubKeyHash) external {
-        console.log(uint256(validatorInfo[pubKeyHash].status));
-        console.log(uint256(validatorInfo[pubKeyHash].restakedBalanceGwei));
-        validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATUS.WITHDRAWN;
-        console.log(uint256(validatorInfo[pubKeyHash].status));
+        validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATUS.ACTIVE;
+    }
+
+    function changeValidatorLastCheckpointedAt(bytes32 pubKeyHash, uint64 val) external {
+        validatorInfo[pubKeyHash].lastCheckpointedAt = val;
     }
 
     function setNumberOfValidators(uint256 num) external {

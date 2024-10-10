@@ -12,7 +12,6 @@ contract MockBeaconRootOracle is Test {
         require(msg.data.length == 32, "MockEIP4788Oracle.fallback: malformed msg.data");
 
         uint timestamp = abi.decode(msg.data, (uint));
-
         require(timestamp != 0, "MockEIP4788Oracle.fallback: timestamp is 0");
 
         bytes32 blockRoot = beaconBlockRoots[timestamp];

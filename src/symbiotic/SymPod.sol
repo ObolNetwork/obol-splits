@@ -224,7 +224,7 @@ contract SymPod is SymPodStorageV1 {
   /// @dev Staleness conditions
   ///  - Validator's last checkpoint is older than `beaconTimestamp`
   ///  - Validator must be `Acitve` status on the SymPod
-  ///  - Validator MUST be slashed on the beacon chain
+  ///  - Validator is slashed on the beacon chain
   function verifyExpiredBalance(
     uint64 beaconTimestamp,
     BeaconChainProofs.ValidatorListContainerProof calldata validatorListRootProof,
@@ -246,7 +246,7 @@ contract SymPod is SymPodStorageV1 {
       proof: validatorListRootProof
     });
 
-    // verify validator fiels against validator list root
+    // verify validator fields against validator list root
     BeaconChainProofs.verifyValidatorFields({
       validatorListRoot: validatorListRootProof.validatorListRoot,
       validatorFields: validatorFieldsProof.validatorFields,
