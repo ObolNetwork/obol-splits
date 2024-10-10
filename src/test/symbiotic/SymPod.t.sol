@@ -8,7 +8,7 @@ import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 import {MockBeaconRootOracle} from "src/test/utils/mocks/MockBeaconRootOracle.sol";
 import {MockETH2Deposit} from "src/test/utils/mocks/MockETH2Deposit.sol";
 import {SymPodHarness} from "src/test/harness/SymPodHarness.sol";
-import { SymPodProofParser } from "src/test/libraries/SymPodProofParser.sol";
+import {SymPodProofParser} from "src/test/libraries/SymPodProofParser.sol";
 import {BeaconChainProofHarness} from "src/test/harness/BeaconChainProofHarness.sol";
 import "forge-std/Test.sol";
 
@@ -859,7 +859,7 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
     function test_CannotVerifyIfValidatorNotSlashed() external {
         // vm.expectRevert(ISymPod.SymPod__InvalidValidatorState.selector);
         // use here
-
+        
     }
 
     function test_verifyExpiredBalance() external {

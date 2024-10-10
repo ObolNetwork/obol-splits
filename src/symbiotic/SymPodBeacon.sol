@@ -8,10 +8,10 @@ import {SymPod} from "./Sympod.sol";
 /// @author Obol
 /// @notice Capsule beacon proxy beacon
 contract SymPodBeacon is UpgradeableBeacon {
-  constructor(address symPodImplementation, address owner) UpgradeableBeacon(symPodImplementation) {
-    require(owner != address(0), "invalid ownwer");
+  constructor(address symPodImplementation, address _owner) UpgradeableBeacon(symPodImplementation) {
+    require(_owner != address(0), "invalid owner");
     require(symPodImplementation != address(0), "invalid implementation");
 
-    _transferOwnership(owner);
+    _transferOwnership(_owner);
   }
 }

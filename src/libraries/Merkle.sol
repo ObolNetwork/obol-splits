@@ -194,7 +194,6 @@ library Merkle {
         return root.leaf;
     }
 
-
     function contains(Node[] memory leaves, uint256 index) internal pure returns (Node memory value, bool found) {
         if (leaves.length == 0) {
             return (value, false);

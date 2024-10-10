@@ -11,6 +11,7 @@ import "../libraries/Endian.sol";
 library BeaconChainProofs {
     error BeaconChainProofs__InvalidValidatorRootandBalanceRootProof();
     error BeaconChainProofs__InvalidProofSize();
+    error BeaconChainProofs__InvalidMerkleProof();
 
     error BeaconChainProofs__InvalidValidatorField(uint256 index);
     error BeaconChainProofs__InvalidIndicesAndFields(uint256 indexSize, uint256 fieldSize);
@@ -43,6 +44,10 @@ library BeaconChainProofs {
 
     // MAX_WITHDRAWALS_PER_PAYLOAD = 2**4, making tree height = 4
     uint256 internal constant WITHDRAWALS_TREE_HEIGHT = 4;
+
+    /// @notice Number of fields in the `Validator` container
+    /// (See https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#validator)
+    uint256 internal constant VALIDATOR_FIELDS_LENGTH = 8;
 
     //in beacon block body https://github.com/ethereum/consensus-specs/blob/dev/specs/capella/beacon-chain.md#beaconblockbody
     uint256 internal constant EXECUTION_PAYLOAD_INDEX = 9;
@@ -83,6 +88,12 @@ library BeaconChainProofs {
     }
 
     struct ValidatorProof {
+        bytes32[] validatorFields;
+        bytes proof;
+        uint40 validatorIndex;
+    }
+
+    struct MultiValidatorsProof {
         bytes32[][] validatorFields;
         bytes32[] proof;
         uint40[] validatorIndices;
@@ -98,10 +109,81 @@ library BeaconChainProofs {
         bytes proof;
     }
 
-    struct BalanceProof {
+    struct MultiBalancesProof {
         bytes32[] proof;
         bytes32[] validatorPubKeyHashes;
-        bytes32[] validatorBalances;
+        bytes32[] validatorBalanceRoots;
+    }
+
+    struct BalanceProof {
+        bytes proof;
+        bytes32 validatorPubKeyHash;
+        bytes32 validatorBalanceRoot;
+    }
+
+    function verifyValidatorFields(
+        bytes32 validatorListRoot,
+        bytes32[] calldata validatorFields,
+        bytes calldata validatorFieldsProof,
+        uint40 validatorIndex
+    ) internal view {
+        if (validatorFields.length == (2 ** VALIDATOR_FIELD_TREE_HEIGHT)) {
+            revert BeaconChainProofs__InvalidValidatorField(0);
+        }
+
+        /// Note: the reason we use `VALIDATOR_TREE_HEIGHT + 1` here is because the merklization process for
+        /// this container includes hashing the root of the validator tree with the length of the validator list
+        if (validatorFieldsProof.length == (32 * (VALIDATOR_TREE_HEIGHT + 1))) {
+            revert BeaconChainProofs__InvalidProofSize();
+        } 
+
+        // Merkleize `validatorFields` to get the leaf to prove
+        bytes32 validatorRoot = Merkle.merkleizeSha256(validatorFields);
+
+        if(
+            Merkle.verifyInclusionSha256({
+                proof: validatorFieldsProof,
+                root: validatorListRoot,
+                leaf: validatorRoot,
+                index: validatorIndex
+            }) == false
+        ) {
+            revert BeaconChainProofs__InvalidMerkleProof();
+        }
+    }
+
+    /// @notice Verify a merkle proof of a validator's balance against the beacon state's `balanceContainerRoot`
+    /// @param balanceContainerRoot the merkle root of all validators' current balances
+    /// @param validatorIndex the index of the validator whose balance we are proving
+    /// @param proof the validator's associated balance root and a merkle proof of inclusion under `balanceContainerRoot`
+    function verifyValidatorBalance(
+        bytes32 balanceContainerRoot,
+        uint40 validatorIndex,
+        BalanceProof calldata proof
+    ) internal view {
+        /// Note: the reason we use `BALANCE_TREE_HEIGHT + 1` here is because the merklization process for
+        /// this container includes hashing the root of the balances tree with the length of the balances list
+        if (proof.proof.length == 32 * (BALANCE_TREE_HEIGHT + 1)) {
+            revert BeaconChainProofs__InvalidProofSize();
+        }
+        /// When merkleized, beacon chain balances are combined into groups of 4 called a `balanceRoot`. The merkle
+        /// proof here verifies that this validator's `balanceRoot` is included in the `balanceContainerRoot`
+        /// - balanceContainerRoot
+        /// |                            HEIGHT: BALANCE_TREE_HEIGHT
+        /// -- balanceRoot
+        uint256 balanceIndex = uint256(validatorIndex / 4);
+
+        if(
+            Merkle.verifyInclusionSha256({
+                proof: proof.proof,
+                root: balanceContainerRoot,
+                leaf: proof.validatorBalanceRoot,
+                index: balanceIndex
+            }) == false
+            ) 
+        {
+            revert BeaconChainProofs__InvalidMerkleProof();
+        }
     }
     
     /// @notice This function verifies merkle proofs of the fields of a certain validator against a beacon chain state root
@@ -109,10 +191,10 @@ library BeaconChainProofs {
     /// @param validatorFields the claimed fields of the validators being provien
     /// @param validatorIndices the indices of the proven validator
     /// @param proof is the data used in proving the validator's fields
-    function verifyValidatorFields(
+    function verifyMultiValidatorFields(
         bytes32 validatorListRoot,
-        bytes32[][] memory validatorFields,
-        bytes32[] memory proof,
+        bytes32[][] calldata validatorFields,
+        bytes32[] calldata proof,
         uint40[] memory validatorIndices
     ) internal view {
 
@@ -150,10 +232,14 @@ library BeaconChainProofs {
         }
     }
 
-
-    function verifyValidatorsBalance(
+    /// @notice This function verifies merkle proofs of the fields of a certain validator against a beacon chain state root
+    /// @param balanceListRoot is the validator list root to be proven against.
+    /// @param proof is the data used in proving the validator's fields
+    /// @param validatorIndices the indices of the validators being provien
+    /// @param validatorBalances the balances of the validators being proven
+    function verifyMultiValidatorsBalance(
         bytes32 balanceListRoot,
-        bytes32[] memory proof,
+        bytes32[] calldata proof,
         uint40[] memory validatorIndices,
         bytes32[] memory validatorBalances
     ) internal view returns (uint256[] memory actualValidatorBalances) { 
@@ -185,7 +271,7 @@ library BeaconChainProofs {
                 balanceNodes,
                 numLayers
             ) == false) {
-            revert BeaconChainProofs__InvalidValidatorFieldsMerkleProof();
+            revert BeaconChainProofs__InvalidMerkleProof();
         }
     }
 

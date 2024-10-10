@@ -91,6 +91,7 @@ interface ISymPod {
     error SymPod__AmountInWei();
     error SymPod__WithdrawalKeyExists();
     error SymPod__InvalidTimestamp();
+    error SymPod__InvalidBalanceDelta();
 
 
     /// @dev Emitted on stake on SymPod

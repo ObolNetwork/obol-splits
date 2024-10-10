@@ -26,6 +26,9 @@ contract SymPod is SymPodStorageV1 {
   /// @dev address used as ETH token
   address public constant ETH_ADDRESS = 0x0000000000000000000000000000000000000000;
 
+  /// @dev percentage resolution
+  uint256 public constant PERCENTAGE = 10_000;
+
   /// @dev ERC4788 oracle
   /// 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02
   address public immutable BEACON_ROOTS_ORACLE_ADDRESS;
@@ -33,21 +36,33 @@ contract SymPod is SymPodStorageV1 {
   /// @dev ETH2 deposit contract
   IETH2DepositContract public immutable ETH2_DEPOSIT_CONTRACT;
 
-  /// @dev Withdrawal delay
-  uint256 public immutable WITHDRAW_DELAY_PERIOD;
+  /// @dev Withdrawal delay period in seconds
+  uint256 public immutable WITHDRAW_DELAY_PERIOD_SECONDS;
+
+  /// @dev Balance delta value
+  /// This is used in determining if the change in balance is enough
+  /// to start a new checkpoint
+  uint256 public immutable BALANCE_DELTA;
 
   /// @dev SymPod Configurator
   ISymPodConfigurator public immutable symPodConfigurator;
 
-  constructor(address _symPodConfigurator, address _eth2DepositContract, address _beaconRootsOracle, uint256 _withdrawDelayPeriod) {
+  constructor(
+    address _symPodConfigurator,
+    address _eth2DepositContract,
+    address _beaconRootsOracle,
+    uint256 _withdrawDelayPeriod,
+    uint256 _balanceDelta
+  ) {
     if (_symPodConfigurator == address(0)) revert SymPod__InvalidAddress();
     if (_eth2DepositContract == address(0)) revert SymPod__InvalidAddress();
     if (_withdrawDelayPeriod == 0) revert SymPod__InvalidDelayPeriod();
 
     symPodConfigurator = ISymPodConfigurator(_symPodConfigurator);
     ETH2_DEPOSIT_CONTRACT = IETH2DepositContract(_eth2DepositContract);
-    WITHDRAW_DELAY_PERIOD = _withdrawDelayPeriod;
+    WITHDRAW_DELAY_PERIOD_SECONDS = _withdrawDelayPeriod;
     BEACON_ROOTS_ORACLE_ADDRESS = _beaconRootsOracle;
+    BALANCE_DELTA = _balanceDelta;
   }
 
   /// @notice payable fallback function that receives ether deposited to the contract
@@ -121,7 +136,7 @@ contract SymPod is SymPodStorageV1 {
   /// @param validatorBalancesProof proves the validator balances against the balance container root
   function verifyBalanceCheckPointProofs(
     BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
-    BeaconChainProofs.BalanceProof calldata validatorBalancesProof
+    BeaconChainProofs.MultiBalancesProof calldata validatorBalancesProof
   ) external {
     Checkpoint memory activeCheckpoint = currentCheckPoint;
     uint256 currentCheckpointTimestamp = activeCheckpoint.currentTimestamp;
@@ -132,14 +147,14 @@ contract SymPod is SymPodStorageV1 {
       beaconBlockRoot: activeCheckpoint.beaconBlockRoot,
       proof: balanceContainerProof
     });
-    // ftech the validator indices
+    // fetch the validator indices
     uint40[] memory validatorIndices = _getValidatorIndices(validatorBalancesProof.validatorPubKeyHashes);
     // verify the passed in proof
-    uint256[] memory validatorBalances = BeaconChainProofs.verifyValidatorsBalance({
+    uint256[] memory validatorBalances = BeaconChainProofs.verifyMultiValidatorsBalance({
       balanceListRoot: balanceContainerProof.balanceListRoot,
       proof: validatorBalancesProof.proof,
       validatorIndices: validatorIndices,
-      validatorBalances: validatorBalancesProof.validatorBalances
+      validatorBalances: validatorBalancesProof.validatorBalanceRoots
     });
 
     // process the proof
@@ -198,11 +213,11 @@ contract SymPod is SymPodStorageV1 {
   /// @notice Verify a multiple validator withdrawal credentials
   /// @param beaconTimestamp timestamp for beacon block oracle root
   /// @param validatorContainerProof the validator list container
-  /// @param validatorProof proof for
+  /// @param validatorProof merkle multiproof for multiple validators fields
   function verifyValidatorWithdrawalCredentials(
     uint64 beaconTimestamp,
     BeaconChainProofs.ValidatorListContainerProof calldata validatorContainerProof,
-    BeaconChainProofs.ValidatorProof calldata validatorProof
+    BeaconChainProofs.MultiValidatorsProof calldata validatorProof
   ) external {
     // this prevents verifying WC to advance checkpoint proofs
     if (currentCheckPointTimestamp > beaconTimestamp) revert SymPod__InvalidTimestamp();
@@ -221,24 +236,25 @@ contract SymPod is SymPodStorageV1 {
     _increaseBalance(admin, totalAmountToBeRestakedWei);
   }
 
-  /// @dev Staleness conditions
+  /// @dev Expired conditions
   ///  - Validator's last checkpoint is older than `beaconTimestamp`
   ///  - Validator must be `Acitve` status on the SymPod
   ///  - Validator is slashed on the beacon chain
+  /// @param beaconTimestamp beacon oracle timestamp
+  /// @param validatorListRootProof validator proof and merkle proof against block root
+  /// @param validatorProof validator field proof for slashed validator
   function verifyExpiredBalance(
     uint64 beaconTimestamp,
     BeaconChainProofs.ValidatorListContainerProof calldata validatorListRootProof,
-    BeaconChainProofs.ValidatorProof calldata validatorFieldsProof
+    BeaconChainProofs.ValidatorProof calldata validatorProof
   ) external {
-    bytes32 validatorPubKeyHash = validatorFieldsProof.validatorFields[0].getPubkeyHash();
+    bytes32 validatorPubKeyHash = validatorProof.validatorFields.getPubkeyHash();
     EthValidator memory validatorInfo = validatorInfo[validatorPubKeyHash];
 
     if (validatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
-
     if (validatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
-
     // validator must be slashed to mark stale
-    if (validatorFieldsProof.validatorFields[0].isValidatorSlashed() == false) revert SymPod__ValidatorNotSlashed();
+    if (validatorProof.validatorFields.isValidatorSlashed() == false) revert SymPod__ValidatorNotSlashed();
 
     // verify list root
     BeaconChainProofs.verifyValidatorListRootAgainstBlockRoot({
@@ -249,9 +265,54 @@ contract SymPod is SymPodStorageV1 {
     // verify validator fields against validator list root
     BeaconChainProofs.verifyValidatorFields({
       validatorListRoot: validatorListRootProof.validatorListRoot,
-      validatorFields: validatorFieldsProof.validatorFields,
-      proof: validatorFieldsProof.proof,
-      validatorIndices: validatorFieldsProof.validatorIndices
+      validatorFields: validatorProof.validatorFields,
+      validatorFieldsProof: validatorProof.proof,
+      validatorIndex: validatorProof.validatorIndex
+    });
+
+    // start checkpoint
+    _startCheckpoint(false);
+  }
+
+  /// @dev  Delta conditions
+  ///  - Validator's last checkpoint is older than `beaconTimestamp`
+  ///  - Validator must be `Acitve` status on the SymPod
+  ///  - Validator restakedAmountGwei vs it's current BeaconChain balance is less
+  ///    than delta allowed i.e. currentBeaconChainBalance - restakedAmountGwei > delta
+  ///    The delta is calculated as a % of the current balance
+  function verifyExceedDeltaBalance(
+    uint64 beaconTimestamp,
+    BeaconChainProofs.BalanceContainerProof calldata balanceContainer,
+    BeaconChainProofs.BalanceProof calldata balanceProof
+  ) external {
+    bytes32 validatorPubKeyHash = balanceProof.validatorPubKeyHash;
+    EthValidator memory validatorInfo = validatorInfo[validatorPubKeyHash];
+
+    if (validatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
+    if (validatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
+    uint256 currentValidatorBalanceGwei = BeaconChainProofs.getBalanceAtIndex(
+      balanceProof.validatorBalanceRoot,
+      validatorInfo.validatorIndex
+    );
+
+    if ( 
+      (validatorInfo.restakedBalanceGwei - currentValidatorBalanceGwei) <
+      ((validatorInfo.restakedBalanceGwei * BALANCE_DELTA) / PERCENTAGE ))
+    {
+      revert SymPod__InvalidBalanceDelta();  
+    }
+
+    // verify the balance container proof
+    BeaconChainProofs.verifyBalanceRootAgainstBlockRoot({
+      beaconBlockRoot: getParentBeaconBlockRoot(uint64(block.timestamp)),
+      proof: balanceContainer
+    });
+
+    // verify validator balance against balance root
+    BeaconChainProofs.verifyValidatorBalance({
+      balanceContainerRoot: balanceContainer.balanceListRoot,
+      validatorIndex: validatorInfo.validatorIndex,
+      proof: balanceProof
     });
 
     // start checkpoint
@@ -277,7 +338,7 @@ contract SymPod is SymPodStorageV1 {
     // confirm withdrawal does not exist
     if (withdrawalQueue[withdrawalKey].to != address(0)) revert SymPod__WithdrawalKeyExists();
 
-    uint256 withdrawalTimestamp = block.timestamp + WITHDRAW_DELAY_PERIOD;
+    uint256 withdrawalTimestamp = block.timestamp + WITHDRAW_DELAY_PERIOD_SECONDS;
 
     // Write to Storage
     pendingAmountToWithrawWei += uint64(amountInWei);
@@ -439,10 +500,10 @@ contract SymPod is SymPodStorageV1 {
   /// @notice Verify withdrawal credentials
   function _verifyWithdrawalCredentials(
     bytes32 validatorListRoot,
-    BeaconChainProofs.ValidatorProof calldata validatorData
+    BeaconChainProofs.MultiValidatorsProof calldata validatorData
   ) internal returns (uint256 totalAmountToBeRestakedWei) {
     // verify the passed validator multi proof
-    BeaconChainProofs.verifyValidatorFields({
+    BeaconChainProofs.verifyMultiValidatorFields({
       validatorListRoot: validatorListRoot,
       validatorFields: validatorData.validatorFields,
       proof: validatorData.proof,
