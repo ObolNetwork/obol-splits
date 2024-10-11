@@ -24,13 +24,25 @@ contract BeaconChainProofHarness {
         });
     }
 
-    function verifyValidatorBalancesProof(
+    function verifyValidatorBalance(
         bytes32 balanceListRoot,
-        bytes32[] memory proof,
+        uint40 validatorIndex,
+        BeaconChainProofs.BalanceProof calldata proof
+    ) external view {
+        BeaconChainProofs.verifyValidatorBalance({
+            balanceContainerRoot: balanceListRoot,
+            validatorIndex: validatorIndex,
+            proof: proof
+        });
+    }
+
+    function verifyMultiValidatorBalancesProof(
+        bytes32 balanceListRoot,
+        bytes32[] calldata proof,
         uint40[] memory validatorIndices,
         bytes32[] memory validatorBalances
     ) external view {
-        BeaconChainProofs.verifyValidatorsBalance({
+        BeaconChainProofs.verifyMultiValidatorsBalance({
             balanceListRoot: balanceListRoot,
             validatorIndices: validatorIndices,
             validatorBalances: validatorBalances,
@@ -38,17 +50,31 @@ contract BeaconChainProofHarness {
         });
     }
 
-    function verifyValidatorFields(
+    function verifyMultiValidatorFields(
         bytes32 validatorListRoot,
-        bytes32[][] memory validatorFields,
-        bytes32[] memory proof,
-        uint40[] memory validatorIndices
+        bytes32[][] calldata validatorFields,
+        bytes32[] calldata proof,
+        uint40[] calldata validatorIndices
     ) external view {
-        BeaconChainProofs.verifyValidatorFields({
+        BeaconChainProofs.verifyMultiValidatorFields({
             validatorListRoot:validatorListRoot,
             validatorFields: validatorFields,
             proof: proof,
             validatorIndices: validatorIndices
+        });
+    }
+
+    function verifyValidatorFields(
+        bytes32 validatorListRoot,
+        bytes32[] calldata validatorFields,
+        bytes calldata validatorFieldsProof,
+        uint40 validatorIndex
+    ) external view {
+        BeaconChainProofs.verifyValidatorFields({
+            validatorListRoot:validatorListRoot,
+            validatorFields: validatorFields,
+            validatorFieldsProof: validatorFieldsProof,
+            validatorIndex: validatorIndex
         });
     }
 

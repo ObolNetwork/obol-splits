@@ -8,12 +8,14 @@ contract SymPodHarness is SymPod, Test {
         address _symPodConfigurator,
         address _eth2DepositContract,
         address _beaconRootsOracle,
-        uint256 _withdrawDelayPeriod
+        uint256 _withdrawDelayPeriod,
+        uint256 _balanceDelta
     ) SymPod(
         _symPodConfigurator,
         _eth2DepositContract,
         _beaconRootsOracle,
-        _withdrawDelayPeriod
+        _withdrawDelayPeriod,
+        _balanceDelta
     ) {
     }
 

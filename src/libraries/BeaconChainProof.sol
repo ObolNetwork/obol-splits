@@ -25,32 +25,16 @@ library BeaconChainProofs {
     uint256 internal constant BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT = 3;
     uint256 internal constant BEACON_STATE_TREE_HEIGHT = 5;
 
-    uint256 internal constant NUM_BEACON_BLOCK_BODY_FIELDS = 11;
-    uint256 internal constant BEACON_BLOCK_BODY_FIELD_TREE_HEIGHT = 4;
 
     uint256 internal constant BALANCE_TREE_HEIGHT = 38;
-
     uint256 internal constant NUM_VALIDATOR_FIELDS = 8;
     uint256 internal constant VALIDATOR_FIELD_TREE_HEIGHT = 3;
 
-    //Index of block_summary_root in historical_summary container
-    uint256 internal constant BLOCK_SUMMARY_ROOT_INDEX = 0;
-
-    uint256 internal constant NUM_WITHDRAWAL_FIELDS = 4;
-    // tree height for hash tree of an individual withdrawal container
-    uint256 internal constant WITHDRAWAL_FIELD_TREE_HEIGHT = 2;
-
     uint256 internal constant VALIDATOR_TREE_HEIGHT = 40;
-
-    // MAX_WITHDRAWALS_PER_PAYLOAD = 2**4, making tree height = 4
-    uint256 internal constant WITHDRAWALS_TREE_HEIGHT = 4;
 
     /// @notice Number of fields in the `Validator` container
     /// (See https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#validator)
     uint256 internal constant VALIDATOR_FIELDS_LENGTH = 8;
-
-    //in beacon block body https://github.com/ethereum/consensus-specs/blob/dev/specs/capella/beacon-chain.md#beaconblockbody
-    uint256 internal constant EXECUTION_PAYLOAD_INDEX = 9;
 
     // in beacon block header https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#beaconblockheader
     uint256 internal constant STATE_ROOT_INDEX = 3;
@@ -74,14 +58,6 @@ library BeaconChainProofs {
     /// @dev https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md?plain=1#L185
     uint256 internal constant FAR_FUTURE_EPOCH = (2**64) - 1;
 
-    /// @notice https://github.com/ethereum/consensus-specs/blob/9be05296fa937dc138b781d5e7429a50fe4997b5/presets/mainnet/phase0.yaml#L54
-    uint256 internal constant EPOCHS_PER_SLASHINGS_VECTOR = 8192;
-
-    /// @dev defined epoch boundary
-    /// https://github.com/ethereum/consensus-specs/blob/9be05296fa937dc138b781d5e7429a50fe4997b5/presets/mainnet/phase0.yaml#L36
-    uint256 internal constant EPOCH = 6.4 minutes;
-
-
     /// @notice This struct contains the root and proof for verifying the state root against the oracle block root
     struct ValidatorListAndBalanceListRootProof {
         bytes32[] proof;
@@ -93,7 +69,7 @@ library BeaconChainProofs {
         uint40 validatorIndex;
     }
 
-    struct MultiValidatorsProof {
+    struct ValidatorsMultiProof {
         bytes32[][] validatorFields;
         bytes32[] proof;
         uint40[] validatorIndices;
@@ -109,7 +85,7 @@ library BeaconChainProofs {
         bytes proof;
     }
 
-    struct MultiBalancesProof {
+    struct BalancesMultiProof {
         bytes32[] proof;
         bytes32[] validatorPubKeyHashes;
         bytes32[] validatorBalanceRoots;
@@ -121,6 +97,9 @@ library BeaconChainProofs {
         bytes32 validatorBalanceRoot;
     }
 
+    /// @notice Verify a merkle proof a validator field against the beacon state `validatorContainerRoot`
+    /// @param validatorListRoot the merkle root of all validator fields 
+    /// @param validatorFields validator fields
     function verifyValidatorFields(
         bytes32 validatorListRoot,
         bytes32[] calldata validatorFields,
@@ -370,18 +349,6 @@ library BeaconChainProofs {
     }
 
     /**
-     * Indices for validator fields (refer to consensus specs):
-     * 0: pubkey
-     * 1: withdrawal credentials
-     * 2: effective balance
-     * 3: slashed?
-     * 4: activation elligibility epoch
-     * 5: activation epoch
-     * 6: exit epoch
-     * 7: withdrawable epoch
-     */
-
-    /**
      * @dev Retrieves a validator's pubkey hash
      */
     function getPubkeyHash(bytes32[] calldata validatorFields) internal pure returns (bytes32) {
@@ -413,10 +380,6 @@ library BeaconChainProofs {
     function getExitEpoch(bytes32[] calldata validatorFields) internal pure returns (uint64) {
         return 
             Endian.fromLittleEndianUint64(validatorFields[VALIDATOR_EXIT_EPOCH_INDEX]);
-    }
-
-    function getEpochFromTimestamp(uint256 timestamp, uint256 genesisTime) internal pure returns(uint256 currentEpoch) {
-        currentEpoch = (timestamp - genesisTime) / EPOCH;
     }
 
     function isValidatorSlashed(bytes32[] calldata validatorFields) internal pure returns (bool) {

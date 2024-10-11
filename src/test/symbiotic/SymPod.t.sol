@@ -32,6 +32,7 @@ contract BaseSymPodTest is Test {
     SymPodProofParser proofParser;
 
     uint256 WITHDRAWAL_DELAY_PERIOD = 2 seconds;
+    uint256 BALANCE_DELTA_PERCENT = 1_000; // 10%
     address MOCK_ETH2_DEPOSIT_CONTRACT;
 
     bytes32 blockRoot;
@@ -53,7 +54,8 @@ contract BaseSymPodTest is Test {
             address(podConfigurator),
             MOCK_ETH2_DEPOSIT_CONTRACT,
             address(beaconRootOracle),
-            WITHDRAWAL_DELAY_PERIOD
+            WITHDRAWAL_DELAY_PERIOD,
+            BALANCE_DELTA_PERCENT
         );
         podBeacon = new SymPodBeacon(
             address(podImplementation),
@@ -457,7 +459,7 @@ contract SymPod__VerifyWithdrawalCredentials is BaseSymPodHarnessTest {
     uint64 timestamp;
     uint256 sizeOfValidators;
     BeaconChainProofs.ValidatorListContainerProof validatorContainerProof;
-    BeaconChainProofs.ValidatorProof validatorProof;
+    BeaconChainProofs.ValidatorsMultiProof validatorProof;
 
     function setUp() override public {
         
@@ -479,7 +481,7 @@ contract SymPod__VerifyWithdrawalCredentials is BaseSymPodHarnessTest {
         proofParser.setJSONPath(validatorFieldsProofFilePath);
         uint40[] memory validatorIndices = proofParser.getValidatorIndices();
         sizeOfValidators = validatorIndices.length;
-        validatorProof = BeaconChainProofs.ValidatorProof({
+        validatorProof = BeaconChainProofs.ValidatorsMultiProof({
             validatorFields: proofParser.getValidatorFields(validatorIndices.length),
             proof: proofParser.getValidatorFieldsProof(),
             validatorIndices: validatorIndices
@@ -619,10 +621,10 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     uint64 balanceCheckPointTimestamp;
     uint256 sizeOfValidators;
     BeaconChainProofs.ValidatorListContainerProof validatorContainerProof;
-    BeaconChainProofs.ValidatorProof validatorProof;
+    BeaconChainProofs.ValidatorsMultiProof validatorProof;
 
     BeaconChainProofs.BalanceContainerProof balanceContainerProof;
-    BeaconChainProofs.BalanceProof validatorBalancesProof;
+    BeaconChainProofs.BalancesMultiProof validatorBalancesProof;
 
     bytes32 sampleValidatorPubKeyHash;
 
@@ -647,7 +649,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
         proofParser.setJSONPath(validatorFieldsProofFilePath);
         uint40[] memory validatorIndices = proofParser.getValidatorIndices();
         sizeOfValidators = validatorIndices.length;
-        validatorProof = BeaconChainProofs.ValidatorProof({
+        validatorProof = BeaconChainProofs.ValidatorsMultiProof({
             validatorFields: proofParser.getValidatorFields(validatorIndices.length),
             proof: proofParser.getValidatorFieldsProof(),
             validatorIndices: validatorIndices
@@ -661,10 +663,10 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
 
         proofParser.setJSONPath(validatorBalanceProofPath);
         bytes32[] memory validatorPubKeyHashes = proofParser.getValidatorPubKeyHashes();
-        validatorBalancesProof = BeaconChainProofs.BalanceProof({
+        validatorBalancesProof = BeaconChainProofs.BalancesMultiProof({
             proof: proofParser.getValidatorBalancesProof(),
             validatorPubKeyHashes: validatorPubKeyHashes,
-            validatorBalances: proofParser.getValidatorBalancesRoot()
+            validatorBalanceRoots: proofParser.getValidatorBalancesRoot()
         }); 
 
         sampleValidatorPubKeyHash = validatorPubKeyHashes[0];
@@ -811,9 +813,6 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
         vm.warp(10000 seconds);
 
         timestamp = uint64(block.timestamp - 1_000);
-        console.log("changes");
-        console.logBytes32(blockRoot);
-        console.log(timestamp);
 
         validatorContainerProof = BeaconChainProofs.ValidatorListContainerProof({
             validatorListRoot: proofParser.getValidatorListRoot(),

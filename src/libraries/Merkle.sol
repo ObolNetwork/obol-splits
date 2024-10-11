@@ -37,10 +37,10 @@ library Merkle {
 
     function verifyMultiProofInclusionSha256(
         bytes32 expectedRoot,
-        bytes32[] memory proof,
+        bytes32[] calldata proof,
         Node[] memory leaves,
         uint256 numLayers
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         return processMultiInclusionProofSha256(proof, leaves, numLayers) == expectedRoot;
     }
 
@@ -114,24 +114,14 @@ library Merkle {
      * Note this is for a Merkle tree using the sha256 hash function
      */
     function processMultiInclusionProofSha256(
-        bytes32[] memory proof,
+        bytes32[] calldata proof,
         Node[] memory leaves,
         uint256 numLayers
-    ) internal view returns (bytes32 ) {
+    ) internal pure returns (bytes32 ) {
         uint256 proofIndex = 0;
         Node[] memory currentLayer = sort(leaves);
         // Process each layer
         for (uint256 l = 0; l < numLayers; l++) {
-            // Calculate the number of pairs in this layer
-            // uint256 numPairs = div_ceil(currentLayer.length + 1, 2);
-            // console.log("numPairs");
-            // console.log(numPairs);
-            // uint256 numPairs = (size % 2) == 0 ? size : (size + 1) / 2;
-            // Create an array for the next layer
-
-            // console.log("====================== Layer -> ", l);
-            // logIndices(currentLayer);
-
             Node[] memory nextLayer = new Node[](0);
 
             for (uint256 i = 0; i < currentLayer.length; i++) {
@@ -170,17 +160,6 @@ library Merkle {
                 if (found == false) {
                     nextLayer = append(nextLayer, Node(parentLeaf, nextIndex));
                 }
-
-                // console.log("Range Debug");
-                // console.log("index -> ", index);
-                // console.log("siblingIndex -> ", siblingIndex);
-                // console.log("proofIndex -> ", proofIndex);
-                // console.log("leaf");
-                // console.logBytes32(leaf);
-                // console.log("sibling -> ");
-                // console.logBytes32(siblingLeaf);
-                // console.log("nextLayerIndex -> ", nextIndex);
-
             }
 
             currentLayer = sort(nextLayer);
@@ -230,18 +209,6 @@ library Merkle {
         }
     }
 
-
-    function div_ceil(uint256 x, uint256 y) internal pure returns (uint256) {
-        uint256 result = x / y;
-        if (x % y != 0) {
-            unchecked {
-                result += 1;
-            }
-        }
-
-        return result;
-    }
-
     /**
      @notice this function returns the merkle root of a tree created from a set of leaves using sha256 as its hash function
      @param leaves the leaves of the merkle tree
@@ -272,9 +239,10 @@ library Merkle {
         return layer[0];
     }
 
+    /// @notice Insertion sort node
     function sort(Node[] memory myArray)
         internal
-        view
+        pure
         returns (Node[] memory)
     {
 
@@ -308,15 +276,6 @@ library Merkle {
         }
 
         return myArray;
-    }
-
-    function logIndices(Node[] memory values) internal view {
-        // indices = new uint256[](values.length);
-
-        for(uint i = 0; i < values.length; i++) {
-            // indices[i] = values[i].index;
-            console.log(values[i].index);
-        }
     }
 
 }

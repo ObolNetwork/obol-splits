@@ -26,6 +26,7 @@ contract SymPodFactoryTest is Test {
     address slasher;
 
     uint256 WITHDRAWAL_DELAY_PERIOD = 2 seconds;
+    uint256 BALANCE_DELTA = 10;
     address MOCK_ETH2_DEPOSIT_CONTRACT;
 
     function setUp() public {
@@ -43,7 +44,8 @@ contract SymPodFactoryTest is Test {
             address(podConfigurator),
             MOCK_ETH2_DEPOSIT_CONTRACT,
             address(beaconRootOracle),
-            WITHDRAWAL_DELAY_PERIOD
+            WITHDRAWAL_DELAY_PERIOD,
+            BALANCE_DELTA
         );
         podBeacon = new SymPodBeacon(
             address(podImplementation),

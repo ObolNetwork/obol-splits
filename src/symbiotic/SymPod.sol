@@ -42,7 +42,7 @@ contract SymPod is SymPodStorageV1 {
   /// @dev Balance delta value
   /// This is used in determining if the change in balance is enough
   /// to start a new checkpoint
-  uint256 public immutable BALANCE_DELTA;
+  uint256 public immutable BALANCE_DELTA_PERCENT;
 
   /// @dev SymPod Configurator
   ISymPodConfigurator public immutable symPodConfigurator;
@@ -62,7 +62,7 @@ contract SymPod is SymPodStorageV1 {
     ETH2_DEPOSIT_CONTRACT = IETH2DepositContract(_eth2DepositContract);
     WITHDRAW_DELAY_PERIOD_SECONDS = _withdrawDelayPeriod;
     BEACON_ROOTS_ORACLE_ADDRESS = _beaconRootsOracle;
-    BALANCE_DELTA = _balanceDelta;
+    BALANCE_DELTA_PERCENT = _balanceDelta;
   }
 
   /// @notice payable fallback function that receives ether deposited to the contract
@@ -136,7 +136,7 @@ contract SymPod is SymPodStorageV1 {
   /// @param validatorBalancesProof proves the validator balances against the balance container root
   function verifyBalanceCheckPointProofs(
     BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
-    BeaconChainProofs.MultiBalancesProof calldata validatorBalancesProof
+    BeaconChainProofs.BalancesMultiProof calldata validatorBalancesProof
   ) external {
     Checkpoint memory activeCheckpoint = currentCheckPoint;
     uint256 currentCheckpointTimestamp = activeCheckpoint.currentTimestamp;
@@ -217,7 +217,7 @@ contract SymPod is SymPodStorageV1 {
   function verifyValidatorWithdrawalCredentials(
     uint64 beaconTimestamp,
     BeaconChainProofs.ValidatorListContainerProof calldata validatorContainerProof,
-    BeaconChainProofs.MultiValidatorsProof calldata validatorProof
+    BeaconChainProofs.ValidatorsMultiProof calldata validatorProof
   ) external {
     // this prevents verifying WC to advance checkpoint proofs
     if (currentCheckPointTimestamp > beaconTimestamp) revert SymPod__InvalidTimestamp();
@@ -279,7 +279,7 @@ contract SymPod is SymPodStorageV1 {
   ///  - Validator must be `Acitve` status on the SymPod
   ///  - Validator restakedAmountGwei vs it's current BeaconChain balance is less
   ///    than delta allowed i.e. currentBeaconChainBalance - restakedAmountGwei > delta
-  ///    The delta is calculated as a % of the current balance
+  ///    The allowed delta is calculated as a % of the current balance
   function verifyExceedDeltaBalance(
     uint64 beaconTimestamp,
     BeaconChainProofs.BalanceContainerProof calldata balanceContainer,
@@ -295,9 +295,10 @@ contract SymPod is SymPodStorageV1 {
       validatorInfo.validatorIndex
     );
 
+    // This
     if ( 
       (validatorInfo.restakedBalanceGwei - currentValidatorBalanceGwei) <
-      ((validatorInfo.restakedBalanceGwei * BALANCE_DELTA) / PERCENTAGE ))
+      ((validatorInfo.restakedBalanceGwei * BALANCE_DELTA_PERCENT) / PERCENTAGE ))
     {
       revert SymPod__InvalidBalanceDelta();  
     }
@@ -500,7 +501,7 @@ contract SymPod is SymPodStorageV1 {
   /// @notice Verify withdrawal credentials
   function _verifyWithdrawalCredentials(
     bytes32 validatorListRoot,
-    BeaconChainProofs.MultiValidatorsProof calldata validatorData
+    BeaconChainProofs.ValidatorsMultiProof calldata validatorData
   ) internal returns (uint256 totalAmountToBeRestakedWei) {
     // verify the passed validator multi proof
     BeaconChainProofs.verifyMultiValidatorFields({
@@ -511,9 +512,13 @@ contract SymPod is SymPodStorageV1 {
     });
 
     uint256 size = validatorData.validatorFields.length;
+    // Note that if this pod has never started a
+    // checkpoint before, `lastCheckpointedAt` will be zero here. This is fine because the main
+    // purpose of `lastCheckpointedAt` is to enforce that newly-verified validators are not
+    // eligible to progress already-existing checkpoints - however in this case, no checkpoints exist.
     uint64 lastCheckpointedAt = currentCheckPointTimestamp == 0 ? lastCheckpointTimestamp : currentCheckPointTimestamp;
 
-    for (uint256 i; i < size;) {
+    for (uint256 i = 0; i < size;) {
       uint40 validatorIndex = validatorData.validatorIndices[i];
       bytes32 validatorPubKeyHash = validatorData.validatorFields[i].getPubkeyHash();
 
@@ -550,11 +555,6 @@ contract SymPod is SymPodStorageV1 {
     }
 
     totalAmountToBeRestakedWei = totalAmountToBeRestakedWei * GWEI_TO_WEI;
-
-    // Account for validator in future checkpoints. Note that if this pod has never started a
-    // checkpoint before, `lastCheckpointedAt` will be zero here. This is fine because the main
-    // purpose of `lastCheckpointedAt` is to enforce that newly-verified validators are not
-    // eligible to progress already-existing checkpoints - however in this case, no checkpoints exist.
 
     // Write to storage
     numberOfActiveValidators += uint64(size);

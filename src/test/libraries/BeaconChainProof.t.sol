@@ -10,7 +10,6 @@ abstract contract BaseBeaconChainProofTest is Test {
     SymPodProofParser parser;
     BeaconChainProofHarness beaconChainProofHarness;
 
-
     function setUp() public virtual {
         parser = new SymPodProofParser();
         beaconChainProofHarness = new BeaconChainProofHarness();
@@ -137,7 +136,7 @@ contract BeaconChainProofTest__VerifyBalanceRootAgainstBlockRoot is BaseBeaconCh
 
 }
 
-contract BeaconChainProofTest__VerifyValidatorFields is BaseBeaconChainProofTest {
+contract BeaconChainProofTest__VerifyMultiValidatorFields is BaseBeaconChainProofTest {
     bytes32 validatorListRoot;
     bytes32[][] validatorFields;
     bytes32[] proof;
@@ -155,7 +154,7 @@ contract BeaconChainProofTest__VerifyValidatorFields is BaseBeaconChainProofTest
     }
 
     function test_CanVerifyValidatorFieldsProof() external view {
-        beaconChainProofHarness.verifyValidatorFields(
+        beaconChainProofHarness.verifyMultiValidatorFields(
             validatorListRoot,
             validatorFields,
             proof,
@@ -167,7 +166,7 @@ contract BeaconChainProofTest__VerifyValidatorFields is BaseBeaconChainProofTest
         proof[0] = 0x0000000000000000000000000000000000000000000000000000000000000001;
 
         vm.expectRevert(BeaconChainProofs.BeaconChainProofs__InvalidValidatorFieldsMerkleProof.selector);
-        beaconChainProofHarness.verifyValidatorFields(
+        beaconChainProofHarness.verifyMultiValidatorFields(
             validatorListRoot,
             validatorFields,
             proof,
@@ -177,7 +176,7 @@ contract BeaconChainProofTest__VerifyValidatorFields is BaseBeaconChainProofTest
 }
 
 
-contract BeaconChainProofTest__VerifyValidatorBalance is BaseBeaconChainProofTest {
+contract BeaconChainProofTest__VerifyMultiValidatorBalance is BaseBeaconChainProofTest {
     bytes32 balanceListRoot;
     bytes32[] proof;
     bytes32[] validatorBalances;
@@ -195,7 +194,7 @@ contract BeaconChainProofTest__VerifyValidatorBalance is BaseBeaconChainProofTes
     }
 
     function test_CanVerifyCorrectProof() external view {
-        beaconChainProofHarness.verifyValidatorBalancesProof(
+        beaconChainProofHarness.verifyMultiValidatorBalancesProof(
             balanceListRoot,
             proof,
             validatorIndices,
@@ -206,7 +205,7 @@ contract BeaconChainProofTest__VerifyValidatorBalance is BaseBeaconChainProofTes
     function test_CannotVerifyCorrectIncorrectProof() external {
         proof[0] = 0x0000000000000000000000000000000000000000000000000000000000000001;
          vm.expectRevert(BeaconChainProofs.BeaconChainProofs__InvalidValidatorFieldsMerkleProof.selector);
-        beaconChainProofHarness.verifyValidatorBalancesProof(
+        beaconChainProofHarness.verifyMultiValidatorBalancesProof(
             balanceListRoot,
             proof,
             validatorIndices,
