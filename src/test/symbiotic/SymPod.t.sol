@@ -461,7 +461,7 @@ contract SymPod__CompleteWithdraw is BaseSymPodHarnessTest {
   }
 
   function test_CannotCompleteWithdrawInvalidTimestamp() external {
-    createdHarnessPod.setWithdrawableRestakedPodWei(1000 gwei);
+    createdHarnessPod.mintSharesPlusAssetsAndRestakedPodWei(1000 gwei, podAdmin);
 
     vm.prank(podAdmin);
     uint256 amountToWithdraw = 100 gwei;
@@ -984,7 +984,8 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
   function test_CannotVerifyIfValidatorNotSlashed() external {
     string memory notSlashedExpiredBalanceProofPath =
       "./src/test/test-data/mainnet/VerifyExpiredBalanceProofNotSlashed-proof_deneb_mainnet_slot_9575417.json";
-    proofParser.setJSONPath(expiredBalanceProofFilePath);
+    proofParser.setJSONPath(notSlashedExpiredBalanceProofPath);
+
     uint40 validatorIndex = uint40(proofParser.getValidatorIndex());
     BeaconChainProofs.ValidatorProof memory localValidatorFieldsProof = BeaconChainProofs.ValidatorProof({
       validatorFields: proofParser.getSingleValidatorFields(),
@@ -1129,6 +1130,6 @@ contract SymPod__VerifyExceedBalanceDelta is BaseSymPodHarnessTest {
       balanceProof: balanceProof
     });
 
-    assertEq(createdHarnessPod.withdrawableRestakedPodWei(), podBalanceGwei, "invalid amount to withdraw");
+    assertEq(createdHarnessPod.withdrawableRestakedPodWei(), podBalanceGwei * 1 gwei, "invalid amount to withdraw");
   }
 }

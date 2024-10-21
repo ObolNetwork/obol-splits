@@ -95,7 +95,7 @@ contract SymPodFactory is ISymPodFactory {
           abi.encode(
             symPodBeacon,
             abi.encodeWithSignature(
-              "initialize(string,string,address,address,address,address,address)",
+              "initialize(string,string,address,address,address,address)",
               podName,
               podSymbol,
               slasher,
