@@ -4,28 +4,43 @@ import "forge-std/Test.sol";
 import {Merkle} from "src/libraries/Merkle.sol";
 import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 
+contract MerkleHarness {
+    function verifyMultiProofInclusionSha256(
+        bytes32 expectedRoot,
+        bytes32[] calldata proof,
+        Merkle.Node[] memory leaves,
+        uint256 numLayers
+    ) external pure returns (bool) {
+        return Merkle.verifyMultiProofInclusionSha256({
+            expectedRoot: expectedRoot,
+            proof: proof,
+            leaves: leaves,
+            numLayers: numLayers
+        });
+    }
+}
+
 contract MerkleTest is Test {
-    function setUp() public {}
+    MerkleHarness merkleHarness;
+
+    function setUp() public {
+        merkleHarness = new MerkleHarness();
+    }
 
     function hashNodes(bytes32 left, bytes32 right) internal pure returns (bytes32) {
         return sha256(abi.encodePacked(left, right));
     }
 
-    function testVerifyCorrectMultiProof() public {
+    function testVerifyCorrectMultiProof() external {
         bytes32[] memory leaves = new bytes32[](4);
         leaves[0] = keccak256(abi.encodePacked("leaf1"));
         leaves[1] = keccak256(abi.encodePacked("leaf2"));
         leaves[2] = keccak256(abi.encodePacked("leaf3"));
         leaves[3] = keccak256(abi.encodePacked("leaf4"));
 
-        // show(leaves);
-
         bytes32[] memory layer1 = new bytes32[](2);
         layer1[0] = hashNodes(leaves[0], leaves[1]);
         layer1[1] = hashNodes(leaves[2], leaves[3]);
-
-
-        // show(layer1);
 
         bytes32 root = hashNodes(layer1[0], layer1[1]);
 
@@ -50,13 +65,13 @@ contract MerkleTest is Test {
         nodes[1] = Merkle.Node(leavesToprove[1], indices[1]);
 
 
-        // bool success = Merkle.verifyMultiProofInclusionSha256(
-        //     root,
-        //     proof,
-        //     nodes,
-        //     2
-        // );
+        bool success = merkleHarness.verifyMultiProofInclusionSha256(
+            root,
+            proof,
+            nodes,
+            2
+        );
 
-        // assertTrue(success);
+        assertTrue(success);
     }
 }
