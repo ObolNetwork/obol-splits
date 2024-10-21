@@ -33,11 +33,11 @@ contract SymPodSlasher is Multicall {
     /// @dev Slashes the SymPod contract by initiating a withdrawal
     /// that is not delayed
     /// @param symPod symPod contract     
-    function triggerWithdrawal(ISymPod symPod) external {
+    function triggerWithdrawal(ISymPod symPod) external returns (bytes32 withdrawalKey) {
         uint256 amountOfShares = ERC20(address(symPod)).balanceOf(address(this));
         uint256 amountWei = IERC4626(address(symPod)).convertToAssets(amountOfShares);
 
-        bytes32 withdrawalKey = symPod.onSlash(amountWei);
+        withdrawalKey = symPod.onSlash(amountWei);
 
         emit TriggerWithdrawal(msg.sender, address(symPod), amountOfShares, withdrawalKey);
     }

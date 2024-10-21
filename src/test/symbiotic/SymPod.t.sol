@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import {SymPodFactory} from "src/symbiotic/SymPodFactory.sol";
 import {SymPodBeacon} from "src/symbiotic/SymPodBeacon.sol";
+import {SymPodSlasher} from "src/symbiotic/SymPodSlasher.sol";
 import {SymPod, ISymPod} from "src/symbiotic/SymPod.sol";
 import {SymPodConfigurator} from "src/symbiotic/SymPodConfigurator.sol";
 import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
@@ -49,7 +50,6 @@ contract BaseSymPodTest is Test {
     podAdmin = makeAddr("podAdmin");
     withdrawalAddress = makeAddr("withdrawalAddress");
     recoveryRecipient = makeAddr("recoveryRecipient");
-    slasher = makeAddr("slasher");
     MOCK_ETH2_DEPOSIT_CONTRACT = address(new MockETH2Deposit());
     beaconChainProofHarness = new BeaconChainProofHarness();
 
@@ -66,6 +66,9 @@ contract BaseSymPodTest is Test {
     podBeacon = new SymPodBeacon(address(podImplementation), symPodConfiguratorOwner);
 
     podFactory = new SymPodFactory(address(podBeacon));
+
+    slasher = address(new SymPodSlasher());
+
 
     createdPod = SymPod(
       payable(podFactory.createSymPod(podName, podSymbol, slasher, podAdmin, withdrawalAddress, recoveryRecipient))
