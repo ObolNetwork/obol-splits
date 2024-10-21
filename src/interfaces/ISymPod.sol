@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+interface IERC4626 {
+    function convertToAssets(uint256 shares) external returns (uint256 assets);
+}
+
 interface ISymPod {
 
     enum VALIDATOR_STATUS {
@@ -33,7 +37,6 @@ interface ISymPod {
     }
 
     struct Checkpoint {
-        /// @dev beacon block root
         bytes32 beaconBlockRoot;
         uint24 proofsRemaining;
         uint64 podBalanceGwei;
@@ -43,6 +46,8 @@ interface ISymPod {
 
     /// @dev invalid addresss
     error SymPod__InvalidAddress();
+    error SymPod__InvalidWithdrawalAddress();
+    error SymPod__InvalidRecoveryAddress();
 
     /// @dev Invalid admin addresss
     error SymPod__InvalidAdmin();
@@ -92,6 +97,7 @@ interface ISymPod {
     error SymPod__WithdrawalKeyExists();
     error SymPod__InvalidTimestamp();
     error SymPod__InvalidBalanceDelta();
+    error SymPod__ExceedBalance();
 
 
     /// @dev Emitted on stake on SymPod
@@ -105,7 +111,6 @@ interface ISymPod {
     );
 
     event Initialized(
-        address indexed pod,
         address slasher,
         address admin,
         address withdrawalAddress,
@@ -156,7 +161,8 @@ interface ISymPod {
     );
 
     event IncreasedBalance(uint256 totalRestakedEth, uint256 shares);
-    event CheckpointFinalized(uint256 lastCheckpointTimestamp, uint256 totalShareDeltaWei);
+    
+    event CheckpointCompleted(uint256 lastCheckpointTimestamp, int256 totalShareDeltaWei);
 
     function symPodWithdrawalCredentials() external view returns (bytes memory);
 
@@ -166,11 +172,10 @@ interface ISymPod {
         bytes32 depositDataRoot
     ) external payable;
 
-    function onSlash(uint256 amountOfShares, uint48 captureTimestamp) external returns (bytes32 withdrawalKey, uint256 amountSlashedInWei);
+    function onSlash(uint256 amountWei) external returns (bytes32 withdrawalKey);
 
     function completeWithdraw(bytes32 withdrawalKey)
     external 
     returns (uint256 amount);
-
 
 }

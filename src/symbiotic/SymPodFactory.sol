@@ -70,6 +70,8 @@ contract SymPodFactory is ISymPodFactory {
         )
       )
     );
+
+    emit CreateSymPod(symPod);
   }
 
   /// @notice Predict SymPod address

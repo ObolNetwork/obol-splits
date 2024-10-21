@@ -33,6 +33,14 @@ contract SymPodProofParser is Test {
        return vm.parseJsonBytes32Array(proofPath, ".validatorBalancesRoot");
     }
 
+    function getValidatorBalanceRoot() public returns (bytes32) {
+       return vm.parseJsonBytes32(proofPath, ".validatorBalanceRoot");
+    }
+
+    function getValidatorIndex() public returns (uint256) {
+        return vm.parseJsonUint(proofPath, ".validatorIndex");
+    }
+
     function getValidatorIndices() public returns (uint40[] memory) {
         uint256[] memory validatorIndices = vm.parseJsonUintArray(proofPath, ".validatorIndices");
 
@@ -66,6 +74,26 @@ contract SymPodProofParser is Test {
         }
 
         return validatorFields;
+    }
+    
+    function getSingleValidatorFields() public returns(bytes32[] memory validatorFields) {
+        return vm.parseJsonBytes32Array(proofPath, ".validatorFields");
+    }
+
+    function getValidatorFieldsAgainstValidatorListMultiProof() public returns (bytes32[] memory) {
+        return vm.parseJsonBytes32Array(proofPath, ".ValidatorFieldsAgainstValidatorListMultiProof");
+    }
+
+    function getValidatorBalanceproof() public returns (bytes memory) {
+        return abi.encodePacked(vm.parseJsonBytes32Array(proofPath, ".ValidatorBalanceAgainstBalanceRootProof"));
+    }
+
+    function getValidatorPubKeyHash() public returns (bytes32) {
+        return  vm.parseJsonBytes32(proofPath, ".ValidatorPubKeyHash"); 
+    }
+
+    function getValidatorBalancesAgainstBalanceRootMultiProof() public returns (bytes32[] memory) {
+        return vm.parseJsonBytes32Array(proofPath, ".ValidatorBalancesAgainstBalanceRootMultiProof");
     }
 
     function getValidatorFieldsProof() public returns (bytes32[] memory) {

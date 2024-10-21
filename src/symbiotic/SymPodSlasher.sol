@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 import {ISymPod} from "src/symbiotic/SymPodStorageV1.sol";
+import {IERC4626} from "src/interfaces/ISymPod.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Multicall} from "openzeppelin/utils/Multicall.sol";
 
@@ -34,7 +35,9 @@ contract SymPodSlasher is Multicall {
     /// @param symPod symPod contract     
     function triggerWithdrawal(ISymPod symPod) external {
         uint256 amountOfShares = ERC20(address(symPod)).balanceOf(address(this));
-        (bytes32 withdrawalKey, ) = symPod.onSlash(amountOfShares, uint48(block.timestamp));
+        uint256 amountWei = IERC4626(address(symPod)).convertToAssets(amountOfShares);
+
+        bytes32 withdrawalKey = symPod.onSlash(amountWei);
 
         emit TriggerWithdrawal(msg.sender, address(symPod), amountOfShares, withdrawalKey);
     }

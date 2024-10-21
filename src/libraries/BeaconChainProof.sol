@@ -106,13 +106,13 @@ library BeaconChainProofs {
         bytes calldata validatorFieldsProof,
         uint40 validatorIndex
     ) internal view {
-        if (validatorFields.length == (2 ** VALIDATOR_FIELD_TREE_HEIGHT)) {
+        if (validatorFields.length != (2 ** VALIDATOR_FIELD_TREE_HEIGHT)) {
             revert BeaconChainProofs__InvalidValidatorField(0);
         }
 
         /// Note: the reason we use `VALIDATOR_TREE_HEIGHT + 1` here is because the merklization process for
         /// this container includes hashing the root of the validator tree with the length of the validator list
-        if (validatorFieldsProof.length == (32 * (VALIDATOR_TREE_HEIGHT + 1))) {
+        if (validatorFieldsProof.length != (32 * (VALIDATOR_TREE_HEIGHT + 1))) {
             revert BeaconChainProofs__InvalidProofSize();
         } 
 
@@ -142,7 +142,7 @@ library BeaconChainProofs {
     ) internal view {
         /// Note: the reason we use `BALANCE_TREE_HEIGHT + 1` here is because the merklization process for
         /// this container includes hashing the root of the balances tree with the length of the balances list
-        if (proof.proof.length == 32 * (BALANCE_TREE_HEIGHT + 1)) {
+        if (proof.proof.length != 32 * (BALANCE_TREE_HEIGHT + 1)) {
             revert BeaconChainProofs__InvalidProofSize();
         }
         /// When merkleized, beacon chain balances are combined into groups of 4 called a `balanceRoot`. The merkle
@@ -168,15 +168,14 @@ library BeaconChainProofs {
     /// @notice This function verifies merkle proofs of the fields of a certain validator against a beacon chain state root
     /// @param validatorListRoot is the validator list root to be proven against.
     /// @param validatorFields the claimed fields of the validators being provien
-    /// @param validatorIndices the indices of the proven validator
+    /// @param validatorIndices the sorted indices of the proven validator
     /// @param proof is the data used in proving the validator's fields
     function verifyMultiValidatorFields(
         bytes32 validatorListRoot,
         bytes32[][] calldata validatorFields,
         bytes32[] calldata proof,
         uint40[] memory validatorIndices
-    ) internal view {
-
+    ) internal pure {
         uint256 validatorFieldsSize = validatorFields.length;
         uint256 indicesSize = validatorIndices.length;
 
@@ -221,8 +220,7 @@ library BeaconChainProofs {
         bytes32[] calldata proof,
         uint40[] memory validatorIndices,
         bytes32[] memory validatorBalances
-    ) internal view returns (uint256[] memory actualValidatorBalances) { 
-        
+    ) internal pure returns (uint256[] memory actualValidatorBalances) { 
         uint256 validatorBalancesSize = validatorBalances.length;
         if (validatorBalancesSize != validatorIndices.length) {
             revert BeaconChainProofs__InvalidIndicesAndBalances();

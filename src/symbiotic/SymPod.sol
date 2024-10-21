@@ -27,7 +27,7 @@ contract SymPod is SymPodStorageV1 {
   address public constant ETH_ADDRESS = 0x0000000000000000000000000000000000000000;
 
   /// @dev percentage resolution
-  uint256 public constant PERCENTAGE = 10_000;
+  uint256 public constant PERCENTAGE = 100_000;
 
   /// @dev ERC4788 oracle
   /// 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02
@@ -89,8 +89,8 @@ contract SymPod is SymPodStorageV1 {
   ) external initializer {
     if (_slasher == address(0)) revert SymPod__InvalidAddress();
     if (_admin == address(0)) revert SymPod__InvalidAdmin();
-    if (_withdrawalAddress == address(0)) revert SymPod__InvalidAddress();
-    if (_recoveryRecipient == address(0)) revert SymPod__InvalidAddress();
+    if (_withdrawalAddress == address(0)) revert SymPod__InvalidWithdrawalAddress();
+    if (_recoveryRecipient == address(0)) revert SymPod__InvalidRecoveryAddress();
 
     podName = _name;
     podSymbol = _symbol;
@@ -99,7 +99,7 @@ contract SymPod is SymPodStorageV1 {
     withdrawalAddress = _withdrawalAddress;
     recoveryAddress = _recoveryRecipient;
 
-    emit Initialized(address(this), _slasher, _admin, _withdrawalAddress, _recoveryRecipient);
+    emit Initialized(_slasher, _admin, _withdrawalAddress, _recoveryRecipient);
   }
 
   /// @notice Create new validators
@@ -110,20 +110,18 @@ contract SymPod is SymPodStorageV1 {
     ETH2_DEPOSIT_CONTRACT.deposit{value: msg.value}(pubkey, symPodWithdrawalCredentials(), signature, depositDataRoot);
   }
 
-  /// @dev Create a checkpoint used to prove this SymPod's active validator set. Checkpoints are completed
-  /// by submitting multiple active validator checkpoint proof.
-  /// @dev Once finalized, the SymPod owner is awarded shares corresponding to:
-  /// - the total change in their ACTIVE validator balances
-  /// - any ETH balance not already awarded shares
-  /// @dev A checkpoint cannot be created if the pod already has an outstanding checkpoint. If
-  /// this is the case, the pod owner MUST complete the existing checkpoint before starting a new one.
-  /// @param revertIfNoBalance Forces a revert if the pod ETH balance is 0. This allows the pod owner
-  /// to prevent accidentally starting a checkpoint that will not increase their shares
+  /// @dev Start a checkpoint to verify the active validator set balance for this SymPod. 
+  /// @dev Once finalised, the SymPod admin is awarded shares corresponding to:
+  /// - total change in ACTIVE validator balances
+  /// - any SymPod ETH balance not already awarded shares
+  /// @dev A checkpoint can’t be created if one is already pending; the pod admin 
+  /// must complete pending balance epoch before starting a new one.
+  /// @param revertIfNoBalance Revert if the SymPod ETH balance is 0.
   function startCheckpoint(bool revertIfNoBalance) external onlyAdmin {
     _startCheckpoint(revertIfNoBalance);
   }
 
-  /// @dev Advance the current checkpoint towards completion by submitting one or more validator
+  /// @dev Complete the current checkpoint by submitting one or more validator
   /// checkpoint proofs. Anyone can call this method to submit proofs towards the current checkpoint.
   /// For each validator proven, the current checkpoint's `proofsRemaining` decreases.
   /// During the checkpoint process, the total change in ACTIVE validator balance is tracked 
@@ -134,7 +132,7 @@ contract SymPod is SymPodStorageV1 {
   /// @param balanceContainerProof proves the beacon's current balance container root against a checkpoint's
   /// `beaconBlockRoot`
   /// @param validatorBalancesProof proves the validator balances against the balance container root
-  function verifyBalanceCheckPointProofs(
+  function verifyBalanceCheckpointProofs(
     BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
     BeaconChainProofs.BalancesMultiProof calldata validatorBalancesProof
   ) external {
@@ -212,7 +210,7 @@ contract SymPod is SymPodStorageV1 {
 
   /// @notice Verify a multiple validator withdrawal credentials
   /// @param beaconTimestamp timestamp for beacon block oracle root
-  /// @param validatorContainerProof the validator list container
+  /// @param validatorContainerProof validator container root and merkle proof against block root
   /// @param validatorProof merkle multiproof for multiple validators fields
   function verifyValidatorWithdrawalCredentials(
     uint64 beaconTimestamp,
@@ -228,24 +226,26 @@ contract SymPod is SymPodStorageV1 {
       proof: validatorContainerProof
     });
 
-    uint256 totalAmountToBeRestakedWei = _verifyWithdrawalCredentials(
+   (uint256 numberOfValidators, uint256 totalAmountToBeRestakedWei) = _verifyWithdrawalCredentials(
       validatorContainerProof.validatorListRoot,
       validatorProof
     );
 
+    // Write to storage
+    numberOfActiveValidators += uint64(numberOfValidators);
     _increaseBalance(admin, totalAmountToBeRestakedWei);
   }
 
   /// @dev Expired conditions
   ///  - Validator's last checkpoint is older than `beaconTimestamp`
-  ///  - Validator must be `Acitve` status on the SymPod
+  ///  - Validator must be `ACTIVE` status on the SymPod
   ///  - Validator is slashed on the beacon chain
   /// @param beaconTimestamp beacon oracle timestamp
-  /// @param validatorListRootProof validator proof and merkle proof against block root
+  /// @param validatorContainerProof validator container root and merkle proof against block root
   /// @param validatorProof validator field proof for slashed validator
   function verifyExpiredBalance(
     uint64 beaconTimestamp,
-    BeaconChainProofs.ValidatorListContainerProof calldata validatorListRootProof,
+    BeaconChainProofs.ValidatorListContainerProof calldata validatorContainerProof,
     BeaconChainProofs.ValidatorProof calldata validatorProof
   ) external {
     bytes32 validatorPubKeyHash = validatorProof.validatorFields.getPubkeyHash();
@@ -259,28 +259,27 @@ contract SymPod is SymPodStorageV1 {
     // verify list root
     BeaconChainProofs.verifyValidatorListRootAgainstBlockRoot({
       beaconBlockRoot: getParentBeaconBlockRoot(beaconTimestamp),
-      proof: validatorListRootProof
+      proof: validatorContainerProof
     });
 
     // verify validator fields against validator list root
     BeaconChainProofs.verifyValidatorFields({
-      validatorListRoot: validatorListRootProof.validatorListRoot,
+      validatorListRoot: validatorContainerProof.validatorListRoot,
       validatorFields: validatorProof.validatorFields,
       validatorFieldsProof: validatorProof.proof,
       validatorIndex: validatorProof.validatorIndex
     });
 
-    // start checkpoint
     _startCheckpoint(false);
   }
 
-  /// @dev  Delta conditions
+  /// @dev  ExceedBalanceDelta conditions
   ///  - Validator's last checkpoint is older than `beaconTimestamp`
   ///  - Validator must be `Acitve` status on the SymPod
   ///  - Validator restakedAmountGwei vs it's current BeaconChain balance is less
   ///    than delta allowed i.e. currentBeaconChainBalance - restakedAmountGwei > delta
-  ///    The allowed delta is calculated as a % of the current balance
-  function verifyExceedDeltaBalance(
+  ///    The allowed delta is calculated as a % of the restakedAmountGwei
+  function verifyExceedBalanceDelta(
     uint64 beaconTimestamp,
     BeaconChainProofs.BalanceContainerProof calldata balanceContainer,
     BeaconChainProofs.BalanceProof calldata balanceProof
@@ -290,19 +289,6 @@ contract SymPod is SymPodStorageV1 {
 
     if (validatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
     if (validatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
-    uint256 currentValidatorBalanceGwei = BeaconChainProofs.getBalanceAtIndex(
-      balanceProof.validatorBalanceRoot,
-      validatorInfo.validatorIndex
-    );
-
-    // This
-    if ( 
-      (validatorInfo.restakedBalanceGwei - currentValidatorBalanceGwei) <
-      ((validatorInfo.restakedBalanceGwei * BALANCE_DELTA_PERCENT) / PERCENTAGE ))
-    {
-      revert SymPod__InvalidBalanceDelta();  
-    }
-
     // verify the balance container proof
     BeaconChainProofs.verifyBalanceRootAgainstBlockRoot({
       beaconBlockRoot: getParentBeaconBlockRoot(uint64(block.timestamp)),
@@ -316,7 +302,24 @@ contract SymPod is SymPodStorageV1 {
       proof: balanceProof
     });
 
-    // start checkpoint
+    uint256 currentValidatorBalanceGwei = BeaconChainProofs.getBalanceAtIndex(
+      balanceProof.validatorBalanceRoot,
+      validatorInfo.validatorIndex
+    );
+
+    // reverts if current balance is greater than restakedBalanceGwei
+    if (
+      (currentValidatorBalanceGwei > validatorInfo.restakedBalanceGwei)
+      ||
+      (
+        (validatorInfo.restakedBalanceGwei - currentValidatorBalanceGwei) <
+        _calculateMinimumBalanceDelta(validatorInfo.restakedBalanceGwei)
+      )
+    )
+    {
+      revert SymPod__InvalidBalanceDelta();  
+    }
+
     _startCheckpoint(false);
   }
 
@@ -331,9 +334,11 @@ contract SymPod is SymPodStorageV1 {
     // Ensure withdrawal is not paused
     if (symPodConfigurator.isWithdrawalsPaused() == true) revert SymPod__WithdrawalsPaused();
     // prevents queueing of withdrawals
-    if ((amountInWei + pendingAmountToWithrawWei) > (withdrawableRestakedExecutionLayerGwei * GWEI_TO_WEI)) revert SymPod__InsufficientBalance();
+    if ((amountInWei + pendingAmountToWithrawWei) > withdrawableRestakedPodWei) revert SymPod__InsufficientBalance();
     // @TODO do the math to confirm if any edge cases for this
     if (amountInWei % GWEI_TO_WEI != 0) revert SymPod__AmountInWei();
+
+    if (amountInWei > _withdrawableAmountWei(msg.sender)) revert SymPod__ExceedBalance();
 
     withdrawalKey = _getWithdrawalKey(amountInWei, nonce);
     // confirm withdrawal does not exist
@@ -342,7 +347,7 @@ contract SymPod is SymPodStorageV1 {
     uint256 withdrawalTimestamp = block.timestamp + WITHDRAW_DELAY_PERIOD_SECONDS;
 
     // Write to Storage
-    pendingAmountToWithrawWei += uint64(amountInWei);
+    pendingAmountToWithrawWei += amountInWei;
     withdrawalQueue[withdrawalKey] = WithdrawalInfo(
       msg.sender,
       withdrawalAddress,
@@ -356,16 +361,14 @@ contract SymPod is SymPodStorageV1 {
   /// @dev Finalize withdrawal
   /// @param withdrawalKey Generated withdrawal key
   function completeWithdraw(bytes32 withdrawalKey)
-    external 
+    external
     returns (uint256 amountToTransfer) 
   {
     // Ensure withdrawal is not paused
     if (symPodConfigurator.isWithdrawalsPaused() == true) revert SymPod__WithdrawalsPaused();
-    // Ensure no active checkpoint
-    // if (currentCheckPointTimestamp != 0) revert SymPod__OngoingCheckpoint();
-
+  
     WithdrawalInfo memory withdrawalInfo = withdrawalQueue[withdrawalKey];
-    uint256 cachedAvailableToWithdrawInWei = withdrawableRestakedExecutionLayerGwei * GWEI_TO_WEI;
+    uint256 cachedAvailableToWithdrawInWei = withdrawableRestakedPodWei;
 
     address withdrawAddress = withdrawalInfo.to;
     if (withdrawAddress == address(0)) revert SymPod__InvalidWithdrawalKey();
@@ -382,7 +385,7 @@ contract SymPod is SymPodStorageV1 {
     // update pending amount to withdraw
     // We use amountInWei here because if the user doesn't want exact amount
     // we need still need to deduct the amountInWei
-    pendingAmountToWithrawWei -=  uint64(withdrawalInfo.amountInWei);
+    pendingAmountToWithrawWei -= withdrawalInfo.amountInWei;
 
     _burn(withdrawalInfo.owner, sharesToBurn);
     delete withdrawalQueue[withdrawalKey];
@@ -390,7 +393,7 @@ contract SymPod is SymPodStorageV1 {
     // update the total restaked eth
     totalRestakedETH -= amountToTransfer;
     // update the available execution layer eth
-    withdrawableRestakedExecutionLayerGwei -= uint64(amountToTransfer / GWEI_TO_WEI);
+    withdrawableRestakedPodWei -= amountToTransfer;
 
     // Interactions
     emit WithdrawalFinalized(withdrawalKey, amountToTransfer, withdrawalInfo.amountInWei);
@@ -400,39 +403,42 @@ contract SymPod is SymPodStorageV1 {
 
   /// @notice Slash callback for burning shares and receiving underyling ETH.
   /// @dev A slashing does not incur
-  /// @param amountOfShares amount of shares to burn
-  /// @param captureTimestamp time point when the stake was captured
+  /// @param amountWei amount of Ether to burn
   /// @dev Only the slasher can call this function.
   /// This withdraw doesn't have a delay period
-  function onSlash(uint256 amountOfShares, uint48 captureTimestamp) 
+  function onSlash(uint256 amountWei) 
     external 
     nonReentrant 
     override
-    returns (bytes32 withdrawalKey, uint256 amountSlashedInWei) 
+    returns (bytes32 withdrawalKey) 
   {
     if (msg.sender != slasher) revert SymPod__NotSlasher();
-    if (amountOfShares > balanceOf(msg.sender)) revert SymPod__InvalidAmountOfShares();
+    if (amountWei % GWEI_TO_WEI != 0) revert SymPod__AmountInWei();
 
-    amountSlashedInWei = convertToAssets(amountOfShares);
-    if (amountSlashedInWei > totalAssets()) revert SymPod__AmountTooLarge();
-    withdrawalKey = _getWithdrawalKey(amountSlashedInWei, captureTimestamp);
+    uint256 amountSharesBurn = convertToShares(amountWei);
+
+    if (amountSharesBurn > balanceOf(msg.sender)) revert SymPod__InvalidAmountOfShares();
+
+    withdrawalKey = _getWithdrawalKey(amountWei, block.timestamp);
 
     // Write to Storage
-    pendingAmountToWithrawWei += uint64(amountSlashedInWei);
-    withdrawalQueue[withdrawalKey] = WithdrawalInfo(msg.sender, msg.sender, uint128(amountSlashedInWei), uint128(block.timestamp));
+    pendingAmountToWithrawWei += amountWei;
+    withdrawalQueue[withdrawalKey] = WithdrawalInfo(msg.sender, msg.sender, uint128(amountWei), uint128(block.timestamp));
 
-    emit Slashed(withdrawalKey, amountSlashedInWei, captureTimestamp);
+    emit Slashed(withdrawalKey, amountWei, block.timestamp);
   }
 
-  /// @notice called by owner of a pod to remove any ERC20s deposited in the SymPod
-  function recoverTokens(ERC20[] memory tokenList, uint256[] memory amountsToWithdraw, address recipient)
+  /// @notice called by pod admin to remove any ERC20s deposited into the SymPod
+  /// @param tokens array of tokens to withdraw
+  /// @param amountsToWithdraw array of amounts to withdraw
+  function recoverTokens(ERC20[] memory tokens, uint256[] memory amountsToWithdraw)
     external
     onlyAdmin
   {
-    if (tokenList.length != amountsToWithdraw.length) revert SymPod__InvalidTokenAndAmountSize();
+    if (tokens.length != amountsToWithdraw.length) revert SymPod__InvalidTokenAndAmountSize();
 
-    for (uint256 i = 0; i < tokenList.length; i++) {
-      tokenList[i].safeTransfer(recipient, amountsToWithdraw[i]);
+    for (uint256 i = 0; i < tokens.length; i++) {
+      tokens[i].safeTransfer(recoveryAddress, amountsToWithdraw[i]);
     }
   }
 
@@ -494,15 +500,28 @@ contract SymPod is SymPodStorageV1 {
   }
 
   /// @dev Generate withdrawal key
+  /// @param weiAmount amount to withdraw
+  /// @param nonce nonce to use for withdrawal key
+  function getWithdrawalKey(uint256 weiAmount, uint256 nonce) external view returns (bytes32 withdrawalKey) {
+    return _getWithdrawalKey(weiAmount, nonce);
+  }
+  
+  /// @dev Generate withdrawal key
   function _getWithdrawalKey(uint256 weiAmount, uint256 nonce) internal view returns (bytes32 withdrawalKey) {
     withdrawalKey = keccak256(abi.encode(msg.sender, weiAmount, block.timestamp, nonce));
+  }
+
+  /// @dev Calculates a user withdrawable amount
+  /// @param user address of user 
+  function _withdrawableAmountWei(address user) internal view returns (uint256 amount) {
+    amount = convertToAssets(balanceOf(user));
   }
 
   /// @notice Verify withdrawal credentials
   function _verifyWithdrawalCredentials(
     bytes32 validatorListRoot,
     BeaconChainProofs.ValidatorsMultiProof calldata validatorData
-  ) internal returns (uint256 totalAmountToBeRestakedWei) {
+  ) internal returns (uint256 numberOfValidators, uint256 totalAmountToBeRestakedWei) {
     // verify the passed validator multi proof
     BeaconChainProofs.verifyMultiValidatorFields({
       validatorListRoot: validatorListRoot,
@@ -511,14 +530,14 @@ contract SymPod is SymPodStorageV1 {
       validatorIndices: validatorData.validatorIndices
     });
 
-    uint256 size = validatorData.validatorFields.length;
+    numberOfValidators = validatorData.validatorFields.length;
     // Note that if this pod has never started a
     // checkpoint before, `lastCheckpointedAt` will be zero here. This is fine because the main
     // purpose of `lastCheckpointedAt` is to enforce that newly-verified validators are not
     // eligible to progress already-existing checkpoints - however in this case, no checkpoints exist.
     uint64 lastCheckpointedAt = currentCheckPointTimestamp == 0 ? lastCheckpointTimestamp : currentCheckPointTimestamp;
 
-    for (uint256 i = 0; i < size;) {
+    for (uint256 i = 0; i < numberOfValidators;) {
       uint40 validatorIndex = validatorData.validatorIndices[i];
       bytes32 validatorPubKeyHash = validatorData.validatorFields[i].getPubkeyHash();
 
@@ -555,32 +574,29 @@ contract SymPod is SymPodStorageV1 {
     }
 
     totalAmountToBeRestakedWei = totalAmountToBeRestakedWei * GWEI_TO_WEI;
-
-    // Write to storage
-    numberOfActiveValidators += uint64(size);
   }
 
   /// @notice increase balance
   /// @param to address to increase balance
-  /// @param assets amount of assets to credit
-  function _increaseBalance(address to, uint256 assets) internal {
-    if ((assets + totalAssets()) > maxDeposit(to)) revert DepositMoreThanMax();
+  /// @param assetsWei amount of assets to credit
+  function _increaseBalance(address to, uint256 assetsWei) internal {
+    if ((assetsWei + totalAssets()) > maxDeposit(to)) revert DepositMoreThanMax();
 
-    uint256 shares = convertToShares(assets);
+    uint256 shares = convertToShares(assetsWei);
 
     // Write to storage
     _mint(to, shares);
-    totalRestakedETH += assets;
+    totalRestakedETH += assetsWei;
 
     emit IncreasedBalance(totalRestakedETH, shares);
   }
 
-  /// @dev Initiate a checkpoint proof by snapshotting both the SymPod ETH balance and the
-  /// current block's parent block root. After providing a checkpoint proof for each of the
+  /// @dev Start a checkpoint by snapshotting both the SymPod ETH balance and the
+  /// current block's parent block root. After providing a balance proof for the
   /// pod's ACTIVE validators, the pod's ETH balance is awarded shares and can be withdrawn.
   /// @dev ACTIVE validators are validators with verified withdrawal credentials (See
   /// `verifyWithdrawalCredentials` for details)
-  /// @dev If the pod does not have any ACTIVE validators, the checkpoint is automatically
+  /// @dev If the SymPod does not have any ACTIVE validators, the checkpoint is automatically
   /// finalized.
   /// @dev Once started, a checkpoint MUST be completed! It is not possible to start a
   /// checkpoint if the existing one is incomplete.
@@ -597,10 +613,10 @@ contract SymPod is SymPodStorageV1 {
     // when its lastCheckpointedAt >= currentCheckPointTimestamp
     if (lastCheckpointTimestamp == uint64(block.timestamp)) revert SymPod__CannotActivateCheckPoint();
 
-    // fetch the pod balance minus already accounted balance
-    uint64 podBalanceGwei = uint64(address(this).balance / GWEI_TO_WEI) - withdrawableRestakedExecutionLayerGwei;
+    // pod balance minus already accounted balance
+    // We do not track less than 1 gwei balance on the pod
+    uint64 podBalanceGwei = uint64(uint256(address(this).balance / GWEI_TO_WEI)) - uint64(uint256(withdrawableRestakedPodWei / GWEI_TO_WEI));
 
-    // If the caller doesn't want a "0 balance" checkpoint, revert
     if (revertIfNoBalance && podBalanceGwei == 0) revert SymPod__RevertIfNoBalance();
 
     Checkpoint memory checkpoint = Checkpoint({
@@ -621,20 +637,27 @@ contract SymPod is SymPodStorageV1 {
 
   function _updateCheckpoint(Checkpoint memory checkpoint) internal {
     if (checkpoint.proofsRemaining == 0) {
-      int256 totalShareDeltaWei =
-        (int128(uint128(checkpoint.podBalanceGwei)) + checkpoint.balanceDeltasGwei) * int256(GWEI_TO_WEI);
+      int256 totalDeltaWei =
+        (int128(uint128(checkpoint.podBalanceGwei)) + (checkpoint.balanceDeltasGwei)) * int256(GWEI_TO_WEI);
 
       // Write to Storage
-      withdrawableRestakedExecutionLayerGwei += checkpoint.podBalanceGwei;
+      withdrawableRestakedPodWei += (checkpoint.podBalanceGwei * GWEI_TO_WEI);
       // Finalize the checkpoint
       lastCheckpointTimestamp = currentCheckPointTimestamp;
 
       delete currentCheckPointTimestamp;
       delete currentCheckPoint;
 
-      totalRestakedETH += uint256(uint128(checkpoint.balanceDeltasGwei));
+      if (totalDeltaWei > 0) {
+        // should mint additional shares to admin
+        _increaseBalance(admin, uint256(totalDeltaWei)); 
+      } else if (totalDeltaWei < 0) {
+        // decrease balance
+        totalRestakedETH -= uint256(-totalDeltaWei);
+      }
 
-      emit CheckpointFinalized(lastCheckpointTimestamp, uint256(totalShareDeltaWei));
+      emit CheckpointCompleted(lastCheckpointTimestamp, totalDeltaWei);
+
     } else {
       currentCheckPoint = checkpoint;
     }
@@ -660,8 +683,9 @@ contract SymPod is SymPodStorageV1 {
     }
   }
 
-  function uncheckedIncrement(uint256 i) internal pure returns (uint256) {
-    unchecked { return i++; }
+  /// @dev Calculates minimum balance delta
+  function _calculateMinimumBalanceDelta(uint256 balance) internal view returns (uint256 delta) {
+    delta = (balance * BALANCE_DELTA_PERCENT) / PERCENTAGE;
   }
 
   function deposit(uint256, address) public pure override returns (uint256) {

@@ -23,6 +23,18 @@ contract SymPodHarness is SymPod, Test {
         validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATUS.ACTIVE;
     }
 
+    function changeValidatorStateToInActive(bytes32 pubKeyHash) external {
+        validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATUS.INACTIVE;
+    }
+
+    function setValidatorIndex(bytes32 pubKeyHash, uint40 validatorIndex) external {
+        validatorInfo[pubKeyHash].validatorIndex = validatorIndex;
+    }
+    
+    function setValidatorRestakedGwei(bytes32 pubKeyHash, uint64 restakedGwei) external {
+        validatorInfo[pubKeyHash].restakedBalanceGwei = restakedGwei;
+    }
+
     function changeValidatorLastCheckpointedAt(bytes32 pubKeyHash, uint64 val) external {
         validatorInfo[pubKeyHash].lastCheckpointedAt = val;
     }
@@ -31,17 +43,19 @@ contract SymPodHarness is SymPod, Test {
         numberOfActiveValidators = uint64(num);
     }
 
-    function setWithdrawableExecutionLayerGwei(uint256 num) external {
-        withdrawableRestakedExecutionLayerGwei = uint64(num);
+    function setWithdrawableRestakedPodWei(uint256 num) external {
+        withdrawableRestakedPodWei = num;
     }
 
-    function mintSharesPlusAssetsAndExecutionLayerGwei(uint256 amount, address holder) external {
+    function setCurrentCheckpointTimestamp(uint64 timestamp) external {
+        currentCheckPointTimestamp = timestamp;
+    }
+
+    function mintSharesPlusAssetsAndRestakedPodWei (uint256 amount, address holder) external {
         _mint(holder, amount);
         totalRestakedETH += amount;
-        withdrawableRestakedExecutionLayerGwei += uint64(amount);
+        withdrawableRestakedPodWei += amount;
     }
-
-
 
     function setTotalRestakedETH(uint256 num) external {
         totalRestakedETH = num;

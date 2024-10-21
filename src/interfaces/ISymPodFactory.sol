@@ -7,10 +7,5 @@ interface ISymPodFactory {
     error SymPodFactory__InvalidWithdrawalRecipient();
     error SymPodFactory__InvalidRecoveryRecipient();
 
-    event CreateSymPod(
-        address symPod,
-        address admin,
-        address withdrawalAddress,
-        address recoveryRecipient
-    );
+    event CreateSymPod(address symPod);
 }

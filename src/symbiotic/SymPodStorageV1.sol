@@ -31,6 +31,17 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   /// @dev Address to recover tokens to
   address public recoveryAddress;
 
+  /// @notice slashing contract
+  /// @dev Address of entity that can slash the pod i.e. withdraw from the pod
+  /// without any delay
+  address public slasher;
+
+  /// @dev withdrawable execution layer ETH
+  uint256 public withdrawableRestakedPodWei;
+
+  /// @dev pending to withdraw
+  uint256 public pendingAmountToWithrawWei;
+
   /// @dev number of active validators
   uint64 public numberOfActiveValidators;
 
@@ -39,12 +50,6 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
 
   /// @dev last checkpoint timestamp
   uint64 public lastCheckpointTimestamp;
-
-  /// @dev withdrawable execution layer ETH
-  uint64 public withdrawableRestakedExecutionLayerGwei;
-
-  /// @dev pending to withdraw
-  uint64 public pendingAmountToWithrawWei;
 
   /// @dev current checkpoint information
   Checkpoint internal currentCheckPoint;
@@ -57,11 +62,6 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
 
   /// @dev tracks exited validator balance per checkpoint timestamp
   mapping(uint64 => uint64) public checkpointBalanceExitedGwei;
-
-  /// @notice slashing contract
-  /// @dev Address of entity that can slash the pod i.e. withdraw from the pod
-  /// without any delay
-  address public slasher;
 
   /// @notice to make the storage layout compatible and future upgradeable
   uint256[40] private __gap;

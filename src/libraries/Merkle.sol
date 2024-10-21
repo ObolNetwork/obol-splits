@@ -125,15 +125,10 @@ library Merkle {
             Node[] memory nextLayer = new Node[](0);
 
             for (uint256 i = 0; i < currentLayer.length; i++) {
-
                 Node memory currentLeaf = currentLayer[i];
-                uint256 index = currentLeaf.index;
-                bytes32 leaf = currentLeaf.leaf;
-
                 bytes32 siblingLeaf;
-                uint256 siblingIndex = index ^ 1;
-
                 {
+                    uint256 siblingIndex = currentLeaf.index ^ 1;
                     (Node memory value, bool foundNode) = contains(currentLayer, siblingIndex);
 
                     if (foundNode == true) {
@@ -147,13 +142,13 @@ library Merkle {
                 }
 
                 bytes32 parentLeaf;
-                if (index & 1 == 0) {
-                    parentLeaf = sha256(abi.encodePacked(leaf, siblingLeaf));
+                if (currentLeaf.index & 1 == 0) {
+                    parentLeaf = sha256(abi.encodePacked(currentLeaf.leaf, siblingLeaf));
                 } else {
-                    parentLeaf = sha256(abi.encodePacked(siblingLeaf, leaf));
+                    parentLeaf = sha256(abi.encodePacked(siblingLeaf, currentLeaf.leaf));
                 }
 
-                uint256 nextIndex = index >> 1;
+                uint256 nextIndex = currentLeaf.index >> 1;
                 (, bool found) = contains(nextLayer, nextIndex);
                 
 
