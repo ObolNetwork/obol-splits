@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 /// @title OptimisticWithdrawalRecipientPectra
@@ -11,7 +12,7 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 /// based on threshold to it's recipients
 /// @dev Only ETH can be distributed for a given deployment. There is a
 /// recovery method for tokens sent by accident.
-contract OptimisticWithdrawalRecipientPectra is Clone {
+contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -30,6 +31,15 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
 
   /// Invalid withdrawal
   error InvalidWithdrawal_Failed();
+
+  /// Invalid rewards withdrawal request
+  error InvalidPectraWithdrawal_Rewards();
+
+  /// Invalid principal withdrawal request
+  error InvalidPectraWithdrawal_Principal();
+
+  // Invalid request
+  error InvalidRequest_Initialize();
 
   /// -----------------------------------------------------------------------
   /// events
@@ -58,6 +68,12 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
   /// @param account Account withdrawing funds for
   /// @param amount Amount withdrawn
   event Withdrawal(address account, uint256 amount);
+  
+  /// Emitted when a Pectra withdrawal request is done
+  event RewardsWithdrawalRequested(address indexed requester);
+  
+  /// Emitted when a Pectra withdrawal request is done
+  event PrincipalWithdrawalRequested(address indexed requester);
 
   /// -----------------------------------------------------------------------
   /// storage
@@ -77,6 +93,10 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
   uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
   uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
 
+  uint256 internal constant REWARD_WITHDRAWAL_ROLE = 1111;
+  uint256 internal constant PRINCIPAL_WITHDRAWAL_ROLE = 2222;
+  uint256 internal constant CONSOLIDATION_WITHDRAWAL_ROLE = 3333;
+
   /// -----------------------------------------------------------------------
   /// storage - cwia offsets
   /// -----------------------------------------------------------------------
@@ -87,7 +107,8 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
   // 0; first item
   uint256 internal constant PECTRA_WITHDRAWAL_ADDRESS_OFFSET = 0;
   uint256 internal constant RECOVERY_ADDRESS_OFFSET = 20;
-  // 40 = withdrawalAddress_offset(0) + withdrawalAddress_size(address, 20 bytes) +  recoveryAddress_offset (20) + recoveryAddress_size (address, 20
+  // 40 = withdrawalAddress_offset(0) + withdrawalAddress_size(address, 20 bytes) +  recoveryAddress_offset (20) +
+  // recoveryAddress_size (address, 20
   // bytes)
   uint256 internal constant TRANCHES_OFFSET = 40;
 
@@ -115,6 +136,8 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
   /// -----------------------------------------------------------------------
   /// storage - mutables
   /// -----------------------------------------------------------------------
+  /// @dev set to `true` after owner is initialized
+  bool public initialized;
 
   /// Amount of active balance set aside for pulls
   /// @dev ERC20s with very large decimals may overflow & cause issues
@@ -139,10 +162,18 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
   /// -----------------------------------------------------------------------
   /// functions
   /// -----------------------------------------------------------------------
-  
+
   /// -----------------------------------------------------------------------
   /// functions - public & external
   /// -----------------------------------------------------------------------
+
+  /// @dev initializes the owner
+  /// @param _owner the owner address
+  function initialize(address _owner) public {
+    if (initialized) revert InvalidRequest_Initialize();
+    _initializeOwner(_owner);
+    initialized = true;
+  }
 
   /// emit event when receiving ETH
   /// @dev implemented w/i clone bytecode
@@ -150,10 +181,16 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
   /*     emit ReceiveETH(msg.value); */
   /* } */
 
-  /// Requests withdrawal 
-  function requestWithdrawal(bytes calldata data) external payable {
-    (bool ret, ) = pectraWithdrawalAddress().call{value: msg.value}(data);
-    if (!ret) revert InvalidWithdrawal_Failed();
+  /// Requests principal withdrawal
+  function requestPrincipalWithdrawal(bytes memory data) external payable onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE) {
+    _requestWithdrawal(data, false);
+    emit PrincipalWithdrawalRequested(msg.sender);
+  }
+
+  /// Requests rewards withdrawal
+  function requestRewardsWithdrawal(bytes memory data) external payable onlyOwnerOrRoles(REWARD_WITHDRAWAL_ROLE) {
+    _requestWithdrawal(data, true);
+    emit RewardsWithdrawalRequested(msg.sender);
   }
 
   /// Distributes target token inside the contract to recipients
@@ -325,5 +362,36 @@ contract OptimisticWithdrawalRecipientPectra is Clone {
         recipient.safeTransferETH(payoutAmount);
       }
     }
+  }
+
+  function _requestWithdrawal(bytes memory data, bool _rewards) private {
+    // Input data has the following layout:
+    //
+    //  +--------+--------+
+    //  | pubkey | amount |
+    //  +--------+--------+
+    //      48       8
+    bytes memory pubkey = new bytes(48);
+    assembly {
+        pubkey := mload(add(data, 48))
+    }
+
+    uint64 amount;
+    assembly {
+        let word := mload(add(data, 56))  
+
+        // Extract the last 8 bytes (uint64)
+        amount := and(shr(192, word), 0xFFFFFFFFFFFFFFFF)  
+    }
+    if ((!_rewards && amount < BALANCE_CLASSIFICATION_THRESHOLD) || (_rewards && amount >= BALANCE_CLASSIFICATION_THRESHOLD)) {
+      if (_rewards) {
+          revert InvalidPectraWithdrawal_Rewards();
+      } else {
+          revert InvalidPectraWithdrawal_Principal();
+      }
+    }
+
+    (bool ret,) = pectraWithdrawalAddress().call{value: msg.value}(data);
+    if (!ret) revert InvalidWithdrawal_Failed();
   }
 }

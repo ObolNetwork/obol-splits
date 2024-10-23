@@ -7,6 +7,8 @@ contract PectraWithdrawalMock {
 
     uint64 public receivedAmount;
 
+    receive() external payable {}
+
     fallback() external payable {
         // Input data has the following layout:
         //

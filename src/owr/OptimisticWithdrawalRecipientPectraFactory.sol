@@ -64,6 +64,7 @@ contract OptimisticWithdrawalRecipientPectraFactory {
 
   constructor(string memory _ensName, address _ensReverseRegistrar, address _ensOwner, address _pectraWithdrawalAddress) {
     owrImpl = new OptimisticWithdrawalRecipientPectra();
+    owrImpl.initialize(address(this));
     IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
     IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
 
@@ -95,7 +96,8 @@ contract OptimisticWithdrawalRecipientPectraFactory {
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
-    uint256 amountOfPrincipalStake
+    uint256 amountOfPrincipalStake,
+    address owner
   ) external returns (OptimisticWithdrawalRecipientPectra owr) {
     /// checks
 
@@ -114,6 +116,7 @@ contract OptimisticWithdrawalRecipientPectraFactory {
     // important to not reorder
     bytes memory data = abi.encodePacked(pectraWithdrawalAddress, recoveryAddress, principalData, rewardData);
     owr = OptimisticWithdrawalRecipientPectra(address(owrImpl).clone(data));
+    owr.initialize(owner);
 
     emit CreateOWRecipient(address(owr), recoveryAddress, principalRecipient, rewardRecipient, amountOfPrincipalStake);
   }
