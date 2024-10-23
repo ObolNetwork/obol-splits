@@ -603,7 +603,7 @@ contract SymPod__VerifyWithdrawalCredentials is BaseSymPodHarnessTest {
 
   uint64 timestamp;
   uint256 sizeOfValidators;
-  BeaconChainProofs.ValidatorListContainerProof validatorContainerProof;
+  BeaconChainProofs.ValidatorRegistryProof validatorContainerProof;
   BeaconChainProofs.ValidatorsMultiProof validatorProof;
 
   function setUp() public override {
@@ -615,7 +615,7 @@ contract SymPod__VerifyWithdrawalCredentials is BaseSymPodHarnessTest {
 
     timestamp = uint64(block.timestamp - 1000);
 
-    validatorContainerProof = BeaconChainProofs.ValidatorListContainerProof({
+    validatorContainerProof = BeaconChainProofs.ValidatorRegistryProof({
       validatorListRoot: proofParser.getValidatorListRoot(),
       proof: proofParser.getValidatorListRootProofAgainstBlockRoot()
     });
@@ -735,10 +735,10 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
   uint256 sizeOfValidators;
 
   // all proof use the same validator indices
-  BeaconChainProofs.ValidatorListContainerProof validatorContainerProof;
+  BeaconChainProofs.ValidatorRegistryProof validatorContainerProof;
   BeaconChainProofs.ValidatorsMultiProof validatorProof;
 
-  BeaconChainProofs.BalanceContainerProof balanceContainerProof;
+  BeaconChainProofs.BalanceRegistryProof balanceContainerProof;
   BeaconChainProofs.BalancesMultiProof validatorBalancesProof;
 
   bytes32 sampleValidatorPubKeyHash;
@@ -750,7 +750,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     proofParser.setJSONPath(verifyWithdrawalCredentialProofPath);
     blockRoot = proofParser.getBlockRoot();
 
-    validatorContainerProof = BeaconChainProofs.ValidatorListContainerProof({
+    validatorContainerProof = BeaconChainProofs.ValidatorRegistryProof({
       validatorListRoot: proofParser.getValidatorListRoot(),
       proof: proofParser.getValidatorListRootProofAgainstBlockRoot()
     });
@@ -764,7 +764,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     });
 
     proofParser.setJSONPath(validatorBalanceProofPath);
-    balanceContainerProof = BeaconChainProofs.BalanceContainerProof({
+    balanceContainerProof = BeaconChainProofs.BalanceRegistryProof({
       balanceListRoot: proofParser.getBalanceListRoot(),
       proof: proofParser.getBalanceListRootProofAgainstBlockRoot()
     });
@@ -802,7 +802,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
 
     // verify balance checkpoint
     createdHarnessPod.verifyBalanceCheckpointProofs({
-      balanceContainerProof: balanceContainerProof,
+      balanceRegistryProof: balanceContainerProof,
       validatorBalancesProof: validatorBalancesProof
     });
     // uint256 validatorSize = validatorBalancesProof.validatorPubKeyHashes.length;
@@ -827,7 +827,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
 
     // verify balance checkpoint
     createdHarnessPod.verifyBalanceCheckpointProofs({
-      balanceContainerProof: balanceContainerProof,
+      balanceRegistryProof: balanceContainerProof,
       validatorBalancesProof: validatorBalancesProof
     });
 
@@ -835,7 +835,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     // assert that ValidatorCheckpointUpdate and ValidatorBalanceUpdated are not emitted
     vm.recordLogs();
     createdHarnessPod.verifyBalanceCheckpointProofs({
-      balanceContainerProof: balanceContainerProof,
+      balanceRegistryProof: balanceContainerProof,
       validatorBalancesProof: validatorBalancesProof
     });
 
@@ -862,7 +862,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
 
     vm.recordLogs();
     createdHarnessPod.verifyBalanceCheckpointProofs({
-      balanceContainerProof: balanceContainerProof,
+      balanceRegistryProof: balanceContainerProof,
       validatorBalancesProof: validatorBalancesProof
     });
 
@@ -912,7 +912,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     emit CheckpointCompleted(block.timestamp, expectedTotalShareDeltaWei + podBalanceWei);
 
     createdHarnessPod.verifyBalanceCheckpointProofs({
-      balanceContainerProof: balanceContainerProof,
+      balanceRegistryProof: balanceContainerProof,
       validatorBalancesProof: validatorBalancesProof
     });
     assertEq(
@@ -928,7 +928,7 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
 
   uint64 timestamp;
   uint256 sizeOfValidators;
-  BeaconChainProofs.ValidatorListContainerProof validatorContainerProof;
+  BeaconChainProofs.ValidatorRegistryProof validatorContainerProof;
   BeaconChainProofs.ValidatorProof validatorFieldsProof;
 
   bytes32 validatorPubKeyHash;
@@ -943,7 +943,7 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
 
     timestamp = uint64(block.timestamp - 1000);
 
-    validatorContainerProof = BeaconChainProofs.ValidatorListContainerProof({
+    validatorContainerProof = BeaconChainProofs.ValidatorRegistryProof({
       validatorListRoot: proofParser.getValidatorListRoot(),
       proof: proofParser.getValidatorListRootProofAgainstBlockRoot()
     });
@@ -965,7 +965,7 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
     vm.expectRevert(ISymPod.SymPod__InvalidValidatorState.selector);
     createdHarnessPod.verifyExpiredBalance({
       beaconTimestamp: timestamp,
-      validatorContainerProof: validatorContainerProof,
+      validatorRegistryProof: validatorContainerProof,
       validatorProof: validatorFieldsProof
     });
   }
@@ -976,7 +976,7 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
     vm.expectRevert(ISymPod.SymPod__InvalidBeaconTimestamp.selector);
     createdHarnessPod.verifyExpiredBalance({
       beaconTimestamp: timestamp,
-      validatorContainerProof: validatorContainerProof,
+      validatorRegistryProof: validatorContainerProof,
       validatorProof: validatorFieldsProof
     });
   }
@@ -1000,7 +1000,7 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
     vm.expectRevert(ISymPod.SymPod__ValidatorNotSlashed.selector);
     createdHarnessPod.verifyExpiredBalance({
       beaconTimestamp: timestamp,
-      validatorContainerProof: validatorContainerProof,
+      validatorRegistryProof: validatorContainerProof,
       validatorProof: localValidatorFieldsProof
     });
   }
@@ -1019,7 +1019,7 @@ contract SymPod__VerifyExpiredBalance is BaseSymPodHarnessTest {
     emit CheckpointCreated(uint64(block.timestamp), blockRoot, numberOfValidators);
     createdHarnessPod.verifyExpiredBalance({
       beaconTimestamp: timestamp,
-      validatorContainerProof: validatorContainerProof,
+      validatorRegistryProof: validatorContainerProof,
       validatorProof: validatorFieldsProof
     });
 
@@ -1038,7 +1038,7 @@ contract SymPod__VerifyExceedBalanceDelta is BaseSymPodHarnessTest {
     "./src/test/test-data/mainnet/VerifyExceedBalanceDelta-proof_deneb_mainnet_slot_9575417.json";
 
   bytes32 validatorPubKeyHash;
-  BeaconChainProofs.BalanceContainerProof balanceContainer;
+  BeaconChainProofs.BalanceRegistryProof balanceContainer;
   BeaconChainProofs.BalanceProof balanceProof;
 
   uint64 timestamp;
@@ -1052,7 +1052,7 @@ contract SymPod__VerifyExceedBalanceDelta is BaseSymPodHarnessTest {
 
     proofParser.setJSONPath(expiredBalanceProofFilePath);
     blockRoot = proofParser.getBlockRoot();
-    balanceContainer = BeaconChainProofs.BalanceContainerProof({
+    balanceContainer = BeaconChainProofs.BalanceRegistryProof({
       balanceListRoot: proofParser.getBalanceListRoot(),
       proof: proofParser.getBalanceListRootProofAgainstBlockRoot()
     });
@@ -1073,7 +1073,7 @@ contract SymPod__VerifyExceedBalanceDelta is BaseSymPodHarnessTest {
     vm.expectRevert(ISymPod.SymPod__InvalidValidatorState.selector);
     createdHarnessPod.verifyExceedBalanceDelta({
       beaconTimestamp: timestamp,
-      balanceContainer: balanceContainer,
+      balanceRegistryProof: balanceContainer,
       balanceProof: balanceProof
     });
   }
@@ -1084,7 +1084,7 @@ contract SymPod__VerifyExceedBalanceDelta is BaseSymPodHarnessTest {
     vm.expectRevert(ISymPod.SymPod__InvalidBeaconTimestamp.selector);
     createdHarnessPod.verifyExceedBalanceDelta({
       beaconTimestamp: timestamp,
-      balanceContainer: balanceContainer,
+      balanceRegistryProof: balanceContainer,
       balanceProof: balanceProof
     });
   }
@@ -1108,7 +1108,7 @@ contract SymPod__VerifyExceedBalanceDelta is BaseSymPodHarnessTest {
     vm.expectRevert(ISymPod.SymPod__InvalidBalanceDelta.selector);
     createdHarnessPod.verifyExceedBalanceDelta({
       beaconTimestamp: timestamp,
-      balanceContainer: balanceContainer,
+      balanceRegistryProof: balanceContainer,
       balanceProof: balanceProof
     });
   }
@@ -1126,7 +1126,7 @@ contract SymPod__VerifyExceedBalanceDelta is BaseSymPodHarnessTest {
     emit CheckpointCreated(uint64(block.timestamp), blockRoot, 0);
     createdHarnessPod.verifyExceedBalanceDelta({
       beaconTimestamp: timestamp,
-      balanceContainer: balanceContainer,
+      balanceRegistryProof: balanceContainer,
       balanceProof: balanceProof
     });
 

@@ -111,29 +111,25 @@ contract SymPod is SymPodStorageV1 {
   }
 
   /// @dev Start a checkpoint to verify the active validator set balance for this SymPod.
-  /// @dev Once finalised, the SymPod admin is awarded shares corresponding to:
-  /// - total change in ACTIVE validator balances
-  /// - any SymPod ETH balance not already awarded shares
-  /// @dev A checkpoint can’t be created if one is already pending; the pod admin
-  /// must complete pending balance epoch before starting a new one.
-  /// @param revertIfNoBalance Revert if the SymPod ETH balance is 0.
+  /// @dev When compeleted, the podAdmin is allocated shares corresponding to:
+  /// - the net change in ACTIVE validator balances
+  /// - any SymPod ETH balance that hasn't yet been converted into shares
+  /// @dev A checkpoint cannot be initiated if one is already in progress; the pod administrator
+  /// must finalize the current balance epoch before starting a new one.
+  /// @param revertIfNoBalance Revert if the SymPod ETH balance is zero.
   function startCheckpoint(bool revertIfNoBalance) external onlyAdmin {
     _startCheckpoint(revertIfNoBalance);
   }
 
-  /// @dev Complete the current checkpoint by submitting one or more validator
-  /// checkpoint proofs. Anyone can call this method to submit proofs towards the current checkpoint.
-  /// For each validator proven, the current checkpoint's `proofsRemaining` decreases.
-  /// During the checkpoint process, the total change in ACTIVE validator balance is tracked
-  /// and any validators with 0 balance are marked `WITHDRAWN`.
-  /// @dev If the checkpoint's `proofsRemaining` reaches 0, the checkpoint is finalized.
-  /// (see `_updateCheckpoint` for more details)
-  /// @dev This method can only be called when there is a currently-active checkpoint.
-  /// @param balanceContainerProof proves the beacon's current balance container root against a checkpoint's
-  /// `beaconBlockRoot`
-  /// @param validatorBalancesProof proves the validator balances against the balance container root
+  /// @dev Finalize the current checkpoint by submitting one or more validator proofs.
+  /// Anyone can submit proofs, reducing `proofsRemaining` for each validator proven.
+  /// The total change in ACTIVE validator balance is tracked, and 0 balance validators are marked `WITHDRAWN`.
+  /// @dev The checkpoint is finalized when `proofsRemaining` reaches 0.
+  /// @dev This function is only callable during an active checkpoint.
+  /// @param balanceRegistryProof Verifies the balance registry list root against the checkpoint's `beaconBlockRoot`.
+  /// @param validatorBalancesProof Verifies validator balances against the BeaconState balance registry root.
   function verifyBalanceCheckpointProofs(
-    BeaconChainProofs.BalanceContainerProof calldata balanceContainerProof,
+    BeaconChainProofs.BalanceRegistryProof calldata balanceRegistryProof,
     BeaconChainProofs.BalancesMultiProof calldata validatorBalancesProof
   ) external {
     Checkpoint memory activeCheckpoint = currentCheckPoint;
@@ -143,13 +139,13 @@ contract SymPod is SymPodStorageV1 {
     // verify the balance container proof
     BeaconChainProofs.verifyBalanceRootAgainstBlockRoot({
       beaconBlockRoot: activeCheckpoint.beaconBlockRoot,
-      proof: balanceContainerProof
+      proof: balanceRegistryProof
     });
     // fetch the validator indices
     uint40[] memory validatorIndices = _getValidatorIndices(validatorBalancesProof.validatorPubKeyHashes);
     // verify the passed in proof
     uint256[] memory validatorBalances = BeaconChainProofs.verifyMultipleValidatorsBalance({
-      balanceListRoot: balanceContainerProof.balanceListRoot,
+      balanceListRoot: balanceRegistryProof.balanceListRoot,
       proof: validatorBalancesProof.proof,
       validatorIndices: validatorIndices,
       validatorBalanceRoots: validatorBalancesProof.validatorBalanceRoots
@@ -210,11 +206,11 @@ contract SymPod is SymPodStorageV1 {
 
   /// @notice Verify a multiple validator withdrawal credentials
   /// @param beaconTimestamp timestamp for beacon block oracle root
-  /// @param validatorContainerProof validator container root and merkle proof against block root
+  /// @param validatorRegistryProof BeaconState validator registry root and merkle proof against block root
   /// @param validatorProof merkle multiproof for multiple validators fields
   function verifyValidatorWithdrawalCredentials(
     uint64 beaconTimestamp,
-    BeaconChainProofs.ValidatorListContainerProof calldata validatorContainerProof,
+    BeaconChainProofs.ValidatorRegistryProof calldata validatorRegistryProof,
     BeaconChainProofs.ValidatorsMultiProof calldata validatorProof
   ) external {
     // this prevents verifying WC to advance checkpoint proofs
@@ -223,11 +219,11 @@ contract SymPod is SymPodStorageV1 {
     // Verify passed-in `validatorListRoot` against the beacon block root
     BeaconChainProofs.verifyValidatorListRootAgainstBlockRoot({
       beaconBlockRoot: getParentBeaconBlockRoot(beaconTimestamp),
-      proof: validatorContainerProof
+      proof: validatorRegistryProof
     });
 
     (uint256 numberOfValidators, uint256 totalAmountToBeRestakedWei) =
-      _verifyWithdrawalCredentials(validatorContainerProof.validatorListRoot, validatorProof);
+      _verifyWithdrawalCredentials(validatorRegistryProof.validatorListRoot, validatorProof);
 
     // Write to storage
     numberOfActiveValidators += uint64(numberOfValidators);
@@ -239,30 +235,30 @@ contract SymPod is SymPodStorageV1 {
   ///  - Validator must be `ACTIVE` status on the SymPod
   ///  - Validator is slashed on the beacon chain
   /// @param beaconTimestamp beacon oracle timestamp
-  /// @param validatorContainerProof validator container root and merkle proof against block root
+  /// @param validatorRegistryProof validator container root and merkle proof against block root
   /// @param validatorProof validator field proof for slashed validator
   function verifyExpiredBalance(
     uint64 beaconTimestamp,
-    BeaconChainProofs.ValidatorListContainerProof calldata validatorContainerProof,
+    BeaconChainProofs.ValidatorRegistryProof calldata validatorRegistryProof,
     BeaconChainProofs.ValidatorProof calldata validatorProof
   ) external {
     bytes32 validatorPubKeyHash = validatorProof.validatorFields.getPubkeyHash();
-    EthValidator memory validatorInfo = validatorInfo[validatorPubKeyHash];
+    EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
 
-    if (validatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
-    if (validatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
+    if (currentValidatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
+    if (currentValidatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
     // validator must be slashed to mark stale
     if (validatorProof.validatorFields.isValidatorSlashed() == false) revert SymPod__ValidatorNotSlashed();
 
     // verify list root
     BeaconChainProofs.verifyValidatorListRootAgainstBlockRoot({
       beaconBlockRoot: getParentBeaconBlockRoot(beaconTimestamp),
-      proof: validatorContainerProof
+      proof: validatorRegistryProof
     });
 
     // verify validator fields against validator list root
     BeaconChainProofs.verifyValidatorFields({
-      validatorListRoot: validatorContainerProof.validatorListRoot,
+      validatorListRoot: validatorRegistryProof.validatorListRoot,
       validatorFields: validatorProof.validatorFields,
       validatorFieldsProof: validatorProof.proof,
       validatorIndex: validatorProof.validatorIndex
@@ -277,38 +273,40 @@ contract SymPod is SymPodStorageV1 {
   ///  - Validator restakedAmountGwei vs it's current BeaconChain balance is less
   ///    than delta allowed i.e. currentBeaconChainBalance - restakedAmountGwei > delta
   ///    The allowed delta is calculated as a % of the restakedAmountGwei
+  /// @param balanceRegistryProof BeaconState balance registry root and proof against Beacon block root
+  /// @param balanceProof Verifies balance of a validator
   function verifyExceedBalanceDelta(
     uint64 beaconTimestamp,
-    BeaconChainProofs.BalanceContainerProof calldata balanceContainer,
+    BeaconChainProofs.BalanceRegistryProof calldata balanceRegistryProof,
     BeaconChainProofs.BalanceProof calldata balanceProof
   ) external {
     bytes32 validatorPubKeyHash = balanceProof.validatorPubKeyHash;
-    EthValidator memory validatorInfo = validatorInfo[validatorPubKeyHash];
+    EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
 
-    if (validatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
-    if (validatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
+    if (currentValidatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
+    if (currentValidatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
     // verify the balance container proof
     BeaconChainProofs.verifyBalanceRootAgainstBlockRoot({
       beaconBlockRoot: getParentBeaconBlockRoot(uint64(block.timestamp)),
-      proof: balanceContainer
+      proof: balanceRegistryProof
     });
 
     // verify validator balance against balance root
     BeaconChainProofs.verifyValidatorBalance({
-      balanceListRoot: balanceContainer.balanceListRoot,
-      validatorIndex: validatorInfo.validatorIndex,
+      balanceListRoot: balanceRegistryProof.balanceListRoot,
+      validatorIndex: currentValidatorInfo.validatorIndex,
       proof: balanceProof
     });
 
     uint256 currentValidatorBalanceGwei =
-      BeaconChainProofs.getBalanceAtIndex(balanceProof.validatorBalanceRoot, validatorInfo.validatorIndex);
+      BeaconChainProofs.getBalanceAtIndex(balanceProof.validatorBalanceRoot, currentValidatorInfo.validatorIndex);
 
     // reverts if current balance is greater than restakedBalanceGwei
     if (
-      (currentValidatorBalanceGwei > validatorInfo.restakedBalanceGwei)
+      (currentValidatorBalanceGwei > currentValidatorInfo.restakedBalanceGwei)
         || (
-          (validatorInfo.restakedBalanceGwei - currentValidatorBalanceGwei)
-            < _calculateMinimumBalanceDelta(validatorInfo.restakedBalanceGwei)
+          (currentValidatorInfo.restakedBalanceGwei - currentValidatorBalanceGwei)
+            < _calculateMinimumBalanceDelta(currentValidatorInfo.restakedBalanceGwei)
         )
     ) revert SymPod__InvalidBalanceDelta();
 
@@ -505,9 +503,8 @@ contract SymPod is SymPodStorageV1 {
     });
 
     numberOfValidators = validatorData.validatorFields.length;
-    // Note that if this pod has never started a
-    // checkpoint before, `lastCheckpointedAt` will be zero here. This is fine because the main
-    // purpose of `lastCheckpointedAt` is to enforce that newly-verified validators are not
+    // NB: `lastCheckpointedAt` will be zero here if no checkpoint as been started previously. 
+    // This is ok because the goal of `lastCheckpointedAt` is to ensure that newly-verified validators are not
     // eligible to progress already-existing checkpoints - however in this case, no checkpoints exist.
     uint64 lastCheckpointedAt = currentCheckPointTimestamp == 0 ? lastCheckpointTimestamp : currentCheckPointTimestamp;
 
@@ -526,7 +523,7 @@ contract SymPod is SymPodStorageV1 {
 
       _verifyValidatorWithdrawalCredentials(validatorData.validatorFields[i]);
 
-      // We use the effective balance here instead of the balance container
+      // We use the effective balance here instead of the balance list root
       uint256 restakedBalanceGwei = validatorData.validatorFields[i].getEffectiveBalanceGwei();
       // accumulate total restaked eth
       totalAmountToBeRestakedWei += restakedBalanceGwei;

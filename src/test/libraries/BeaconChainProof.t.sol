@@ -35,7 +35,7 @@ contract BeaconChainProofTest__ValidatorRootAgainstBlockRoot is BaseBeaconChainP
 
         beaconChainProofHarness.verifyValidatorRootAgainstBlockRoot(
             blockRoot,
-            BeaconChainProofs.ValidatorListContainerProof({
+            BeaconChainProofs.ValidatorRegistryProof({
                 validatorListRoot: validatorListRoot,
                 proof: validProof
             })
@@ -51,7 +51,7 @@ contract BeaconChainProofTest__ValidatorRootAgainstBlockRoot is BaseBeaconChainP
 
         beaconChainProofHarness.verifyValidatorRootAgainstBlockRoot(
             blockRoot,
-            BeaconChainProofs.ValidatorListContainerProof({
+            BeaconChainProofs.ValidatorRegistryProof({
                 validatorListRoot: validatorListRoot,
                 proof: proof
             })
@@ -67,7 +67,7 @@ contract BeaconChainProofTest__ValidatorRootAgainstBlockRoot is BaseBeaconChainP
         vm.expectRevert(BeaconChainProofs__InvalidValidatorRootProof.selector);
         beaconChainProofHarness.verifyValidatorRootAgainstBlockRoot(
             blockRoot,
-            BeaconChainProofs.ValidatorListContainerProof({
+            BeaconChainProofs.ValidatorRegistryProof({
                 validatorListRoot: validatorListRoot,
                 proof: invalidProof
             })
@@ -97,7 +97,7 @@ contract BeaconChainProofTest__VerifyBalanceRootAgainstBlockRoot is BaseBeaconCh
 
         beaconChainProofHarness.verifyBalanceRootAgainstBlockRoot(
             blockRoot,
-            BeaconChainProofs.BalanceContainerProof({
+            BeaconChainProofs.BalanceRegistryProof({
                 balanceListRoot: balanceListRoot,
                 proof: validProof
             })
@@ -112,7 +112,7 @@ contract BeaconChainProofTest__VerifyBalanceRootAgainstBlockRoot is BaseBeaconCh
         vm.expectRevert(BeaconChainProofs.BeaconChainProofs__InvalidProofSize.selector);
         beaconChainProofHarness.verifyBalanceRootAgainstBlockRoot(
             blockRoot,
-            BeaconChainProofs.BalanceContainerProof({
+            BeaconChainProofs.BalanceRegistryProof({
                 balanceListRoot: balanceListRoot,
                 proof: validProof
             })
@@ -127,7 +127,7 @@ contract BeaconChainProofTest__VerifyBalanceRootAgainstBlockRoot is BaseBeaconCh
         vm.expectRevert(BeaconChainProofs.BeaconChainProofs__InvalidBalanceRootProof.selector);
         beaconChainProofHarness.verifyBalanceRootAgainstBlockRoot(
             blockRoot,
-            BeaconChainProofs.BalanceContainerProof({
+            BeaconChainProofs.BalanceRegistryProof({
                 balanceListRoot: balanceListRoot,
                 proof: invalidProof
             })
@@ -204,7 +204,7 @@ contract BeaconChainProofTest__VerifyMultiValidatorBalance is BaseBeaconChainPro
 
     function test_CannotVerifyCorrectIncorrectProof() external {
         proof[0] = 0x0000000000000000000000000000000000000000000000000000000000000001;
-         vm.expectRevert(BeaconChainProofs.BeaconChainProofs__InvalidValidatorFieldsMerkleProof.selector);
+        vm.expectRevert(BeaconChainProofs.BeaconChainProofs__InvalidMerkleProof.selector);
         beaconChainProofHarness.verifyMultiValidatorBalancesProof(
             balanceListRoot,
             proof,

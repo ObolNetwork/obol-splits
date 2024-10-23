@@ -6,7 +6,7 @@ contract BeaconChainProofHarness {
 
     function verifyValidatorRootAgainstBlockRoot(
         bytes32 blockRoot,
-        BeaconChainProofs.ValidatorListContainerProof calldata vProof
+        BeaconChainProofs.ValidatorRegistryProof calldata vProof
     ) external view {
         BeaconChainProofs.verifyValidatorListRootAgainstBlockRoot({
             beaconBlockRoot: blockRoot,
@@ -16,7 +16,7 @@ contract BeaconChainProofHarness {
 
     function verifyBalanceRootAgainstBlockRoot(
         bytes32 blockRoot,
-        BeaconChainProofs.BalanceContainerProof calldata vProof
+        BeaconChainProofs.BalanceRegistryProof calldata vProof
     ) external view {
         BeaconChainProofs.verifyBalanceRootAgainstBlockRoot({
             beaconBlockRoot: blockRoot,
@@ -30,7 +30,7 @@ contract BeaconChainProofHarness {
         BeaconChainProofs.BalanceProof calldata proof
     ) external view {
         BeaconChainProofs.verifyValidatorBalance({
-            balanceContainerRoot: balanceListRoot,
+            balanceListRoot: balanceListRoot,
             validatorIndex: validatorIndex,
             proof: proof
         });
@@ -41,11 +41,11 @@ contract BeaconChainProofHarness {
         bytes32[] calldata proof,
         uint40[] memory validatorIndices,
         bytes32[] memory validatorBalances
-    ) external view {
-        BeaconChainProofs.verifyMultiValidatorsBalance({
+    ) external pure {
+        BeaconChainProofs.verifyMultipleValidatorsBalance({
             balanceListRoot: balanceListRoot,
             validatorIndices: validatorIndices,
-            validatorBalances: validatorBalances,
+            validatorBalanceRoots: validatorBalances,
             proof: proof
         });
     }
@@ -55,8 +55,8 @@ contract BeaconChainProofHarness {
         bytes32[][] calldata validatorFields,
         bytes32[] calldata proof,
         uint40[] calldata validatorIndices
-    ) external view {
-        BeaconChainProofs.verifyMultiValidatorFields({
+    ) external pure {
+        BeaconChainProofs.verifyMultipleValidatorFields({
             validatorListRoot:validatorListRoot,
             validatorFields: validatorFields,
             proof: proof,

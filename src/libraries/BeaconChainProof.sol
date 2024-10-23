@@ -55,19 +55,21 @@ library BeaconChainProofs {
         uint40 validatorIndex;
     }
 
-    /// @notice Struct for verifying multiple validator fields against validator contaienr 
+    /// @notice Struct for verifying multiple validator fields against validator registry 
     struct ValidatorsMultiProof {
         bytes32[][] validatorFields;
         bytes32[] proof;
         uint40[] validatorIndices;
     }
 
-    struct BalanceContainerProof {
+    /// @notice Struct for verifying BeaconState balance registry against beacon block root
+    struct BalanceRegistryProof {
         bytes32 balanceListRoot;
         bytes proof;
     }
 
-    struct ValidatorListContainerProof {
+    /// @notice Struct for verify BeaconState validator regsitry against Beacon block root
+    struct ValidatorRegistryProof {
         bytes32 validatorListRoot;
         bytes proof;
     }
@@ -254,7 +256,7 @@ library BeaconChainProofs {
     /// @param proof Contains the validator list root and merkle proof
     function verifyValidatorListRootAgainstBlockRoot(
         bytes32 beaconBlockRoot,
-        ValidatorListContainerProof calldata proof
+        ValidatorRegistryProof calldata proof
     ) internal view {
         if (
             proof.proof.length != 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
@@ -289,7 +291,7 @@ library BeaconChainProofs {
     /// @param proof a beacon balance registry root and merkle proof of its inclusion under `beaconBlockRoot`
     function verifyBalanceRootAgainstBlockRoot(
         bytes32 beaconBlockRoot,
-        BalanceContainerProof calldata proof
+        BalanceRegistryProof calldata proof
     ) internal view {
         if (
             proof.proof.length != 32 * (BEACON_BLOCK_HEADER_FIELD_TREE_HEIGHT + BEACON_STATE_TREE_HEIGHT)
