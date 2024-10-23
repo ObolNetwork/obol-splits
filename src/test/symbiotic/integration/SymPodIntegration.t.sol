@@ -1,19 +1,35 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
+import "forge-std/Test.sol";
 
 /**
- * Works through a potential lifecycle of a SymPod
+ * Walks through a potential lifecycle of a SymPod
  */
-contract SymPodIntegrationTest {
+contract SymPodIntegrationTest is Test {
   function setUp() public {}
 
-  function test_UserFlow() external {
+  function test_VerifyWC_StartCP_CompleteCP_Withdraw() external {
     /**
-     *
-     *
-     *
+     * -> Verify withdrawal credentials
+     * -> Start Checkpoint
+     * -> Complete Checkpoint
+     * -> Withdraw
+     * -> Verify WC
+     * -> Start Checkpoint
+     * -> Complete Withdraw
      */
   }
-}
 
-// 1. start checkpointing for multiple ether balance deposit see if it tracks correctly
+  function test_VerifyWC_StartCP_CompleteCP_Withdraw_Slash() external {
+    /**
+     * -> Verify withdrawal credentials
+     * -> Start Checkpoint
+     * -> Complete Checkpoint
+     * -> User gets slashed
+     */
+  }
+
+  function test_StartCP_CompleteCP_Slash() external {
+    
+  }
+}

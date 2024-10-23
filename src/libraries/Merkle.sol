@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Adapted from OpenZeppelin Contracts (last updated v4.8.0) (utils/cryptography/MerkleProof.sol)
+// Modified from OpenZeppelin Contracts (last updated v4.8.0) (utils/cryptography/MerkleProof.sol)
 
 pragma solidity ^0.8.0;
-
-import {console} from "forge-std/Test.sol";
 
 /**
  * @dev These functions deal with verification of Merkle Tree proofs.
@@ -105,7 +103,7 @@ library Merkle {
 
      /**
      * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up
-     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt
+     * from `leaf` using `multiproof`. A `multiproof` is valid if and only if the rebuilt
      * hash matches the root of the tree. The tree is built assuming `leaf` is
      * the 0 indexed `index`'th leaf from the bottom left of the tree.
      *

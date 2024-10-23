@@ -11,7 +11,7 @@ import {IETH2DepositContract} from "src/interfaces/IETH2DepositContract.sol";
 /// @title SymPod
 /// @author Obol
 /// @notice A native restaking vault for Symbiotic
-/// It allows staking native ETH on Symbiotic infrastructure
+/// @dev It enables staking native ETH on Symbiotic infrastructure
 contract SymPod is SymPodStorageV1 {
   using BeaconChainProofs for bytes32[];
   using SafeTransferLib for address;
@@ -39,8 +39,8 @@ contract SymPod is SymPodStorageV1 {
   /// @dev Withdrawal delay period in seconds
   uint256 public immutable WITHDRAW_DELAY_PERIOD_SECONDS;
 
-  /// @dev Balance delta value
-  /// This is used in determining if the change in balance is enough
+  /// @notice Balance delta value
+  /// @dev This is used in determining if the change in balance is enough
   /// to start a new checkpoint
   uint256 public immutable BALANCE_DELTA_PERCENT;
 
@@ -148,11 +148,11 @@ contract SymPod is SymPodStorageV1 {
     // fetch the validator indices
     uint40[] memory validatorIndices = _getValidatorIndices(validatorBalancesProof.validatorPubKeyHashes);
     // verify the passed in proof
-    uint256[] memory validatorBalances = BeaconChainProofs.verifyMultiValidatorsBalance({
+    uint256[] memory validatorBalances = BeaconChainProofs.verifyMultipleValidatorsBalance({
       balanceListRoot: balanceContainerProof.balanceListRoot,
       proof: validatorBalancesProof.proof,
       validatorIndices: validatorIndices,
-      validatorBalances: validatorBalancesProof.validatorBalanceRoots
+      validatorBalanceRoots: validatorBalancesProof.validatorBalanceRoots
     });
 
     // process the proof
@@ -295,7 +295,7 @@ contract SymPod is SymPodStorageV1 {
 
     // verify validator balance against balance root
     BeaconChainProofs.verifyValidatorBalance({
-      balanceContainerRoot: balanceContainer.balanceListRoot,
+      balanceListRoot: balanceContainer.balanceListRoot,
       validatorIndex: validatorInfo.validatorIndex,
       proof: balanceProof
     });
@@ -497,7 +497,7 @@ contract SymPod is SymPodStorageV1 {
     BeaconChainProofs.ValidatorsMultiProof calldata validatorData
   ) internal returns (uint256 numberOfValidators, uint256 totalAmountToBeRestakedWei) {
     // verify the passed validator multi proof
-    BeaconChainProofs.verifyMultiValidatorFields({
+    BeaconChainProofs.verifyMultipleValidatorFields({
       validatorListRoot: validatorListRoot,
       validatorFields: validatorData.validatorFields,
       proof: validatorData.proof,
