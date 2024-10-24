@@ -671,7 +671,7 @@ contract SymPod__VerifyWithdrawalCredentials is BaseSymPodHarnessTest {
 
       assertEq(validatorInfo.lastCheckpointedAt, 0, "invalid timestamp");
 
-      assertEq(uint256(validatorInfo.status), uint256(ISymPod.VALIDATOR_STATUS.ACTIVE), "invalid validator state");
+      assertEq(uint256(validatorInfo.status), uint256(ISymPod.VALIDATOR_STATE.ACTIVE), "invalid validator state");
     }
   }
 

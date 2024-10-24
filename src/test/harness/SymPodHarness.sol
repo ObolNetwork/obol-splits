@@ -20,11 +20,11 @@ contract SymPodHarness is SymPod, Test {
     }
 
     function changeValidatorStateToActive(bytes32 pubKeyHash) external {
-        validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATUS.ACTIVE;
+        validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATE.ACTIVE;
     }
 
     function changeValidatorStateToInActive(bytes32 pubKeyHash) external {
-        validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATUS.INACTIVE;
+        validatorInfo[pubKeyHash].status = ISymPod.VALIDATOR_STATE.INACTIVE;
     }
 
     function setValidatorIndex(bytes32 pubKeyHash, uint40 validatorIndex) external {

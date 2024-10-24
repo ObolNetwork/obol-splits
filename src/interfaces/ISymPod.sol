@@ -7,15 +7,15 @@ interface IERC4626 {
 
 interface ISymPod {
 
-    enum VALIDATOR_STATUS {
+    enum VALIDATOR_STATE {
         INACTIVE, // doesnt exist
-        ACTIVE, // staked on ethpos and withdrawal credentials are pointed to the EigenPod
+        ACTIVE, // staked on ethpos and withdrawal credentials are pointed to the SymPod
         WITHDRAWN // withdrawn from the Beacon Chain
     }
 
     /// @notice Info for withdrawal requests
     struct WithdrawalInfo {
-        // address that holds the hsares
+        // address that holds the shares
         address owner;
         // receiver address
         address to;
@@ -28,12 +28,12 @@ interface ISymPod {
     struct EthValidator {
         // index of the validator in the beacon chain
         uint40 validatorIndex;
-        // amount of beacon chain ETH restaked on EigenLayer in gwei
+        // amount of beacon chain ETH restaked in gwei
         uint64 restakedBalanceGwei;
         // timestamp of the validator's most recent balance update
         uint64 lastCheckpointedAt;
         // status of the validator
-        VALIDATOR_STATUS status;
+        VALIDATOR_STATE status;
     }
 
     struct Checkpoint {

@@ -143,7 +143,7 @@ contract SymPod is SymPodStorageV1 {
     });
     // fetch the validator indices
     uint40[] memory validatorIndices = _getValidatorIndices(validatorBalancesProof.validatorPubKeyHashes);
-    // verify the passed in proof
+    // verify the passed in proof and return validator balances
     uint256[] memory validatorBalances = BeaconChainProofs.verifyMultipleValidatorsBalance({
       balanceListRoot: balanceRegistryProof.balanceListRoot,
       proof: validatorBalancesProof.proof,
@@ -163,7 +163,7 @@ contract SymPod is SymPodStorageV1 {
       EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
 
       /// Check if the validator isn't active and skip
-      if (currentValidatorInfo.status != VALIDATOR_STATUS.ACTIVE) continue;
+      if (currentValidatorInfo.status != VALIDATOR_STATE.ACTIVE) continue;
       // check if the validator has been checkpointed
       if (currentValidatorInfo.lastCheckpointedAt >= activeCheckpoint.currentTimestamp) continue;
 
@@ -182,7 +182,7 @@ contract SymPod is SymPodStorageV1 {
       currentValidatorInfo.restakedBalanceGwei = newValidatorBalanceGwei;
       currentValidatorInfo.lastCheckpointedAt = uint64(currentCheckpointTimestamp);
       if (newValidatorBalanceGwei == 0) {
-        currentValidatorInfo.status = VALIDATOR_STATUS.WITHDRAWN;
+        currentValidatorInfo.status = VALIDATOR_STATE.WITHDRAWN;
         // reaching here means balanceDelta will be negative
         exitedBalancesGwei += uint256(int256(-balanceDeltaGwei));
       }
@@ -246,7 +246,7 @@ contract SymPod is SymPodStorageV1 {
     EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
 
     if (currentValidatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
-    if (currentValidatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
+    if (currentValidatorInfo.status != VALIDATOR_STATE.ACTIVE) revert SymPod__InvalidValidatorState();
     // validator must be slashed to mark stale
     if (validatorProof.validatorFields.isValidatorSlashed() == false) revert SymPod__ValidatorNotSlashed();
 
@@ -284,7 +284,7 @@ contract SymPod is SymPodStorageV1 {
     EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
 
     if (currentValidatorInfo.lastCheckpointedAt > beaconTimestamp) revert SymPod__InvalidBeaconTimestamp();
-    if (currentValidatorInfo.status != VALIDATOR_STATUS.ACTIVE) revert SymPod__InvalidValidatorState();
+    if (currentValidatorInfo.status != VALIDATOR_STATE.ACTIVE) revert SymPod__InvalidValidatorState();
     // verify the balance container proof
     BeaconChainProofs.verifyBalanceRootAgainstBlockRoot({
       beaconBlockRoot: getParentBeaconBlockRoot(uint64(block.timestamp)),
@@ -513,7 +513,7 @@ contract SymPod is SymPodStorageV1 {
       bytes32 validatorPubKeyHash = validatorData.validatorFields[i].getPubkeyHash();
 
       EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
-      if (currentValidatorInfo.status != VALIDATOR_STATUS.INACTIVE) revert SymPod__InvalidValidatorState();
+      if (currentValidatorInfo.status != VALIDATOR_STATE.INACTIVE) revert SymPod__InvalidValidatorState();
 
       uint64 exitEpoch = validatorData.validatorFields[i].getExitEpoch();
       if (exitEpoch != BeaconChainProofs.FAR_FUTURE_EPOCH) revert SymPod__InvalidValidatorExitEpoch();
@@ -536,7 +536,7 @@ contract SymPod is SymPodStorageV1 {
         validatorIndex: validatorIndex,
         restakedBalanceGwei: uint64(restakedBalanceGwei),
         lastCheckpointedAt: uint64(lastCheckpointedAt),
-        status: VALIDATOR_STATUS.ACTIVE
+        status: VALIDATOR_STATE.ACTIVE
       });
 
       unchecked {
