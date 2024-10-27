@@ -16,9 +16,6 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   /// @dev pod symbol
   string internal podSymbol;
 
-  /// @dev hardfork it supports
-  string public HARDFORK;
-
   /// @dev total restaked amount in wei
   uint256 internal totalRestakedETH;
 
@@ -40,7 +37,7 @@ abstract contract SymPodStorageV1 is ERC4626, Initializable, ISymPod, Reentrancy
   uint256 public withdrawableRestakedPodWei;
 
   /// @dev pending to withdraw
-  uint256 public pendingAmountToWithrawWei;
+  uint256 public pendingAmountToWithdrawWei;
 
   /// @dev number of active validators
   uint64 public numberOfActiveValidators;

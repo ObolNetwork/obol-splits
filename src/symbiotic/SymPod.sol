@@ -122,9 +122,9 @@ contract SymPod is SymPodStorageV1 {
   }
 
   /// @dev Finalize the current checkpoint by submitting one or more validator proofs.
-  /// Anyone can submit proofs, reducing `proofsRemaining` for each validator proven.
+  /// Anyone can submit proofs, reducing `pendingProofs` for each validator proven.
   /// The total change in ACTIVE validator balance is tracked, and 0 balance validators are marked `WITHDRAWN`.
-  /// @dev The checkpoint is finalized when `proofsRemaining` reaches 0.
+  /// @dev The checkpoint is finalized when `pendingProofs` reaches 0.
   /// @dev This function is only callable during an active checkpoint.
   /// @param balanceRegistryProof Verifies the balance registry list root against the checkpoint's `beaconBlockRoot`.
   /// @param validatorBalancesProof Verifies validator balances against the BeaconState balance registry root.
@@ -151,57 +151,15 @@ contract SymPod is SymPodStorageV1 {
       validatorBalanceRoots: validatorBalancesProof.validatorBalanceRoots
     });
 
-    // process the proof
-    uint256 i = 0;
-    uint256 exitedBalancesGwei = 0;
-    uint256 size = validatorBalancesProof.validatorPubKeyHashes.length;
-
-    for (i; i < size; i++) {
-      // check it's a active validator
-      bytes32 validatorPubKeyHash = validatorBalancesProof.validatorPubKeyHashes[i];
-      uint256 currentValidatorIndex = validatorIndices[i];
-      EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
-
-      /// Check if the validator isn't active and skip
-      if (currentValidatorInfo.status != VALIDATOR_STATE.ACTIVE) continue;
-      // check if the validator has been checkpointed
-      if (currentValidatorInfo.lastCheckpointedAt >= activeCheckpoint.currentTimestamp) continue;
-
-      uint64 prevValidatorBalanceGwei = currentValidatorInfo.restakedBalanceGwei;
-      uint64 newValidatorBalanceGwei = uint64(validatorBalances[i]);
-
-      int256 balanceDeltaGwei = 0;
-      if (prevValidatorBalanceGwei != newValidatorBalanceGwei) {
-        balanceDeltaGwei = int256(uint256(newValidatorBalanceGwei)) - int256(uint256(prevValidatorBalanceGwei));
-        emit ValidatorBalanceUpdated(
-          currentValidatorIndex, activeCheckpoint.currentTimestamp, prevValidatorBalanceGwei, newValidatorBalanceGwei
-        );
-      }
-
-      // Update validator info memory
-      currentValidatorInfo.restakedBalanceGwei = newValidatorBalanceGwei;
-      currentValidatorInfo.lastCheckpointedAt = uint64(currentCheckpointTimestamp);
-      if (newValidatorBalanceGwei == 0) {
-        currentValidatorInfo.status = VALIDATOR_STATE.WITHDRAWN;
-        // reaching here means balanceDelta will be negative
-        exitedBalancesGwei += uint256(int256(-balanceDeltaGwei));
-      }
-
-      // Update checkpoint info memory
-      activeCheckpoint.proofsRemaining--;
-      activeCheckpoint.balanceDeltasGwei += int128(balanceDeltaGwei);
-
-      // Write to Storage
-      if (newValidatorBalanceGwei == 0) numberOfActiveValidators--;
-      validatorInfo[validatorPubKeyHash] = currentValidatorInfo;
-
-      emit ValidatorCheckpointUpdate(currentCheckpointTimestamp, currentValidatorIndex);
-    }
+    uint256 exitedBalancesGwei = _processBalanceCheckpointProof(
+      validatorBalancesProof,
+      activeCheckpoint,
+      validatorIndices,
+      validatorBalances
+    );
 
     // Write to Storage
-    checkpointBalanceExitedGwei[uint64(currentCheckpointTimestamp)] += uint64(exitedBalancesGwei);
-
-    _updateCheckpoint(activeCheckpoint);
+    checkpointBalanceExitedGwei[uint64(lastCheckpointTimestamp)] += uint64(exitedBalancesGwei);
   }
 
   /// @notice Verify a multiple validator withdrawal credentials
@@ -222,8 +180,16 @@ contract SymPod is SymPodStorageV1 {
       proof: validatorRegistryProof
     });
 
+    // verify the passed validator multi proof
+    BeaconChainProofs.verifyMultipleValidatorFields({
+      validatorListRoot: validatorRegistryProof.validatorListRoot,
+      validatorFields: validatorProof.validatorFields,
+      proof: validatorProof.proof,
+      validatorIndices: validatorProof.validatorIndices
+    });
+
     (uint256 numberOfValidators, uint256 totalAmountToBeRestakedWei) =
-      _verifyWithdrawalCredentials(validatorRegistryProof.validatorListRoot, validatorProof);
+      _verifyWithdrawalCredentials(validatorProof);
 
     // Write to storage
     numberOfActiveValidators += uint64(numberOfValidators);
@@ -320,10 +286,8 @@ contract SymPod is SymPodStorageV1 {
     // Ensure withdrawal is not paused
     if (symPodConfigurator.isWithdrawalsPaused() == true) revert SymPod__WithdrawalsPaused();
     // prevents queueing of withdrawals
-    if ((amountInWei + pendingAmountToWithrawWei) > withdrawableRestakedPodWei) revert SymPod__InsufficientBalance();
-    // @TODO do the math to confirm if any edge cases for this
-    if (amountInWei % GWEI_TO_WEI != 0) revert SymPod__AmountInWei();
-
+    if ((amountInWei + pendingAmountToWithdrawWei) > withdrawableRestakedPodWei) revert SymPod__InsufficientBalance();
+    if (amountInWei == 0) revert SymPod__AmountInWei();
     if (amountInWei > _withdrawableAmountWei(msg.sender)) revert SymPod__ExceedBalance();
 
     withdrawalKey = _getWithdrawalKey(amountInWei, nonce);
@@ -333,7 +297,7 @@ contract SymPod is SymPodStorageV1 {
     uint256 withdrawalTimestamp = block.timestamp + WITHDRAW_DELAY_PERIOD_SECONDS;
 
     // Write to Storage
-    pendingAmountToWithrawWei += amountInWei;
+    pendingAmountToWithdrawWei += amountInWei;
     withdrawalQueue[withdrawalKey] =
       WithdrawalInfo(msg.sender, withdrawalAddress, uint128(amountInWei), uint128(withdrawalTimestamp));
 
@@ -342,6 +306,7 @@ contract SymPod is SymPodStorageV1 {
 
   /// @dev Finalize withdrawal
   /// @param withdrawalKey Generated withdrawal key
+  /// @return amountToTransfer amount of eth transferred
   function completeWithdraw(bytes32 withdrawalKey) external returns (uint256 amountToTransfer) {
     // Ensure withdrawal is not paused
     if (symPodConfigurator.isWithdrawalsPaused() == true) revert SymPod__WithdrawalsPaused();
@@ -356,6 +321,8 @@ contract SymPod is SymPodStorageV1 {
     amountToTransfer = cachedAvailableToWithdrawInWei >= withdrawalInfo.amountInWei
       ? withdrawalInfo.amountInWei
       : cachedAvailableToWithdrawInWei;
+    
+    if (amountToTransfer == 0) return 0;
 
     uint256 sharesToBurn = convertToShares(amountToTransfer);
 
@@ -364,7 +331,7 @@ contract SymPod is SymPodStorageV1 {
     // update pending amount to withdraw
     // We use amountInWei here because if the user doesn't want exact amount
     // we need still need to deduct the amountInWei
-    pendingAmountToWithrawWei -= withdrawalInfo.amountInWei;
+    pendingAmountToWithdrawWei -= withdrawalInfo.amountInWei;
 
     _burn(withdrawalInfo.owner, sharesToBurn);
     delete withdrawalQueue[withdrawalKey];
@@ -387,16 +354,15 @@ contract SymPod is SymPodStorageV1 {
   /// This withdraw doesn't have a delay period
   function onSlash(uint256 amountWei) external override nonReentrant returns (bytes32 withdrawalKey) {
     if (msg.sender != slasher) revert SymPod__NotSlasher();
-    if (amountWei % GWEI_TO_WEI != 0) revert SymPod__AmountInWei();
+    if (amountWei == 0) revert SymPod__AmountInWei();
 
     uint256 amountSharesBurn = convertToShares(amountWei);
-
     if (amountSharesBurn > balanceOf(msg.sender)) revert SymPod__InvalidAmountOfShares();
 
     withdrawalKey = _getWithdrawalKey(amountWei, block.timestamp);
 
     // Write to Storage
-    pendingAmountToWithrawWei += amountWei;
+    pendingAmountToWithdrawWei += amountWei;
     withdrawalQueue[withdrawalKey] =
       WithdrawalInfo(msg.sender, msg.sender, uint128(amountWei), uint128(block.timestamp));
 
@@ -478,6 +444,15 @@ contract SymPod is SymPodStorageV1 {
     return _getWithdrawalKey(weiAmount, nonce);
   }
 
+  /// @dev Returns validator indices using public key hashes
+  function getValidatorIndices(bytes32[] calldata validatorPubKeyHashes)
+    public 
+    view
+    returns (uint40[] memory validatorIndices) 
+  {
+    return _getValidatorIndices(validatorPubKeyHashes);
+  }
+
   /// @dev Generate withdrawal key
   function _getWithdrawalKey(uint256 weiAmount, uint256 nonce) internal view returns (bytes32 withdrawalKey) {
     withdrawalKey = keccak256(abi.encode(msg.sender, weiAmount, block.timestamp, nonce));
@@ -489,19 +464,68 @@ contract SymPod is SymPodStorageV1 {
     amount = convertToAssets(balanceOf(user));
   }
 
+  /// @notice Process balance checkpoint proof
+  function _processBalanceCheckpointProof(
+    BeaconChainProofs.BalancesMultiProof calldata validatorBalancesProof,
+    Checkpoint memory activeCheckpoint,
+    uint40[] memory validatorIndices,
+    uint256[] memory validatorBalances
+  ) internal returns (uint256 exitedBalancesGwei) {
+    // process the proof
+    uint256 currentCheckpointTimestamp = activeCheckpoint.currentTimestamp;
+    uint256 i = 0;
+    uint256 size = validatorBalancesProof.validatorPubKeyHashes.length;
+
+    for (; i < size; i++) {
+      // check it's a active validator
+      bytes32 validatorPubKeyHash = validatorBalancesProof.validatorPubKeyHashes[i];
+      uint256 currentValidatorIndex = validatorIndices[i];
+      EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
+
+      /// Check if the validator isn't active and skip
+      if (currentValidatorInfo.status != VALIDATOR_STATE.ACTIVE) continue;
+      // check if the validator has been checkpointed
+      if (currentValidatorInfo.lastCheckpointedAt >= activeCheckpoint.currentTimestamp) continue;
+
+      uint64 prevValidatorBalanceGwei = currentValidatorInfo.restakedBalanceGwei;
+      uint64 newValidatorBalanceGwei = uint64(validatorBalances[i]);
+
+      int256 balanceDeltaGwei = 0;
+      if (prevValidatorBalanceGwei != newValidatorBalanceGwei) {
+        balanceDeltaGwei = int256(uint256(newValidatorBalanceGwei)) - int256(uint256(prevValidatorBalanceGwei));
+        emit ValidatorBalanceUpdated(
+          currentValidatorIndex, activeCheckpoint.currentTimestamp, prevValidatorBalanceGwei, newValidatorBalanceGwei
+        );
+      }
+
+      // Update validator info memory
+      currentValidatorInfo.restakedBalanceGwei = newValidatorBalanceGwei;
+      currentValidatorInfo.lastCheckpointedAt = uint64(currentCheckpointTimestamp);
+      if (newValidatorBalanceGwei == 0) {
+        currentValidatorInfo.status = VALIDATOR_STATE.WITHDRAWN;
+        // reaching here means balanceDelta will be negative
+        exitedBalancesGwei += uint256(int256(-balanceDeltaGwei));
+      }
+
+      // Update checkpoint info memory
+      activeCheckpoint.pendingProofs--;
+      activeCheckpoint.balanceDeltasGwei += int128(balanceDeltaGwei);
+
+      // Write to Storage
+      if (newValidatorBalanceGwei == 0) numberOfActiveValidators--;
+      validatorInfo[validatorPubKeyHash] = currentValidatorInfo;
+
+      emit ValidatorCheckpointUpdate(currentCheckpointTimestamp, currentValidatorIndex);
+    }
+
+    // Update checkpoint
+    _updateCheckpoint(activeCheckpoint);
+  }
+
   /// @notice Verify withdrawal credentials
   function _verifyWithdrawalCredentials(
-    bytes32 validatorListRoot,
     BeaconChainProofs.ValidatorsMultiProof calldata validatorData
   ) internal returns (uint256 numberOfValidators, uint256 totalAmountToBeRestakedWei) {
-    // verify the passed validator multi proof
-    BeaconChainProofs.verifyMultipleValidatorFields({
-      validatorListRoot: validatorListRoot,
-      validatorFields: validatorData.validatorFields,
-      proof: validatorData.proof,
-      validatorIndices: validatorData.validatorIndices
-    });
-
     numberOfValidators = validatorData.validatorFields.length;
     // NB: `lastCheckpointedAt` will be zero here if no checkpoint as been started previously. 
     // This is ok because the goal of `lastCheckpointedAt` is to ensure that newly-verified validators are not
@@ -511,16 +535,9 @@ contract SymPod is SymPodStorageV1 {
     for (uint256 i = 0; i < numberOfValidators;) {
       uint40 validatorIndex = validatorData.validatorIndices[i];
       bytes32 validatorPubKeyHash = validatorData.validatorFields[i].getPubkeyHash();
-
-      EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
-      if (currentValidatorInfo.status != VALIDATOR_STATE.INACTIVE) revert SymPod__InvalidValidatorState();
-
-      uint64 exitEpoch = validatorData.validatorFields[i].getExitEpoch();
-      if (exitEpoch != BeaconChainProofs.FAR_FUTURE_EPOCH) revert SymPod__InvalidValidatorExitEpoch();
-
-      uint64 activationEpoch = validatorData.validatorFields[i].getActivationEpoch();
-      if (activationEpoch == BeaconChainProofs.FAR_FUTURE_EPOCH) revert SymPod__InvalidValidatorActivationEpoch();
-
+      // verify validator state
+      _verifyValidatorState(validatorPubKeyHash, validatorData.validatorFields[i]);
+      // verify withdrawal credentials
       _verifyValidatorWithdrawalCredentials(validatorData.validatorFields[i]);
 
       // We use the effective balance here instead of the balance list root
@@ -593,7 +610,7 @@ contract SymPod is SymPodStorageV1 {
 
     Checkpoint memory checkpoint = Checkpoint({
       beaconBlockRoot: getParentBeaconBlockRoot(uint64(block.timestamp)),
-      proofsRemaining: uint24(numberOfActiveValidators),
+      pendingProofs: uint24(numberOfActiveValidators),
       podBalanceGwei: podBalanceGwei,
       currentTimestamp: uint40(block.timestamp),
       balanceDeltasGwei: 0
@@ -604,11 +621,11 @@ contract SymPod is SymPodStorageV1 {
 
     _updateCheckpoint(checkpoint);
 
-    emit CheckpointCreated(uint64(block.timestamp), checkpoint.beaconBlockRoot, checkpoint.proofsRemaining);
+    emit CheckpointCreated(uint64(block.timestamp), checkpoint.beaconBlockRoot, checkpoint.pendingProofs);
   }
 
   function _updateCheckpoint(Checkpoint memory checkpoint) internal {
-    if (checkpoint.proofsRemaining == 0) {
+    if (checkpoint.pendingProofs == 0) {
       int256 totalDeltaWei =
         (int128(uint128(checkpoint.podBalanceGwei)) + (checkpoint.balanceDeltasGwei)) * int256(GWEI_TO_WEI);
 
@@ -640,6 +657,21 @@ contract SymPod is SymPodStorageV1 {
       revert SymPod__InvalidValidatorWithdrawalCredentials();
     }
   }
+
+  function _verifyValidatorState(
+    bytes32 validatorPubKeyHash,
+    bytes32[] calldata validatorFields
+  ) internal view {
+    EthValidator memory currentValidatorInfo = validatorInfo[validatorPubKeyHash];
+    if (currentValidatorInfo.status != VALIDATOR_STATE.INACTIVE) revert SymPod__InvalidValidatorState();
+
+    uint64 exitEpoch = validatorFields.getExitEpoch();
+    if (exitEpoch != BeaconChainProofs.FAR_FUTURE_EPOCH) revert SymPod__InvalidValidatorExitEpoch();
+
+    uint64 activationEpoch = validatorFields.getActivationEpoch();
+    if (activationEpoch == BeaconChainProofs.FAR_FUTURE_EPOCH) revert SymPod__InvalidValidatorActivationEpoch();
+  }
+
 
   /// @dev Returns the validator indices using the pubkeyhashes
   function _getValidatorIndices(bytes32[] calldata validatorPubKeyHashes)

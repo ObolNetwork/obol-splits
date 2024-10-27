@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.19;
 import {SymPod, ISymPod} from "src/symbiotic/SymPod.sol";
+import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 import "forge-std/Test.sol";
 
 contract SymPodHarness is SymPod, Test {
@@ -63,5 +64,32 @@ contract SymPodHarness is SymPod, Test {
 
     function _verifyValidatorWithdrawalCredentials(bytes32[] calldata validatorFields) internal pure override {
         validatorFields = validatorFields;
+    }
+
+    function getExitedBalancesGwei(
+        BeaconChainProofs.BalancesMultiProof calldata validatorBalancesProof,
+        ISymPod.Checkpoint memory activeCheckpoint,
+        uint40[] memory validatorIndices,
+        uint256[] memory validatorBalances
+    ) internal returns (uint256 exitedBalances) {
+        return _processBalanceCheckpointProof(
+            validatorBalancesProof,
+            activeCheckpoint,
+            validatorIndices,
+            validatorBalances
+        );
+    }
+
+    function calculateExitedValidatorBalance(
+        bytes32[] memory pubkeys,
+        uint256[] memory validatorBalances
+    ) public view returns (uint256 exitedBalanceGwei) {
+        
+        for(uint i = 0; i < pubkeys.length; i++) {
+            if (validatorBalances[i] == 0) {
+                EthValidator memory currentValidatorInfo = validatorInfo[pubkeys[i]];
+                exitedBalanceGwei += currentValidatorInfo.restakedBalanceGwei;
+            }
+        }
     }
 }

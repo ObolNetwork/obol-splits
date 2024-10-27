@@ -41,8 +41,8 @@ contract BeaconChainProofHarness {
         bytes32[] calldata proof,
         uint40[] memory validatorIndices,
         bytes32[] memory validatorBalances
-    ) external pure {
-        BeaconChainProofs.verifyMultipleValidatorsBalance({
+    ) external pure returns (uint256[] memory) {
+        return BeaconChainProofs.verifyMultipleValidatorsBalance({
             balanceListRoot: balanceListRoot,
             validatorIndices: validatorIndices,
             validatorBalanceRoots: validatorBalances,

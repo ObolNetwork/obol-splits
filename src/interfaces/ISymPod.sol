@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 interface IERC4626 {
-    function convertToAssets(uint256 shares) external returns (uint256 assets);
+    function convertToAssets(uint256 shares) external view returns (uint256 assets);
 }
 
 interface ISymPod {
@@ -38,7 +38,7 @@ interface ISymPod {
 
     struct Checkpoint {
         bytes32 beaconBlockRoot;
-        uint24 proofsRemaining;
+        uint24 pendingProofs;
         uint64 podBalanceGwei;
         uint40 currentTimestamp;
         int128 balanceDeltasGwei;
@@ -98,7 +98,7 @@ interface ISymPod {
     error SymPod__InvalidTimestamp();
     error SymPod__InvalidBalanceDelta();
     error SymPod__ExceedBalance();
-
+    error SymPod__AmountOfSharesInvalid();
 
     /// @dev Emitted on stake on SymPod
     event SymPodStaked(
@@ -120,7 +120,7 @@ interface ISymPod {
     event CheckpointCreated(
         uint256 timestamp,
         bytes32 beaconBlockRoot,
-        uint256 proofsRemaining
+        uint256 pendingProofs
     );
 
     event ValidatorBalanceUpdated(
