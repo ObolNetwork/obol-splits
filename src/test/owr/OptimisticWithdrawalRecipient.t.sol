@@ -4,10 +4,13 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import {OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipient.sol";
 import {OptimisticWithdrawalRecipientFactory} from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
+import {OptimisticWithdrawalRecipientPectra} from "src/owr/OptimisticWithdrawalRecipientPectra.sol";
+import {OptimisticWithdrawalRecipientPectraFactory} from "src/owr/OptimisticWithdrawalRecipientPectraFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {OWRReentrancy} from "./OWRReentrancy.sol";
 import {OWRTestHelper} from "./OWRTestHelper.t.sol";
+import {PectraWithdrawalMock} from "./pectra/PectraWithdrawalMock.sol";
 import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
 contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
@@ -21,10 +24,15 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
   OptimisticWithdrawalRecipient public owrModule;
   OptimisticWithdrawalRecipientFactory public owrFactory;
+  OptimisticWithdrawalRecipientPectraFactory public owrPectraFactory;
   address internal recoveryAddress;
 
   OptimisticWithdrawalRecipient owrETH;
   OptimisticWithdrawalRecipient owrETH_OR;
+
+  OptimisticWithdrawalRecipientPectra owrETHPectra;
+  PectraWithdrawalMock withdrawalMock;
+
   MockERC20 mERC20;
 
   address public principalRecipient;
@@ -45,6 +53,9 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     owrFactory = new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
 
+    withdrawalMock = new PectraWithdrawalMock();
+    owrPectraFactory = new OptimisticWithdrawalRecipientPectraFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this), address(withdrawalMock), address(withdrawalMock));
+
     owrModule = owrFactory.owrImpl();
 
     mERC20 = new MockERC20("demo", "DMT", 18);
@@ -57,17 +68,51 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     recoveryAddress = makeAddr("recoveryAddress");
 
     owrETH = owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
+    owrETHPectra = owrPectraFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold, address(this));
 
     owrETH_OR = owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
   }
 
-  function testGetTranches() public {
+  function testGetTranches() public view {
     // eth
     (address _principalRecipient, address _rewardRecipient, uint256 wtrancheThreshold) = owrETH.getTranches();
 
     assertEq(_principalRecipient, principalRecipient, "invalid principal recipient");
     assertEq(_rewardRecipient, rewardRecipient, "invalid reward recipient");
     assertEq(wtrancheThreshold, ETH_STAKE, "invalid eth tranche threshold");
+  }
+
+  function testOWRPectraInitialization() public view {
+    assertTrue(owrETHPectra.initialized());
+    assertEq(owrETHPectra.owner(), address(this));
+  }
+
+  function testReinitialization() public {
+    assertTrue(owrETHPectra.initialized());
+    vm.expectRevert(OptimisticWithdrawalRecipientPectra.InvalidRequest_Initialize.selector);
+    owrETHPectra.initialize(address(this));
+  }
+
+  function testInitiateWithdrawal() public {
+    address _user = vm.addr(0x1);
+    vm.deal(_user, type(uint256).max);
+
+    vm.startPrank(_user);
+    vm.expectRevert(0x82b42900); // Unauthorized
+    owrETHPectra.requestPrincipalWithdrawal{value: 1 ether}(hex"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110908070605040302");
+
+    vm.stopPrank();
+    vm.startPrank(address(this));
+    owrETHPectra.grantRoles(_user, 1111);
+    owrETHPectra.grantRoles(_user, 2222);
+
+    vm.stopPrank();
+    vm.startPrank(_user);
+    owrETHPectra.requestRewardsWithdrawal{value: 1 ether}(hex"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110908070605040302");
+    vm.stopPrank();
+
+    assertGt(withdrawalMock.receivedAmount(), 0);
+    assertEq(address(withdrawalMock).balance, 1 ether);
   }
 
   function testReceiveETH() public {

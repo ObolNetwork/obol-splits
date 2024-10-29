@@ -57,18 +57,20 @@ contract OptimisticWithdrawalRecipientPectraFactory {
   OptimisticWithdrawalRecipientPectra public immutable owrImpl;
 
   address public immutable pectraWithdrawalAddress;
+  address public immutable pectraConsolidationAddress;
 
   /// -----------------------------------------------------------------------
   /// constructor
   /// -----------------------------------------------------------------------
 
-  constructor(string memory _ensName, address _ensReverseRegistrar, address _ensOwner, address _pectraWithdrawalAddress) {
+  constructor(string memory _ensName, address _ensReverseRegistrar, address _ensOwner, address _pectraWithdrawalAddress, address _pectraConsolidationAddress) {
     owrImpl = new OptimisticWithdrawalRecipientPectra();
     owrImpl.initialize(address(this));
     IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
     IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);
 
     pectraWithdrawalAddress = _pectraWithdrawalAddress;
+    pectraConsolidationAddress = _pectraConsolidationAddress;
   }
 
   /// -----------------------------------------------------------------------
@@ -114,7 +116,7 @@ contract OptimisticWithdrawalRecipientPectraFactory {
 
     // would not exceed contract size limits
     // important to not reorder
-    bytes memory data = abi.encodePacked(pectraWithdrawalAddress, recoveryAddress, principalData, rewardData);
+    bytes memory data = abi.encodePacked(pectraWithdrawalAddress, pectraConsolidationAddress, recoveryAddress, principalData, rewardData);
     owr = OptimisticWithdrawalRecipientPectra(address(owrImpl).clone(data));
     owr.initialize(owner);
 

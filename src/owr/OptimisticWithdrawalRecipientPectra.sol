@@ -29,8 +29,11 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /// Invalid distribution
   error InvalidDistribution_TooLarge();
 
-  /// Invalid withdrawal
+  /// Invalid withdrawal request
   error InvalidWithdrawal_Failed();
+
+  /// Invalid consolidation request
+  error InvalidConsolidation_Failed();
 
   /// Invalid rewards withdrawal request
   error InvalidPectraWithdrawal_Rewards();
@@ -75,6 +78,9 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /// Emitted when a Pectra withdrawal request is done
   event PrincipalWithdrawalRequested(address indexed requester);
 
+  /// Emitted when a Pectra consolidation request is done
+  event ConsolidationRequested(address indexed requester);
+
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
@@ -106,11 +112,12 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
 
   // 0; first item
   uint256 internal constant PECTRA_WITHDRAWAL_ADDRESS_OFFSET = 0;
-  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 20;
-  // 40 = withdrawalAddress_offset(0) + withdrawalAddress_size(address, 20 bytes) +  recoveryAddress_offset (20) +
+  uint256 internal constant PECTRA_CONSOLIDATION_ADDRESS_OFFSET = 20;
+  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 40;
+  // 60 = withdrawalAddress_offset(0) + withdrawalAddress_size(address, 20 bytes) +  consolidationAddress_offset(0) + consolidationAddress_size(address, 20 bytes) + recoveryAddress_offset (20) +
   // recoveryAddress_size (address, 20
   // bytes)
-  uint256 internal constant TRANCHES_OFFSET = 40;
+  uint256 internal constant TRANCHES_OFFSET = 60;
 
   /// Address to recover non-OWR tokens to
   /// @dev equivalent to address public immutable recoveryAddress;
@@ -118,10 +125,16 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
     return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
   }
 
-  /// Address to recover non-OWR tokens to
+  /// Pectra withdrawal address
   /// @dev equivalent to address public immutable recoveryAddress;
   function pectraWithdrawalAddress() public pure returns (address) {
     return _getArgAddress(PECTRA_WITHDRAWAL_ADDRESS_OFFSET);
+  }
+
+  /// Pectra consolidation address
+  /// @dev equivalent to address public immutable recoveryAddress;
+  function pectraConsolidationAddress() public pure returns (address) {
+    return _getArgAddress(PECTRA_CONSOLIDATION_ADDRESS_OFFSET);
   }
 
   /// Get OWR tranche `i`
@@ -180,6 +193,19 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /* receive() external payable { */
   /*     emit ReceiveETH(msg.value); */
   /* } */
+
+  function requestConsolidation(bytes memory data) external payable onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE) {
+    // ;; Input data has the following layout:
+    // ;;
+    // ;;  +--------+--------+
+    // ;;  | source | target |
+    // ;;  +--------+--------+
+    // ;;      48       48
+
+    (bool ret,) = pectraConsolidationAddress().call{value: msg.value}(data);
+    if (!ret) revert InvalidConsolidation_Failed();
+    emit ConsolidationRequested(msg.sender);
+  }
 
   /// Requests principal withdrawal
   function requestPrincipalWithdrawal(bytes memory data) external payable onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE) {
