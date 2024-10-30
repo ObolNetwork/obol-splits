@@ -6,20 +6,9 @@ import {BaseSymPodTest, BaseSymPodHarnessTest} from "./SymPod.t.sol";
 import "forge-std/Test.sol";
 
 contract SymPodSlasherTest is BaseSymPodHarnessTest {
+  event TriggerWithdrawal(address sender, address symPod, uint256 sharesToBurn, bytes32 withdrawalKey);
 
-    event TriggerWithdrawal(
-        address sender,
-        address symPod,
-        uint256 sharesToBurn,
-        bytes32 withdrawalKey
-    );
-
-    event TriggerBurn(
-        address sender,
-        address symPod,
-        uint256 amountBurned,
-        bytes32 withdrawalKey
-    );
+  event TriggerBurn(address sender, address symPod, uint256 amountBurned, bytes32 withdrawalKey);
 
   SymPodSlasher createdSlasher;
 
@@ -39,11 +28,7 @@ contract SymPodSlasherTest is BaseSymPodHarnessTest {
 
     payable(address(createdSlasher)).transfer(amount);
 
-    assertEq(
-      address(createdSlasher).balance,
-      amount,
-      "invalid eth balance"
-    );
+    assertEq(address(createdSlasher).balance, amount, "invalid eth balance");
   }
 
   function testFuzz_triggerWithdrawal(uint256 amountOfShares) external {
@@ -52,16 +37,9 @@ contract SymPodSlasherTest is BaseSymPodHarnessTest {
     createdHarnessPod.mintSharesPlusAssetsAndRestakedPodWei(amountOfShares, address(slasher));
 
     vm.expectEmit(true, true, true, false);
-    emit TriggerWithdrawal(
-      address(this),
-      address(createdHarnessPod),
-      amountOfShares,
-      bytes32(0)
-    );
+    emit TriggerWithdrawal(address(this), address(createdHarnessPod), amountOfShares, bytes32(0));
 
-    createdSlasher.triggerWithdrawal(
-      createdHarnessPod
-    );
+    createdSlasher.triggerWithdrawal(createdHarnessPod);
   }
 
   function testFuzz_triggerBurn(uint256 amountOfShares) external {
@@ -70,22 +48,11 @@ contract SymPodSlasherTest is BaseSymPodHarnessTest {
     createdHarnessPod.mintSharesPlusAssetsAndRestakedPodWei(amountOfShares, address(slasher));
 
     vm.deal(address(createdHarnessPod), amountOfShares);
-    
-    bytes32 withdrawalKey = createdSlasher.triggerWithdrawal(
-      createdHarnessPod
-    );
+
+    bytes32 withdrawalKey = createdSlasher.triggerWithdrawal(createdHarnessPod);
 
     vm.expectEmit(true, true, true, false);
-    emit TriggerBurn(
-      address(this),
-      address(createdHarnessPod),
-      0,
-      withdrawalKey
-    );
-    createdSlasher.triggerBurn(
-      createdHarnessPod,
-      withdrawalKey
-    );
+    emit TriggerBurn(address(this), address(createdHarnessPod), 0, withdrawalKey);
+    createdSlasher.triggerBurn(createdHarnessPod, withdrawalKey);
   }
-
 }

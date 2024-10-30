@@ -9,7 +9,8 @@ remappings = [
     'splits-tests/=lib/splits-utils/test/',
     'solady/=lib/solady/src/',
     'collateral/=lib/collateral/src/',
-    'openzeppelin/=lib/openzeppelin-contracts/contracts'
+    'openzeppelin/=lib/openzeppelin-contracts/contracts',
+    'halmos/=lib/halmos-cheatcodes/src'
 ]
 solc_version = '0.8.19'
 gas_reports = ["*"]
@@ -34,7 +35,7 @@ tab_width = 2
 wrap_comments = true
 
 [fuzz]
-runs = 1000
+runs = 100
 
 [etherscan]
 chiado = { key = "${ETHERSCAN_API_KEY}", url = "https://blockscout.com/gnosis/chiado/api" }

@@ -10,7 +10,7 @@ contract MerkleHarness {
         bytes32[] calldata proof,
         Merkle.Node[] memory leaves,
         uint256 numLayers
-    ) external pure returns (bool) {
+    ) external view returns (bool) {
         return Merkle.verifyMultiProofInclusionSha256({
             expectedRoot: expectedRoot,
             proof: proof,

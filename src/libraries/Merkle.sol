@@ -2,7 +2,7 @@
 // Modified from OpenZeppelin Contracts (last updated v4.8.0) (utils/cryptography/MerkleProof.sol)
 
 pragma solidity ^0.8.0;
-
+import {console} from "forge-std/console.sol";
 /**
  * @dev These functions deal with verification of Merkle Tree proofs.
  *
@@ -38,7 +38,7 @@ library Merkle {
         bytes32[] calldata proof,
         Node[] memory leaves,
         uint256 numLayers
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
         return processMultiInclusionProofSha256(proof, leaves, numLayers) == expectedRoot;
     }
 
@@ -107,15 +107,13 @@ library Merkle {
      * hash matches the root of the tree. The tree is built assuming `leaf` is
      * the 0 indexed `index`'th leaf from the bottom left of the tree.
      *
-     *
-     *
      * Note this is for a Merkle tree using the sha256 hash function
      */
     function processMultiInclusionProofSha256(
         bytes32[] calldata proof,
         Node[] memory leaves,
         uint256 numLayers
-    ) internal pure returns (bytes32 ) {
+    ) internal view returns (bytes32 ) {
         uint256 proofIndex = 0;
         Node[] memory currentLayer = sort(leaves);
         // Process each layer
@@ -133,7 +131,9 @@ library Merkle {
                         siblingLeaf = value.leaf;
                     } else if (proofIndex < proof.length) {
                         siblingLeaf = proof[proofIndex];
-                        proofIndex += 1;
+                        unchecked {
+                            proofIndex += 1;
+                        }
                     } else {
                         revert Merkle__InsufficientProofElements();
                     }
@@ -141,9 +141,9 @@ library Merkle {
 
                 bytes32 parentLeaf;
                 if (currentLeaf.index & 1 == 0) {
-                    parentLeaf = sha256(abi.encodePacked(currentLeaf.leaf, siblingLeaf));
+                    parentLeaf = efficientSha256(currentLeaf.leaf, siblingLeaf)[0];
                 } else {
-                    parentLeaf = sha256(abi.encodePacked(siblingLeaf, currentLeaf.leaf));
+                    parentLeaf = efficientSha256(siblingLeaf, currentLeaf.leaf)[0];
                 }
 
                 uint256 nextIndex = currentLeaf.index >> 1;
@@ -166,20 +166,27 @@ library Merkle {
         return root.leaf;
     }
 
+    /// @dev Returns if a index is found in the leaves array
+    /// @return value Node found
     function contains(Node[] memory leaves, uint256 index) internal pure returns (Node memory value, bool found) {
         if (leaves.length == 0) {
             return (value, false);
         }
         
-        for (uint256 i = 0; i < leaves.length; i++ ) {
+        for (uint256 i = 0; i < leaves.length;) {
             if (leaves[i].index == index) {
                 return (leaves[i], true);
+            }
+            
+            unchecked {
+                i+=1;
             }
         }
 
         return (value, false);
     }
 
+    /// @dev Append a Node item to the end of an array
     function append(Node[] memory values, Node memory insert ) internal pure returns (Node[] memory merged) {
         uint256 baseLength = values.length;
 
@@ -193,11 +200,14 @@ library Merkle {
         uint256 size = baseLength + 1;
         merged = new Node[](size);
 
-        for (uint256 i = 0; i < size; i++) {
+        for (uint256 i = 0; i < size;) {
             if (i == baseLength) {
                 merged[i] = insert;
             } else {
                 merged[i] = values[i];
+            }
+            unchecked {
+                i += 1;
             }
         }
     }
@@ -232,43 +242,47 @@ library Merkle {
         return layer[0];
     }
 
-    /// @notice Insertion sort node
+    /// @notice Sorts array using the insertion sort algorithm
+    /// @param myArray array to sort
+    /// @return Sorted array
     function sort(Node[] memory myArray)
         internal
         pure
         returns (Node[] memory)
     {
-
         uint256 n = myArray.length;
 
-        if (n == 1) {
+        if (n <= 1) {
             return myArray;
         }
 
-        if (n == 2) {
-            if (myArray[0].index < myArray[1].index) {
-                return myArray;
-            } else {
-                Node memory temp = myArray[0];
-                myArray[0] = myArray[1];
-                myArray[1] = temp;
-                return myArray;
-            }
-        }
+        for (uint256 i = 1; i < n; ) {
+            Node memory key = myArray[i];
+            uint256 j = i;
 
-        for (uint256 i = 1; i < n; i++) {
-            uint256 key = myArray[i].index;
-            int256 j = int256(i - 1);
-
-            while (j >= 0 && int256(myArray[uint256(j)].index ) > int256(key)) {
-                myArray[uint256(j + 1)] = myArray[uint256(j)];
-                j--;
+            // Using while loop to place `key` in its correct position
+            while (j > 0 && myArray[j - 1].index > key.index) {
+                myArray[j] = myArray[j - 1];
+                unchecked {
+                    j--;
+                }
             }
 
-            myArray[uint256(j + 1)] = myArray[i];
+            myArray[j] = key;
+            unchecked {
+                i+=1;
+            }
         }
 
         return myArray;
+    }
+
+    function efficientSha256(bytes32 a, bytes32 b) internal view returns (bytes32[1] memory computedHash) {
+        assembly ("memory-safe") {
+            mstore(0x00, a)
+            mstore(0x20, b)
+            if iszero(staticcall(sub(gas(), 2000), 2, 0x00, 0x40, computedHash, 0x20)) { revert(0, 0) }
+        }
     }
 
 }

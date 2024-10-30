@@ -69,7 +69,6 @@ contract BaseSymPodTest is Test {
 
     slasher = address(new SymPodSlasher());
 
-
     createdPod = SymPod(
       payable(podFactory.createSymPod(podName, podSymbol, slasher, podAdmin, withdrawalAddress, recoveryRecipient))
     );
@@ -921,7 +920,7 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
       balanceRegistryProof: balanceContainerProof,
       validatorBalancesProof: validatorBalancesProof
     });
-    uint256 expectedTotalSupply =  uint256(expectedTotalShareDeltaWei + podBalanceWei);
+    uint256 expectedTotalSupply = uint256(expectedTotalShareDeltaWei + podBalanceWei);
     assertEq(
       createdHarnessPod.balanceOf(podAdmin),
       createdHarnessPod.totalSupply(),
@@ -930,22 +929,14 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     assertEq(
       createdHarnessPod.withdrawableRestakedPodWei(), uint256(podBalanceWei), "invalid withdrawable restaked pod wei"
     );
-    assertEq(
-      createdHarnessPod.currentCheckPointTimestamp(),
-      0,
-      "currentCheckpointTimestamp should be 0"
-    );
+    assertEq(createdHarnessPod.currentCheckPointTimestamp(), 0, "currentCheckpointTimestamp should be 0");
     // assertEq(
     //   createdHarnessPod.totalSupply(),
     //   (newTotalValidatorBalanceMinusFirstValidatorGwei + firstValidatorBalanceGwei) * 1 gwei,
     //   "the total supply should be consistent"
     // );
     currentCheckpoint = createdHarnessPod.getCurrentCheckpoint();
-    assertEq(
-      currentCheckpoint.beaconBlockRoot,
-      bytes32(0),
-      "beacon block root should be deleted"
-    );
+    assertEq(currentCheckpoint.beaconBlockRoot, bytes32(0), "beacon block root should be deleted");
   }
 }
 

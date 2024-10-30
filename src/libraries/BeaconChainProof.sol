@@ -167,7 +167,7 @@ library BeaconChainProofs {
         bytes32[][] calldata validatorFields,
         bytes32[] calldata proof,
         uint40[] memory validatorIndices
-    ) internal pure {
+    ) internal view {
         uint256 validatorFieldsSize = validatorFields.length;
         uint256 indicesSize = validatorIndices.length;
 
@@ -176,20 +176,23 @@ library BeaconChainProofs {
         }
         
         Merkle.Node[] memory validatorFieldNodes = new Merkle.Node[](validatorFieldsSize);
-        for (uint256 i = 0; i < validatorFields.length; i++) {
+        for (uint256 i = 0; i < validatorFields.length;){
             if (validatorFields[i].length != (2 ** VALIDATOR_FIELD_TREE_HEIGHT)) {
                 revert BeaconChainProofs__InvalidValidatorField(i);
             }
             // merkleize the validatorFields to get the leaf to prove
             bytes32 validatorRoot = Merkle.merkleizeSha256(validatorFields[i]);
             validatorFieldNodes[i] = Merkle.Node(validatorRoot, validatorIndices[i]);
+            unchecked {
+                i+=1;
+            }
         }
         
         /// NB: We use `VALIDATOR_TREE_HEIGHT + 1` here because the merkle tree of the 
         /// validator list registry includes hashing the root of the validator tree 
         /// with the length of the validator list
         uint256 numLayers = VALIDATOR_TREE_HEIGHT + 1;
-
+        
         if (
             Merkle.verifyMultiProofInclusionSha256(
                 validatorListRoot,
@@ -212,7 +215,7 @@ library BeaconChainProofs {
         bytes32[] calldata proof,
         uint40[] memory validatorIndices,
         bytes32[] memory validatorBalanceRoots
-    ) internal pure returns (uint256[] memory validatorBalancesGwei) { 
+    ) internal view returns (uint256[] memory validatorBalancesGwei) { 
         uint256 validatorBalancesSize = validatorBalanceRoots.length;
         if (validatorBalancesSize != validatorIndices.length) {
             revert BeaconChainProofs__InvalidIndicesAndBalances();
@@ -226,13 +229,16 @@ library BeaconChainProofs {
         uint256 numLayers = BALANCE_TREE_HEIGHT + 1;
 
         validatorBalancesGwei = new uint256[](validatorBalancesSize);
-        for (uint256 i = 0; i < validatorBalancesSize; i++) {
+        for (uint256 i = 0; i < validatorBalancesSize;) {
             /// beacon chain balances are combined into groups of 4 called balanceRoots
             /// diving by 4 allows to get the balance index of a validator      
             uint256 balanceIndex = validatorIndices[i] / 4;
             balanceNodes[i] = Merkle.Node(validatorBalanceRoots[i], balanceIndex);
 
             validatorBalancesGwei[i] = uint256(getBalanceAtIndex(validatorBalanceRoots[i], validatorIndices[i]));
+            unchecked {
+                i+=1;
+            }
         }
 
         if (

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
+
 import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 import {BaseSymPodHarnessTest, ISymPod} from "../SymPod.t.sol";
 import "forge-std/Test.sol";
@@ -15,36 +16,33 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     super.setUp();
   }
 
-  function testFuzz_VerifyWC_StartCP_CompleteCP_Withdraw(
-    address user,
-    uint256 podBalance
-  ) external {
+  function testFuzz_VerifyWC_StartCP_CompleteCP_Withdraw(address user, uint256 podBalance) external {
     vm.assume(user != address(0));
     /**
-     * The steps are highlighted belwo 
-     * 
+     * The steps are highlighted belwo
+     *
      * -> Verify withdrawal credentials
      * -> Start Checkpoint
      * -> Complete Checkpoint
      * -> Withdraw
      * -> Verify WC
-     * -> Start Checkpoint
+     * -> Start & Complete Checkpoint
      * -> Complete Withdraw
-     * 
+     *
      */
     // proof is generated using the Obol proof generator repository
     //
     //  The validator indices and slot number used to generate the proof are listed below
     //
     //  https://beaconscan.com/slot/8800000
-    //    active   60000 (epoch 320368 )
-    //             10000 ( epoch 320368 )
+    //    active   60000 (epoch 320368)
+    //             10000 (epoch 320368)
     //    exited   26877 (exit epoch 231119)
-    //    slashed  19607 (slot 9249311, epoch 289_040) 
-    //             163047 (slot 8831565, epoch 275986)  	
+    //    slashed  19607 (slot 9249311, epoch 289_040)
+    //             163047 (slot 8831565, epoch 275986)
     {
       string memory verifyWithdrawalCredentialProofPath =
-      "./src/test/test-data/mainnet/integration/VerifyWithdrawalCredential-proof_deneb_mainnet_slot_8800000.json";
+        "./src/test/test-data/mainnet/integration/VerifyWithdrawalCredential-proof_deneb_mainnet_slot_8800000.json";
       // Process proofs
       proofParser.setJSONPath(verifyWithdrawalCredentialProofPath);
       blockRoot = proofParser.getBlockRoot();
@@ -70,15 +68,12 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
         validatorRegistryProof: validatorRegistryProof,
         validatorProof: validatorProof
       });
-      __assertWithdrawalCredentialChanges(
-        validatorProof,
-        sizeOfValidators
-      );
+      __assertWithdrawalCredentialChanges(validatorProof, sizeOfValidators);
     }
 
     advanceEpoch();
 
-    // We bound here with type(uint64).max because 
+    // We bound here with type(uint64).max because
     // podBalanceGwei is uint64 max in SymPod
     podBalance = bound(podBalance, 0, type(uint64).max);
     // send some ether to the SymPod
@@ -91,11 +86,7 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     vm.prank(podAdmin);
     createdHarnessPod.startCheckpoint(false);
 
-    __assertStartCheckpointChanges(
-      sizeOfValidators,
-      blockRoot,
-      podBalance
-    );
+    __assertStartCheckpointChanges(sizeOfValidators, blockRoot, podBalance);
 
     advanceSlot();
 
@@ -105,16 +96,13 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     {
       {
         string memory verifyBalanceCheckpointProofPath =
-        "./src/test/test-data/mainnet/integration/VerifyBalanceCheckpointProof-proof_deneb_mainnet_slot_8800000.json";
+          "./src/test/test-data/mainnet/integration/VerifyBalanceCheckpointProof-proof_deneb_mainnet_slot_8800000.json";
         proofParser.setJSONPath(verifyBalanceCheckpointProofPath);
         // the block root is the same it doesnot change
         beaconRootOracle.setBlockRoot(uint64(block.timestamp), blockRoot);
       }
 
-      (
-        balanceRegistryProof,
-        validatorBalancesProof
-      ) = _parseVerifyBCProof();
+      (balanceRegistryProof, validatorBalancesProof) = _parseVerifyBCProof();
 
       // Transfer entire balance from podAdmin to another user
       uint256 currentAdminBalance = createdHarnessPod.balanceOf(podAdmin);
@@ -131,21 +119,14 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
         validatorBalancesProof: validatorBalancesProof
       });
 
-      assertEq(
-        createdHarnessPod.balanceOf(user),
-        currentAdminBalance,
-        "shares of user should remain the same"
-      );
+      assertEq(createdHarnessPod.balanceOf(user), currentAdminBalance, "shares of user should remain the same");
 
-      uint256 totalValidatorBalanceWei = getTotalValidatorBalancesGwei(
-        validatorIndices, validatorBalancesProof.validatorBalanceRoots
-      ) * 1 gwei;
+      uint256 totalValidatorBalanceWei =
+        getTotalValidatorBalancesGwei(validatorIndices, validatorBalancesProof.validatorBalanceRoots) * 1 gwei;
 
       // We verify that new shares are minted to the podAdmin
       __assertVerifyBalanceCheckpointChanges(
-        podBalanceRoundToNearestGweiInWei,
-        validatorIndices,
-        validatorBalancesProof
+        podBalanceRoundToNearestGweiInWei, validatorIndices, validatorBalancesProof
       );
 
       assertEq(
@@ -153,17 +134,13 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
         (totalValidatorBalanceWei + podBalanceRoundToNearestGweiInWei) - currentAdminBalance,
         "new shares should be minted to podAdmin"
       );
-      assertEq(
-        createdHarnessPod.convertToAssets(ONE_SHARE),
-        prevExchangeRate,
-        "exchange rate should stay the same"
-      );
+      assertEq(createdHarnessPod.convertToAssets(ONE_SHARE), prevExchangeRate, "exchange rate should stay the same");
     }
 
     advanceEpoch();
 
     {
-      // We start another checkpoint 
+      // We start another checkpoint
       // this time using a different block root where some of the
       // validators have slashed & exited
       // you can know the slashed & exited validators via the table above
@@ -174,7 +151,7 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
       * https://beaconscan.com/slot/10254823
       */
       string memory verifyBalanceCheckpointProofPath =
-      "./src/test/test-data/mainnet/integration/VerifyBalanceCheckpointProof-proof_deneb_mainnet_slot_10254823.json";
+        "./src/test/test-data/mainnet/integration/VerifyBalanceCheckpointProof-proof_deneb_mainnet_slot_10254823.json";
       proofParser.setJSONPath(verifyBalanceCheckpointProofPath);
       // the block root is the same it doesnot change
       blockRoot = proofParser.getBlockRoot();
@@ -183,16 +160,10 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
       uint256 prevTotalRestakedETH = createdHarnessPod.totalAssets();
       uint256 currentAdminBalance = createdHarnessPod.balanceOf(podAdmin);
       uint256 prevExchangeRate = createdHarnessPod.convertToAssets(1 ether);
-    
-      (
-        balanceRegistryProof,
-        validatorBalancesProof
-      ) = _parseVerifyBCProof();
 
-      uint256 expectedExitedBalanceGwei = calculateExitedValidatorBalances(
-        balanceRegistryProof,
-        validatorBalancesProof
-      );
+      (balanceRegistryProof, validatorBalancesProof) = _parseVerifyBCProof();
+
+      uint256 expectedExitedBalanceGwei = calculateExitedValidatorBalances(balanceRegistryProof, validatorBalancesProof);
 
       vm.prank(podAdmin);
       createdHarnessPod.startCheckpoint(false);
@@ -202,40 +173,23 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
         validatorBalancesProof: validatorBalancesProof
       });
 
-      __assertValidatorsState(
-        balanceRegistryProof,
-        validatorBalancesProof
-      );
-      uint256 totalValidatorBalanceWei = getTotalValidatorBalancesGwei(
-        validatorIndices, validatorBalancesProof.validatorBalanceRoots
-      ) * 1 gwei;
+      __assertValidatorsState(balanceRegistryProof, validatorBalancesProof);
+      uint256 totalValidatorBalanceWei =
+        getTotalValidatorBalancesGwei(validatorIndices, validatorBalancesProof.validatorBalanceRoots) * 1 gwei;
       uint256 currentExchangeRate = createdHarnessPod.convertToAssets(1 ether);
       // get last checkpoint
-      uint256 exitedBalanceGwei = createdHarnessPod.checkpointBalanceExitedGwei(
-        createdHarnessPod.lastCheckpointTimestamp()
-      );
+      uint256 exitedBalanceGwei =
+        createdHarnessPod.checkpointBalanceExitedGwei(createdHarnessPod.lastCheckpointTimestamp());
 
       assertTrue(exitedBalanceGwei > 0, "some validators have exited balances");
-      assertEq(
-        exitedBalanceGwei,
-        expectedExitedBalanceGwei,
-        "exited balance should be eqaul"
-      );
-      assertEq(
-        createdHarnessPod.currentCheckPointTimestamp(),
-        0,
-        "checkpointed should be finalised"
-      );
+      assertEq(exitedBalanceGwei, expectedExitedBalanceGwei, "exited balance should be eqaul");
+      assertEq(createdHarnessPod.currentCheckPointTimestamp(), 0, "checkpointed should be finalised");
       assertEq(
         createdHarnessPod.totalAssets(),
         totalValidatorBalanceWei + podBalanceRoundToNearestGweiInWei,
         "incorrect total assets"
       );
-      assertEq(
-        currentAdminBalance,
-        createdHarnessPod.balanceOf(podAdmin),
-        "balance of admin should not change"
-      );
+      assertEq(currentAdminBalance, createdHarnessPod.balanceOf(podAdmin), "balance of admin should not change");
       assertTrue(prevTotalRestakedETH > createdHarnessPod.totalAssets(), "total restaked eth should reduce");
       assertTrue(prevExchangeRate > currentExchangeRate, "exchange rate for 1 share should reduce");
     }
@@ -245,7 +199,7 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     // Slash
     {
       // transfer funds to be slashed to slasher
-      // Given that the 
+      // Given that the
       uint256 balance = createdHarnessPod.balanceOf(user);
 
       vm.prank(user);
@@ -254,46 +208,25 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
       uint256 amountInWei = createdHarnessPod.convertToAssets(createdHarnessPod.balanceOf(slasher));
 
       assertTrue(
-        amountInWei > createdHarnessPod.withdrawableRestakedPodWei(),
-        "amount to withdraw should be greater than it"
+        amountInWei > createdHarnessPod.withdrawableRestakedPodWei(), "amount to withdraw should be greater than it"
       );
 
       vm.prank(address(slasher));
-      bytes32 withdrawalKey = createdHarnessPod.onSlash(
-        amountInWei
-      );
+      bytes32 withdrawalKey = createdHarnessPod.onSlash(amountInWei);
 
-      assertEq(
-        createdHarnessPod.pendingAmountToWithdrawWei(),
-        amountInWei,
-        "invalid  pending amount set"
-      );
+      assertEq(createdHarnessPod.pendingAmountToWithdrawWei(), amountInWei, "invalid  pending amount set");
 
       uint256 amountReceived = createdHarnessPod.completeWithdraw(withdrawalKey);
       if (podBalanceRoundToNearestGweiInWei > 0) {
-        assertTrue(
-          amountReceived > 0,
-          "incorrect amount received"
-        );
-        assertEq(
-          createdHarnessPod.pendingAmountToWithdrawWei(),
-          0,
-          "incorrect pending amount to withdraw"
-        );
+        assertTrue(amountReceived > 0, "incorrect amount received");
+        assertEq(createdHarnessPod.pendingAmountToWithdrawWei(), 0, "incorrect pending amount to withdraw");
       } else {
-        assertTrue(
-          amountReceived == 0,
-          "incorrect amount received"
-        );
+        assertTrue(amountReceived == 0, "incorrect amount received");
       }
       // The slasher should have shares left
       // because there isn't enough wei to service the
       // withdrawal
-      assertTrue(
-        createdHarnessPod.balanceOf(slasher) > 0,
-        "there should not be enough wei"
-      );
-
+      assertTrue(createdHarnessPod.balanceOf(slasher) > 0, "there should not be enough wei");
     }
 
     advanceEpoch();
@@ -301,14 +234,13 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     // Checkpoint Again
     // To add withdrawable Wei
     {
-      
       beaconRootOracle.setBlockRoot(uint64(block.timestamp), blockRoot);
 
       uint256 balance = createdHarnessPod.balanceOf(podAdmin);
       uint256 assets = createdHarnessPod.convertToAssets(balance);
       // uint256 assetsToNearestGwei = roundDown(assets);
       uint256 amountToDeposit = roundDown(createdHarnessPod.pendingAmountToWithdrawWei() + assets);
-      // send the eth to 
+      // send the eth to
       vm.deal(address(createdHarnessPod), createdHarnessPod.pendingAmountToWithdrawWei() + assets);
 
       // Use checkpoint to track the new deposit ETH
@@ -320,51 +252,38 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
         validatorBalancesProof: validatorBalancesProof
       });
 
-      assertEq(
-        amountToDeposit,
-        createdHarnessPod.withdrawableRestakedPodWei(),
-        "withdrawable is not properly tracked"
-      );
-      assertEq(
-        createdHarnessPod.currentCheckPointTimestamp(),
-        0,
-        "checkpoint should be finalised"
-      );
+      assertEq(amountToDeposit, createdHarnessPod.withdrawableRestakedPodWei(), "withdrawable is not properly tracked");
+      assertEq(createdHarnessPod.currentCheckPointTimestamp(), 0, "checkpoint should be finalised");
     }
 
     // Withdraw
     {
       uint256 balance = createdHarnessPod.balanceOf(podAdmin);
       uint256 availableAmountWei = createdHarnessPod.convertToAssets(balance);
-      uint256 amountWei = createdHarnessPod.withdrawableRestakedPodWei() - createdHarnessPod.pendingAmountToWithdrawWei();
+      uint256 amountWei =
+        createdHarnessPod.withdrawableRestakedPodWei() - createdHarnessPod.pendingAmountToWithdrawWei();
 
-      assertTrue(
-        availableAmountWei > amountWei,
-        "admin available to  withdraw should be greater than"
-      );
+      assertTrue(availableAmountWei > amountWei, "admin available to  withdraw should be greater than");
 
       vm.prank(podAdmin);
-      bytes32 withdrawalKey = createdHarnessPod.initWithdraw(
-        amountWei,
-        1
-      );
+      bytes32 withdrawalKey = createdHarnessPod.initWithdraw(amountWei, 1);
 
       // move past withdrawal delay period
       advanceEpoch();
 
       uint256 amountReceived = createdHarnessPod.completeWithdraw(withdrawalKey);
-      assertTrue(
-        amountReceived > 0,
-        "invalid amount received in withdraw"
-      );
+      assertTrue(amountReceived > 0, "invalid amount received in withdraw");
     }
   }
 
-  function _parseWCProof() internal returns (
-    BeaconChainProofs.ValidatorRegistryProof memory validatorRegistryProof,
-    BeaconChainProofs.ValidatorsMultiProof memory validatorProof,
-    uint40[] memory validatorIndices
-  ) {
+  function _parseWCProof()
+    internal
+    returns (
+      BeaconChainProofs.ValidatorRegistryProof memory validatorRegistryProof,
+      BeaconChainProofs.ValidatorsMultiProof memory validatorProof,
+      uint40[] memory validatorIndices
+    )
+  {
     validatorRegistryProof = BeaconChainProofs.ValidatorRegistryProof({
       validatorListRoot: proofParser.getValidatorListRoot(),
       proof: proofParser.getValidatorListRootProofAgainstBlockRoot()
@@ -377,11 +296,13 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     });
   }
 
-  function _parseVerifyBCProof() internal returns (
-    BeaconChainProofs.BalanceRegistryProof memory currentBalanceContainerProof,
-    BeaconChainProofs.BalancesMultiProof memory currentValidatorBalancesProof
-  ) {
-
+  function _parseVerifyBCProof()
+    internal
+    returns (
+      BeaconChainProofs.BalanceRegistryProof memory currentBalanceContainerProof,
+      BeaconChainProofs.BalancesMultiProof memory currentValidatorBalancesProof
+    )
+  {
     currentBalanceContainerProof = BeaconChainProofs.BalanceRegistryProof({
       balanceListRoot: proofParser.getBalanceListRoot(),
       proof: proofParser.getBalanceListRootProofAgainstBlockRoot()
@@ -419,11 +340,9 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     }
   }
 
-  function __assertStartCheckpointChanges(
-    uint256 numValidators,
-    bytes32 expectedBlockRoot,
-    uint256 amountOfEther
-  ) internal {
+  function __assertStartCheckpointChanges(uint256 numValidators, bytes32 expectedBlockRoot, uint256 amountOfEther)
+    internal
+  {
     // confirm details here
     assertEq(createdHarnessPod.currentCheckPointTimestamp(), block.timestamp, "invalid current checkpoint timestamp");
     ISymPod.Checkpoint memory currentCheckpoint = createdHarnessPod.getCurrentCheckpoint();
@@ -435,11 +354,7 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     assertEq(currentCheckpoint.balanceDeltasGwei, 0, "invalid pod balance");
   }
 
-  function __assertInitWithdrawChanges(
-
-  ) internal {
-
-  }
+  function __assertInitWithdrawChanges() internal {}
 
   function __assertVerifyBalanceCheckpointChanges(
     uint256 podBalanceWei,
@@ -449,9 +364,8 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     assertEq(
       createdHarnessPod.withdrawableRestakedPodWei(), uint256(podBalanceWei), "invalid withdrawable restaked pod wei"
     );
-    uint256 totalValidatorBalanceGwei = getTotalValidatorBalancesGwei(
-      validatorIndices, currentValidatorBalancesProof.validatorBalanceRoots
-    );
+    uint256 totalValidatorBalanceGwei =
+      getTotalValidatorBalancesGwei(validatorIndices, currentValidatorBalancesProof.validatorBalanceRoots);
 
     assertEq(
       createdHarnessPod.totalSupply(),
@@ -464,7 +378,8 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
     BeaconChainProofs.BalanceRegistryProof memory currentBalanceRegistryProof,
     BeaconChainProofs.BalancesMultiProof memory currentValidatorBalancesProof
   ) internal view returns (uint256 exitedBalances) {
-    uint40[] memory validatorIndices = createdHarnessPod.getValidatorIndices(currentValidatorBalancesProof.validatorPubKeyHashes);
+    uint40[] memory validatorIndices =
+      createdHarnessPod.getValidatorIndices(currentValidatorBalancesProof.validatorPubKeyHashes);
     uint256[] memory validatorBalances = beaconChainProofHarness.verifyMultiValidatorBalancesProof({
       balanceListRoot: currentBalanceRegistryProof.balanceListRoot,
       proof: currentValidatorBalancesProof.proof,
@@ -472,17 +387,16 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
       validatorBalances: currentValidatorBalancesProof.validatorBalanceRoots
     });
 
-    return createdHarnessPod.calculateExitedValidatorBalance(
-      validatorBalancesProof.validatorPubKeyHashes,
-      validatorBalances
-    );
+    return
+      createdHarnessPod.calculateExitedValidatorBalance(validatorBalancesProof.validatorPubKeyHashes, validatorBalances);
   }
 
   function __assertValidatorsState(
     BeaconChainProofs.BalanceRegistryProof memory currentBalanceRegistryProof,
     BeaconChainProofs.BalancesMultiProof memory currentValidatorBalancesProof
   ) internal {
-    uint40[] memory validatorIndices = createdHarnessPod.getValidatorIndices(currentValidatorBalancesProof.validatorPubKeyHashes);
+    uint40[] memory validatorIndices =
+      createdHarnessPod.getValidatorIndices(currentValidatorBalancesProof.validatorPubKeyHashes);
     uint256[] memory validatorBalances = beaconChainProofHarness.verifyMultiValidatorBalancesProof({
       balanceListRoot: currentBalanceRegistryProof.balanceListRoot,
       proof: currentValidatorBalancesProof.proof,
@@ -490,21 +404,16 @@ contract SymPodIntegrationTest is BaseSymPodHarnessTest {
       validatorBalances: currentValidatorBalancesProof.validatorBalanceRoots
     });
 
-    for(uint256 i = 0; i < currentValidatorBalancesProof.validatorPubKeyHashes.length; i++) {
+    for (uint256 i = 0; i < currentValidatorBalancesProof.validatorPubKeyHashes.length; i++) {
       bytes32 validatorPubKeyHash = currentValidatorBalancesProof.validatorPubKeyHashes[i];
       ISymPod.EthValidator memory currentValidatorInfo = createdHarnessPod.getValidatorInfo(validatorPubKeyHash);
 
       if (validatorBalances[i] == 0) {
         // then validator state should be withdrawn
         assertEq(
-          uint256(currentValidatorInfo.status),
-          uint256(ISymPod.VALIDATOR_STATE.WITHDRAWN),
-          "incorrect validator state"
+          uint256(currentValidatorInfo.status), uint256(ISymPod.VALIDATOR_STATE.WITHDRAWN), "incorrect validator state"
         );
       }
-
     }
   }
-  
-
 }
