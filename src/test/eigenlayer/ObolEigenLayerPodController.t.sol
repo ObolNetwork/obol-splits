@@ -51,7 +51,7 @@ contract ObolEigenLayerPodControllerTest is EigenLayerTestBase {
   MockERC20 mERC20;
 
   function setUp() public {
-    uint256 goerliBlock = 10_205_449;
+    // uint256 goerliBlock = 10_205_449;
     vm.createSelectFork(vm.envString("HOLESKY_RPC_URL"));
 
     vm.mockCall(

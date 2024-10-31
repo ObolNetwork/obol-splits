@@ -881,10 +881,10 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     uint256 firstValidatorBalanceGwei = BeaconChainProofs.getBalanceAtIndex(
       validatorBalancesProof.validatorBalanceRoots[0], validatorProof.validatorIndices[0]
     );
-
-    uint256 newTotalValidatorBalanceMinusFirstValidatorGwei = getTotalValidatorBalancesGwei(
+    uint256 totalValidatorBalanceGwei = getTotalValidatorBalancesGwei(
       validatorProof.validatorIndices, validatorBalancesProof.validatorBalanceRoots
-    ) - firstValidatorBalanceGwei;
+    );
+    uint256 newTotalValidatorBalanceMinusFirstValidatorGwei = totalValidatorBalanceGwei - firstValidatorBalanceGwei;
 
     int256 expectedBalanceDeltaGwei =
       int256(newTotalValidatorBalanceMinusFirstValidatorGwei) - int256(currentTotalValidatorBalanceGwei);
@@ -920,7 +920,6 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
       balanceRegistryProof: balanceContainerProof,
       validatorBalancesProof: validatorBalancesProof
     });
-    uint256 expectedTotalSupply = uint256(expectedTotalShareDeltaWei + podBalanceWei);
     assertEq(
       createdHarnessPod.balanceOf(podAdmin),
       createdHarnessPod.totalSupply(),
@@ -930,11 +929,11 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
       createdHarnessPod.withdrawableRestakedPodWei(), uint256(podBalanceWei), "invalid withdrawable restaked pod wei"
     );
     assertEq(createdHarnessPod.currentCheckPointTimestamp(), 0, "currentCheckpointTimestamp should be 0");
-    // assertEq(
-    //   createdHarnessPod.totalSupply(),
-    //   (newTotalValidatorBalanceMinusFirstValidatorGwei + firstValidatorBalanceGwei) * 1 gwei,
-    //   "the total supply should be consistent"
-    // );
+    assertEq(
+      createdHarnessPod.totalSupply(),
+      (totalValidatorBalanceGwei * 1 gwei) + (podBalanceGwei * 1 gwei) ,
+      "the total supply should be consistent"
+    );
     currentCheckpoint = createdHarnessPod.getCurrentCheckpoint();
     assertEq(currentCheckpoint.beaconBlockRoot, bytes32(0), "beacon block root should be deleted");
   }
