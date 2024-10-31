@@ -95,6 +95,7 @@ contract ObolCollectorTest is Test {
     vm.assume(amountToDistribute > 0);
     vm.assume(fuzzWithdrawalAddress != address(0));
     vm.assume(fuzzFeeRecipient != address(0));
+    vm.assume(fuzzFeeRecipient != address(this) && fuzzWithdrawalAddress != address(this));
 
     amountToDistribute = bound(amountToDistribute, 1, type(uint128).max);
     fuzzFeeShare = bound(fuzzFeeShare, 1, 8 * 1e4);
@@ -113,7 +114,6 @@ contract ObolCollectorTest is Test {
     uint256 fee = amountToDistribute * fuzzFeeShare / PERCENTAGE_SCALE;
 
     assertEq(mERC20.balanceOf(fuzzFeeRecipient), feeRecipientBalancePrev + fee, "invalid fee share");
-
     assertEq(
       mERC20.balanceOf(fuzzWithdrawalAddress),
       fuzzWithdrawalAddressBalancePrev + amountToDistribute - fee,

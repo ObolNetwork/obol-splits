@@ -19,7 +19,7 @@ contract IMSCFactory is Test {
   error InvalidSplit__AllocationMustBePositive(uint256 index);
   error InvalidSplit__InvalidDistributorFee(uint32 distributorFee);
 
-  address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
+  address internal SPLIT_MAIN_HOLESKY = 0xfC8a305728051367797DADE6Aa0344E0987f5286;
   uint32 public constant SPLIT_MAIN_PERCENTAGE_SCALE = 1e6;
   uint256 public constant PERCENTAGE_SCALE = 1e6;
 
@@ -32,10 +32,10 @@ contract IMSCFactory is Test {
   uint32[] percentAllocations;
 
   function setUp() public {
-    uint256 goerliBlock = 8_529_931;
-    vm.createSelectFork(getChain("goerli").rpcUrl);
+    // uint256 goerliBlock = 8_529_931;
+    vm.createSelectFork(vm.envString("HOLESKY_RPC_URL"));
 
-    factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_GOERLI);
+    factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_HOLESKY);
     cntrlImpl = factory.controller();
 
     accounts = new address[](2);
@@ -166,7 +166,7 @@ contract IMSCFactory is Test {
     address predictedAddress =
       factory.predictSplitControllerAddress(owner, accounts, percentAllocations, 0, deploymentSalt);
 
-    address split = ISplitMain(SPLIT_MAIN_GOERLI).createSplit(accounts, percentAllocations, 0, predictedAddress);
+    address split = ISplitMain(SPLIT_MAIN_HOLESKY).createSplit(accounts, percentAllocations, 0, predictedAddress);
 
     ImmutableSplitController controller =
       factory.createController(split, owner, accounts, percentAllocations, 0, deploymentSalt);

@@ -103,16 +103,16 @@ contract SymPodHalmostTest is SymTest, Test {
     symPod.startCheckpoint(revertIfNoBalance);
 
     vm.prank(admin);
-    symPod.initWithdraw(amountToWithdraw, nonce);
+    bytes32 withdrawalKey = symPod.initWithdraw(amountToWithdraw, nonce);
 
     uint256 pendingAmountToWithdrawWei = symPod.pendingAmountToWithdrawWei();
 
     assert(pendingAmountToWithdrawWei == amountToWithdraw);
-    // // pass the withdrawal delay
-    // vm.warp(block.timestamp + 10 seconds);
-    // // complete withdraw
-    // uint256 amountReceived = symPod.completeWithdraw(withdrawalKey);
-    // assert(amountReceived == amountToWithdraw);
+    // pass the withdrawal delay
+    vm.warp(block.timestamp + 10 seconds);
+    // complete withdraw
+    uint256 amountReceived = symPod.completeWithdraw(withdrawalKey);
+    assert(amountReceived == amountToWithdraw);
   }
 
   function check_startCP_OnSlash_CompleteWithdraw(bool revertIfNoBalance, uint64 amountOfEther, uint64 amountToSlash)

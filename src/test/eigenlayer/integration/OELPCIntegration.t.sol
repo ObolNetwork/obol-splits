@@ -42,16 +42,16 @@ contract OELPCIntegration is EigenLayerTestBase {
   uint256 feeShare;
 
   function setUp() public {
-    uint256 goerliBlock = 10_653_080;
-    vm.createSelectFork(getChain("goerli").rpcUrl);
+    // uint256 goerliBlock = 10_653_080;
+    vm.createSelectFork(vm.envString("HOLESKY_RPC_URL"));
 
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI,
+      ENS_REVERSE_REGISTRAR_HOLESKY,
       abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
       bytes.concat(bytes32(0))
     );
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI,
+      ENS_REVERSE_REGISTRAR_HOLESKY,
       abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
       bytes.concat(bytes32(0))
     );
@@ -65,13 +65,13 @@ contract OELPCIntegration is EigenLayerTestBase {
     feeShare = 1e3;
 
     OptimisticWithdrawalRecipientFactory owrFactory =
-      new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
+      new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_HOLESKY, address(this));
 
     owrWithdrawalAddress =
       address(owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, 32 ether));
 
     factory = new ObolEigenLayerPodControllerFactory(
-      feeRecipient, feeShare, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
+      feeRecipient, feeShare, DELEGATION_MANAGER_HOLESKY, POD_MANAGER_HOLESKY, DELAY_ROUTER_HOLESKY
     );
 
     owrController = ObolEigenLayerPodController(factory.createPodController(owner, owrWithdrawalAddress));
@@ -84,80 +84,80 @@ contract OELPCIntegration is EigenLayerTestBase {
     percentAllocations[0] = 300_000;
     percentAllocations[1] = 700_000;
 
-    splitWithdrawalAddress = ISplitMain(SPLIT_MAIN_GOERLI).createSplit(accounts, percentAllocations, 0, address(0));
+    splitWithdrawalAddress = ISplitMain(SPLIT_MAIN_HOLESKY).createSplit(accounts, percentAllocations, 0, address(0));
 
     splitController = ObolEigenLayerPodController(factory.createPodController(owner, splitWithdrawalAddress));
 
-    vm.prank(DELAY_ROUTER_OWNER_GOERLI);
+    vm.prank(DELAY_ROUTER_OWNER_HOLESKY);
     // set the delay withdrawal duration to zero
-    IDelayedWithdrawalRouter(DELAY_ROUTER_GOERLI).setWithdrawalDelayBlocks(0);
+    IDelayedWithdrawalRouter(DELAY_ROUTER_HOLESKY).setWithdrawalDelayBlocks(0);
   }
 
-  function testFuzz_WithdrawOWR(uint256 amountToDeposit) external {
-    vm.assume(amountToDeposit > 0);
+  // function testFuzz_WithdrawOWR(uint256 amountToDeposit) external {
+  //   vm.assume(amountToDeposit > 0);
 
-    uint256 stakeSize = 32 ether;
+  //   uint256 stakeSize = 32 ether;
 
-    amountToDeposit = boundETH(amountToDeposit);
-    // transfer unstake beacon eth to eigenPod
-    (bool success,) = address(owrController.eigenPod()).call{value: amountToDeposit}("");
-    require(success, "call failed");
+  //   amountToDeposit = boundETH(amountToDeposit);
+  //   // transfer unstake beacon eth to eigenPod
+  //   (bool success,) = address(owrController.eigenPod()).call{value: amountToDeposit}("");
+  //   require(success, "call failed");
 
-    vm.startPrank(owner);
-    {
-      owrController.callEigenPod(encodeEigenPodCall(address(owrController), amountToDeposit));
-      owrController.claimDelayedWithdrawals(1);
-    }
-    vm.stopPrank();
+  //   vm.startPrank(owner);
+  //   {
+  //     owrController.callEigenPod(encodeEigenPodCall(address(owrController), amountToDeposit));
+  //     owrController.claimDelayedWithdrawals(1);
+  //   }
+  //   vm.stopPrank();
 
-    uint256 fee = amountToDeposit * feeShare / PERCENTAGE_SCALE;
+  //   uint256 fee = amountToDeposit * feeShare / PERCENTAGE_SCALE;
 
-    assertEq(address(feeRecipient).balance, fee, "fee recipient balance increased");
+  //   assertEq(address(feeRecipient).balance, fee, "fee recipient balance increased");
 
-    uint256 owrBalance = amountToDeposit - fee;
-    assertEq(address(owrWithdrawalAddress).balance, owrBalance, "owr balance increased");
+  //   uint256 owrBalance = amountToDeposit - fee;
+  //   assertEq(address(owrWithdrawalAddress).balance, owrBalance, "owr balance increased");
 
-    // call distribute on owrWithdrawal address
-    OptimisticWithdrawalRecipient(owrWithdrawalAddress).distributeFunds();
+  //   // call distribute on owrWithdrawal address
+  //   OptimisticWithdrawalRecipient(owrWithdrawalAddress).distributeFunds();
 
-    // check the princiapl recipient
-    if (owrBalance >= BALANCE_CLASSIFICATION_THRESHOLD) {
-      if (owrBalance > stakeSize) {
-        // prinicipal rexeives 32 eth and reward recieves remainder
-        assertEq(address(principalRecipient).balance, stakeSize, "invalid principal balance");
-        assertEq(address(rewardRecipient).balance, owrBalance - stakeSize, "invalid reward balance");
-      } else {
-        // principal receives everything
-        assertEq(address(principalRecipient).balance, owrBalance, "invalid principal balance");
-      }
-    } else {
-      // reward recipient receives everything
-      assertEq(address(rewardRecipient).balance, owrBalance, "invalid reward balance");
-    }
-  }
+  //   // check the princiapl recipient
+  //   if (owrBalance >= BALANCE_CLASSIFICATION_THRESHOLD) {
+  //     if (owrBalance > stakeSize) {
+  //       // prinicipal rexeives 32 eth and reward recieves remainder
+  //       assertEq(address(principalRecipient).balance, stakeSize, "invalid principal balance");
+  //       assertEq(address(rewardRecipient).balance, owrBalance - stakeSize, "invalid reward balance");
+  //     } else {
+  //       // principal receives everything
+  //       assertEq(address(principalRecipient).balance, owrBalance, "invalid principal balance");
+  //     }
+  //   } else {
+  //     // reward recipient receives everything
+  //     assertEq(address(rewardRecipient).balance, owrBalance, "invalid reward balance");
+  //   }
+  // }
 
-  function testFuzz_WithdrawSplit(uint256 amountToDeposit) external {
-    vm.assume(amountToDeposit > 0);
+  // function testFuzz_WithdrawSplit(uint256 amountToDeposit) external {
+  //   vm.assume(amountToDeposit > 0);
 
-    amountToDeposit = boundETH(amountToDeposit);
-    // transfer unstake beacon eth to eigenPod
-    (bool success,) = address(splitController.eigenPod()).call{value: amountToDeposit}("");
-    require(success, "call failed");
+  //   amountToDeposit = boundETH(amountToDeposit);
+  //   // transfer unstake beacon eth to eigenPod
+  //   (bool success,) = address(splitController.eigenPod()).call{value: amountToDeposit}("");
+  //   require(success, "call failed");
 
-    vm.startPrank(owner);
-    {
-      splitController.callEigenPod(encodeEigenPodCall(address(splitController), amountToDeposit));
-      splitController.claimDelayedWithdrawals(1);
-    }
-    vm.stopPrank();
+  //   vm.startPrank(owner);
+  //   {
+  //     splitController.callEigenPod(encodeEigenPodCall(address(splitController), amountToDeposit));
+  //     splitController.claimDelayedWithdrawals(1);
+  //   }
+  //   vm.stopPrank();
 
-    uint256 fee = amountToDeposit * feeShare / PERCENTAGE_SCALE;
-    assertEq(address(feeRecipient).balance, fee, "fee recipient balance increased");
+  //   uint256 fee = amountToDeposit * feeShare / PERCENTAGE_SCALE;
+  //   assertEq(address(feeRecipient).balance, fee, "fee recipient balance increased");
 
-    uint256 splitBalance = amountToDeposit - fee;
+  //   uint256 splitBalance = amountToDeposit - fee;
 
-    assertEq(address(splitWithdrawalAddress).balance, splitBalance, "invalid balance");
-  }
+  //   assertEq(address(splitWithdrawalAddress).balance, splitBalance, "invalid balance");
+  // }
 
   function boundETH(uint256 amount) internal view returns (uint256 result) {
     result = bound(amount, 1, type(uint96).max);

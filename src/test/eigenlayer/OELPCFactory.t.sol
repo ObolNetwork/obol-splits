@@ -24,8 +24,7 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
   uint256 feeShare;
 
   function setUp() public {
-    uint256 goerliBlock = 10_205_449;
-    vm.createSelectFork(getChain("goerli").rpcUrl);
+    vm.createSelectFork(vm.envString("HOLESKY_RPC_URL"));
 
     owner = makeAddr("owner");
     user1 = makeAddr("user1");
@@ -34,26 +33,26 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
     feeShare = 1e3;
 
     factory = new ObolEigenLayerPodControllerFactory(
-      feeRecipient, feeShare, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI
+      feeRecipient, feeShare, DELEGATION_MANAGER_HOLESKY, POD_MANAGER_HOLESKY, DELAY_ROUTER_HOLESKY
     );
   }
 
   function test_RevertIfInvalidDelegationManger() external {
     vm.expectRevert(Invalid_DelegationManager.selector);
-    new ObolEigenLayerPodControllerFactory(feeRecipient, feeShare, address(0), POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI);
+    new ObolEigenLayerPodControllerFactory(feeRecipient, feeShare, address(0), POD_MANAGER_HOLESKY, DELAY_ROUTER_HOLESKY);
   }
 
   function test_RevertIfInvalidPodManger() external {
     vm.expectRevert(Invalid_EigenPodManaager.selector);
     new ObolEigenLayerPodControllerFactory(
-      feeRecipient, feeShare, DELEGATION_MANAGER_GOERLI, address(0), DELAY_ROUTER_GOERLI
+      feeRecipient, feeShare, DELEGATION_MANAGER_HOLESKY, address(0), DELAY_ROUTER_HOLESKY
     );
   }
 
   function test_RevertIfInvalidWithdrawalRouter() external {
     vm.expectRevert(Invalid_WithdrawalRouter.selector);
     new ObolEigenLayerPodControllerFactory(
-      feeRecipient, feeShare, DELEGATION_MANAGER_GOERLI, POD_MANAGER_GOERLI, address(0)
+      feeRecipient, feeShare, DELEGATION_MANAGER_HOLESKY, POD_MANAGER_HOLESKY, address(0)
     );
   }
 
