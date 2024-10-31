@@ -117,10 +117,10 @@ library Merkle {
         uint256 proofIndex = 0;
         Node[] memory currentLayer = sort(leaves);
         // Process each layer
-        for (uint256 l = 0; l < numLayers; l++) {
+        for (uint256 l = 0; l < numLayers;) {
             Node[] memory nextLayer = new Node[](0);
 
-            for (uint256 i = 0; i < currentLayer.length; i++) {
+            for (uint256 i = 0; i < currentLayer.length;) {
                 Node memory currentLeaf = currentLayer[i];
                 bytes32 siblingLeaf;
                 {
@@ -153,9 +153,15 @@ library Merkle {
                 if (found == false) {
                     nextLayer = append(nextLayer, Node(parentLeaf, nextIndex));
                 }
+                unchecked {
+                    i+=1;
+                }
             }
 
             currentLayer = sort(nextLayer);
+            unchecked {
+                l += 1;
+            }
         }
 
         Node memory root = currentLayer[0];
