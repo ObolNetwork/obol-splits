@@ -2,7 +2,6 @@
 pragma solidity 0.8.19;
 
 import {UpgradeableBeacon} from "openzeppelin/proxy/beacon/UpgradeableBeacon.sol";
-import {SymPod} from "./Sympod.sol";
 
 /// @title SymPod
 /// @author Obol

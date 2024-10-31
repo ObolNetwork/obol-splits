@@ -194,8 +194,55 @@ contract SymPod__Details is BaseSymPodTest {
     assertEq(createdPod.name(), podName, "invalid name");
   }
 
+  function test_symPodWC() external view {
+    createdPod.symPodWithdrawalCredentials();
+  }
+
+  function test_RevertBeaconBlockRoot() external {
+    vm.warp(10);
+    vm.expectRevert(ISymPod.SymPod__InvalidBlockRoot.selector);
+    createdPod.getParentBeaconBlockRoot(uint64(block.timestamp));
+  }
+
+  function test_RevertBeaconBlockRootOutOfRange() external {
+    vm.warp(100_000 seconds);
+    vm.expectRevert(ISymPod.SymPod__TimestampOutOfRange.selector);
+    createdPod.getParentBeaconBlockRoot(1);
+  }
+
+
   function test_Symbol() external {
     assertEq(createdPod.symbol(), podSymbol, "invalid symbol");
+  }
+
+  function test_RevertDeposit() external {
+    vm.expectRevert(ISymPod.SymPod__NotImplemented.selector);
+    createdPod.deposit(1, address(this));
+  }
+  
+  function test_RevertMint() external {
+    vm.expectRevert(ISymPod.SymPod__NotImplemented.selector);
+    createdPod.mint(1, address(this));
+  }
+  
+  function test_RevertRedeem() external {
+    vm.expectRevert(ISymPod.SymPod__NotImplemented.selector);
+    createdPod.redeem(1, address(this), address(this));
+  }
+
+  function test_RevertWithdraw() external {
+    vm.expectRevert(ISymPod.SymPod__NotImplemented.selector);   
+    createdPod.withdraw(1, address(this), address(this));
+  }
+  
+  function test_RevertPreviewDeposit() external {
+    vm.expectRevert(ISymPod.SymPod__NotImplemented.selector);   
+    createdPod.previewDeposit(1);
+  }
+
+  function test_RevertPreviewRedeem() external {
+    vm.expectRevert(ISymPod.SymPod__NotImplemented.selector);   
+    createdPod.previewRedeem(1);
   }
 }
 
@@ -261,6 +308,7 @@ contract SymPod__Stake is BaseSymPodTest {
 }
 
 contract SymPod__StartCheckPoint is BaseSymPodHarnessTest {
+  error DepositMoreThanMax();
   function test__CannotStartCheckPointIfNotAdmin() public {
     vm.expectRevert(ISymPod.SymPod__Unauthorized.selector);
     createdPod.startCheckpoint(false);
@@ -290,6 +338,17 @@ contract SymPod__StartCheckPoint is BaseSymPodHarnessTest {
 
     vm.prank(podAdmin);
     vm.expectRevert(ISymPod.SymPod__CompletePreviousCheckPoint.selector);
+    createdHarnessPod.startCheckpoint(false);
+  }
+
+  function test_CannotStartCheckpointTwiceInSameBlock() public {
+    vm.deal(address(createdHarnessPod), 1 ether);
+    // this will finalize instantly
+    vm.prank(podAdmin);
+    createdHarnessPod.startCheckpoint(false);
+
+    vm.expectRevert(ISymPod.SymPod__CannotActivateCheckPoint.selector);
+    vm.prank(podAdmin);
     createdHarnessPod.startCheckpoint(false);
   }
 
@@ -421,6 +480,38 @@ contract SymPod__InitWithdraw is BaseSymPodHarnessTest {
   function test_CannotInitWithdrawIfNotAdmin() external {
     vm.expectRevert(ISymPod.SymPod__Unauthorized.selector);
     createdHarnessPod.initWithdraw(1 gwei, 10);
+  }
+
+  function test_CannotInitWithdrawZeroAmount() external {
+    vm.expectRevert(ISymPod.SymPod__AmountInWei.selector);
+    vm.prank(podAdmin);
+    createdHarnessPod.initWithdraw(0, 10);
+  }
+
+  function test_CannotWithdrawMoreThanBalance() external {
+    uint256 amount = 100;
+    createdHarnessPod.mintSharesPlusAssetsAndRestakedPodWei(100, podAdmin);
+
+    vm.prank(podAdmin);
+    createdHarnessPod.transfer(address(1), amount /  2);
+    
+    vm.expectRevert(ISymPod.SymPod__ExceedBalance.selector);
+    vm.prank(podAdmin);
+    createdHarnessPod.initWithdraw(amount, 10);
+  }
+
+  function test_CannotDoublyInitWithdraww() external {
+    uint256 amount = 100;
+    createdHarnessPod.mintSharesPlusAssetsAndRestakedPodWei(100, podAdmin);
+
+    amount /= 2;
+
+    vm.prank(podAdmin);
+    createdHarnessPod.initWithdraw(amount, 10);
+    
+    vm.expectRevert(ISymPod.SymPod__WithdrawalKeyExists.selector);
+    vm.prank(podAdmin);
+    createdHarnessPod.initWithdraw(amount, 10);
   }
 
   function testFuzz_CanInitWithdraw(uint256 amount, uint256 nonce) external {
@@ -569,6 +660,12 @@ contract SymPod__onSlash is BaseSymPodHarnessTest {
     vm.expectRevert(ISymPod.SymPod__InvalidAmountOfShares.selector);
     vm.prank(slasher);
     createdHarnessPod.onSlash(amountToCredit);
+  }
+
+  function test_CannotSlashZero() external {
+    vm.expectRevert(ISymPod.SymPod__AmountInWei.selector);
+    vm.prank(slasher);
+    createdHarnessPod.onSlash(0);
   }
 
   function test_CannotSlashIfAmountGreaterThanBalance() external {
@@ -791,6 +888,14 @@ contract SymPod__VerifyBalanceCheckpoints is BaseSymPodHarnessTest {
     beaconRootOracle.setBlockRoot(timestamp, blockRoot);
     /// verify Withdrawal credentials
     createdHarnessPod.verifyValidatorWithdrawalCredentials(timestamp, validatorContainerProof, validatorProof);
+  }
+
+  function test_CannotVerifyBalanceCheckpointWithoutStart() external {
+    vm.expectRevert(ISymPod.SymPod__InvalidCheckPointTimestamp.selector);
+    createdHarnessPod.verifyBalanceCheckpointProofs({
+      balanceRegistryProof: balanceContainerProof,
+      validatorBalancesProof: validatorBalancesProof
+    });
   }
 
   function test_CannotVerifyForInactiveValidator() external {

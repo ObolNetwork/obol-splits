@@ -8,7 +8,7 @@ contract SymPodHarness is SymPod, Test {
     // this is used in halmos tests because keccak256 is quite 
     // expensive in terms of computation
     bool overrideWithdrawalKey;
-    
+
     constructor(
         address _symPodConfigurator,
         address _eth2DepositContract,
@@ -56,6 +56,10 @@ contract SymPodHarness is SymPod, Test {
         currentCheckPointTimestamp = timestamp;
     }
 
+    function mint(address holder, uint256 amount) external {
+        _mint(holder, amount);
+    }
+    
     function mintSharesPlusAssetsAndRestakedPodWei (uint256 amount, address holder) external {
         _mint(holder, amount);
         totalRestakedETH += amount;
