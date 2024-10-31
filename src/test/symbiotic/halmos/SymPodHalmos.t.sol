@@ -7,10 +7,6 @@ import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 import {MockETH2Deposit} from "src/test/utils/mocks/MockETH2Deposit.sol";
 import {SymPodConfigurator} from "src/symbiotic/SymPodConfigurator.sol";
 
-function roundDown(uint256 x) pure returns (uint256 y) {
-  y = (x / 1 gwei) * 1 gwei;
-}
-
 contract SymPodSymbolic is SymPod {
   constructor(
     address _symPodConfigurator,
@@ -136,5 +132,8 @@ contract SymPodHalmostTest is SymTest, Test {
     uint256 amountReceived = symPod.completeWithdraw(withdrawalKey);
 
     assert(amountReceived == amountToSlash);
+  }
+  function roundDown(uint256 x) public pure returns (uint256 y) {
+    y = (x / 1 gwei) * 1 gwei;
   }
 }
