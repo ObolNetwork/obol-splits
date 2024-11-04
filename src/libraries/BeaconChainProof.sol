@@ -208,7 +208,8 @@ library BeaconChainProofs {
     /// @dev The merkle multiproof proves multiple validator balances in one single proof against the
     /// @param balanceListRoot the merkle root of the BeaconState balance registry list
     /// @param proof merkle multiproof used in proving the multiple validators balances
-    /// @param validatorIndices the indices of the validators being provien
+    /// @param validatorIndices the sorted indices of the validators being proven
+    /// @dev It is very important that validatorIndices is sorted
     /// @param validatorBalanceRoots the balance roots of the validators being proven
     function verifyMultipleValidatorsBalance(
         bytes32 balanceListRoot,
@@ -221,14 +222,14 @@ library BeaconChainProofs {
             revert BeaconChainProofs__InvalidIndicesAndBalances();
         }
 
-        Merkle.Node[] memory balanceNodes = new Merkle.Node[](validatorBalancesSize);
-
         /// NB: We use `BALANCE_TREE_HEIGHT + 1` because the merkle tree of the balance
         /// registry list includes hashing the root of the balances tree with the length 
         /// of the balance registry list
         uint256 numLayers = BALANCE_TREE_HEIGHT + 1;
 
+        Merkle.Node[] memory balanceNodes = new Merkle.Node[](validatorBalancesSize);
         validatorBalancesGwei = new uint256[](validatorBalancesSize);
+
         for (uint256 i = 0; i < validatorBalancesSize;) {
             /// beacon chain balances are combined into groups of 4 called balanceRoots
             /// diving by 4 allows to get the balance index of a validator      

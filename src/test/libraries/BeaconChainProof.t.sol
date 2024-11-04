@@ -184,10 +184,10 @@ contract BeaconChainProofTest__VerifyMultiValidatorBalance is BaseBeaconChainPro
 
     function setUp() override public {
         super.setUp();
-        string memory filePath = "./src/test/test-data/ValidatorBalance-proof.json";
+        string memory filePath = "./src/test/test-data/mainnet/VerifyBalanceCheckpointProof-proof_deneb_mainnet_slot_10254823.json";
         parser.setJSONPath(filePath);
 
-        proof = parser.getValidatorBalancesProof();
+        proof = parser.getValidatorBalancesAgainstBalanceRootMultiProof();
         balanceListRoot = parser.getBalanceListRoot();
         validatorIndices = parser.getValidatorIndices();
         validatorBalances = parser.getValidatorBalancesRoot();

@@ -233,7 +233,7 @@ contract SymPod is SymPodStorageV1 {
   /// @dev  ExceedBalanceDelta conditions
   ///  - Validator's last checkpoint is older than `beaconTimestamp`
   ///  - Validator must be `Acitve` status on the SymPod
-  ///  - Validator restakedAmountGwei vs it's current BeaconChain balance is less
+  ///  - Validator restakedAmountGwei minus its current BeaconChain balance is less
   ///    than delta allowed i.e. currentBeaconChainBalance - restakedAmountGwei > delta
   ///    The allowed delta is calculated as a % of the restakedAmountGwei
   /// @param balanceRegistryProof BeaconState balance registry root and proof against Beacon block root

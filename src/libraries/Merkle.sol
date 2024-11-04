@@ -115,7 +115,7 @@ library Merkle {
         uint256 numLayers
     ) internal view returns (bytes32 ) {
         uint256 proofIndex = 0;
-        Node[] memory currentLayer = sort(leaves);
+        Node[] memory currentLayer = leaves;
         // Process each layer
         for (uint256 l = 0; l < numLayers;) {
             Node[] memory nextLayer = new Node[](0);
@@ -158,7 +158,7 @@ library Merkle {
                 }
             }
 
-            currentLayer = sort(nextLayer);
+            currentLayer = nextLayer;
             unchecked {
                 l += 1;
             }
@@ -246,41 +246,6 @@ library Merkle {
         }
         //the first node in the layer is the root
         return layer[0];
-    }
-
-    /// @notice Sorts array using the insertion sort algorithm
-    /// @param myArray array to sort
-    /// @return Sorted array
-    function sort(Node[] memory myArray)
-        internal
-        pure
-        returns (Node[] memory)
-    {
-        uint256 n = myArray.length;
-
-        if (n <= 1) {
-            return myArray;
-        }
-
-        for (uint256 i = 1; i < n; ) {
-            Node memory key = myArray[i];
-            uint256 j = i;
-
-            // Using while loop to place `key` in its correct position
-            while (j > 0 && myArray[j - 1].index > key.index) {
-                myArray[j] = myArray[j - 1];
-                unchecked {
-                    j--;
-                }
-            }
-
-            myArray[j] = key;
-            unchecked {
-                i+=1;
-            }
-        }
-
-        return myArray;
     }
 
     function efficientSha256(bytes32 a, bytes32 b) internal view returns (bytes32[1] memory computedHash) {

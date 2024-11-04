@@ -24,6 +24,7 @@ contract SymPodSymbolic is SymPod {
   }
 }
 
+/// @custom:halmos --storage-layout=generic --solver-timeout-assertion 0
 contract SymPodHalmostTest is SymTest, Test {
   address admin;
   address slasher;
