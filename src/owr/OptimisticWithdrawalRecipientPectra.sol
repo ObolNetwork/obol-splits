@@ -6,6 +6,8 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
+import "forge-std/console.sol";
+
 /// @title OptimisticWithdrawalRecipientPectra
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
@@ -84,6 +86,11 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
   /// storage
   /// -----------------------------------------------------------------------
+  /// -----------------------------------------------------------------------
+  /// storage - immutable
+  /// -----------------------------------------------------------------------
+  address public immutable pectraWithdrawalAddress;
+  address public immutable pectraConsolidationAddress;
 
   /// -----------------------------------------------------------------------
   /// storage - constants
@@ -111,30 +118,15 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   // tranches (uint256[], numTranches * 32 bytes)
 
   // 0; first item
-  uint256 internal constant PECTRA_WITHDRAWAL_ADDRESS_OFFSET = 0;
-  uint256 internal constant PECTRA_CONSOLIDATION_ADDRESS_OFFSET = 20;
-  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 40;
-  // 60 = withdrawalAddress_offset(0) + withdrawalAddress_size(address, 20 bytes) +  consolidationAddress_offset(0) + consolidationAddress_size(address, 20 bytes) + recoveryAddress_offset (20) +
-  // recoveryAddress_size (address, 20
+  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 0;
+  // 20 = recoveryAddress_offset (0) + recoveryAddress_size (address, 20
   // bytes)
-  uint256 internal constant TRANCHES_OFFSET = 60;
+  uint256 internal constant TRANCHES_OFFSET = 20;
 
   /// Address to recover non-OWR tokens to
   /// @dev equivalent to address public immutable recoveryAddress;
   function recoveryAddress() public pure returns (address) {
     return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
-  }
-
-  /// Pectra withdrawal address
-  /// @dev equivalent to address public immutable recoveryAddress;
-  function pectraWithdrawalAddress() public pure returns (address) {
-    return _getArgAddress(PECTRA_WITHDRAWAL_ADDRESS_OFFSET);
-  }
-
-  /// Pectra consolidation address
-  /// @dev equivalent to address public immutable recoveryAddress;
-  function pectraConsolidationAddress() public pure returns (address) {
-    return _getArgAddress(PECTRA_CONSOLIDATION_ADDRESS_OFFSET);
   }
 
   /// Get OWR tranche `i`
@@ -170,7 +162,10 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
 
   // solhint-disable-next-line no-empty-blocks
   /// clone implementation doesn't use constructor
-  constructor() {}
+  constructor(address _pectraWithdrawalAddress, address _pectraConsolidationAddress) {
+    pectraConsolidationAddress = _pectraConsolidationAddress;
+    pectraWithdrawalAddress = _pectraWithdrawalAddress;
+  }
 
   /// -----------------------------------------------------------------------
   /// functions
@@ -194,7 +189,9 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /*     emit ReceiveETH(msg.value); */
   /* } */
 
-  function requestConsolidation(bytes memory data) external payable onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE) {
+  function requestConsolidation(bytes memory source, bytes memory target) external payable onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE) {
+    if (source.length != 48 || target.length != 48) revert InvalidConsolidation_Failed();
+
     // ;; Input data has the following layout:
     // ;;
     // ;;  +--------+--------+
@@ -202,20 +199,20 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
     // ;;  +--------+--------+
     // ;;      48       48
 
-    (bool ret,) = pectraConsolidationAddress().call{value: msg.value}(data);
+    (bool ret,) = pectraConsolidationAddress.call{value: msg.value}(abi.encodePacked(source, target));
     if (!ret) revert InvalidConsolidation_Failed();
     emit ConsolidationRequested(msg.sender);
   }
 
   /// Requests principal withdrawal
-  function requestPrincipalWithdrawal(bytes memory data) external payable onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE) {
-    _requestWithdrawal(data, false);
+  function requestPrincipalWithdrawal(bytes memory pubkey, uint8 amount) external payable onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE) {
+    _requestWithdrawal(pubkey, amount, false);
     emit PrincipalWithdrawalRequested(msg.sender);
   }
 
   /// Requests rewards withdrawal
-  function requestRewardsWithdrawal(bytes memory data) external payable onlyOwnerOrRoles(REWARD_WITHDRAWAL_ROLE) {
-    _requestWithdrawal(data, true);
+  function requestRewardsWithdrawal(bytes memory pubkey, uint8 amount) external payable onlyOwnerOrRoles(REWARD_WITHDRAWAL_ROLE) {
+    _requestWithdrawal(pubkey, amount, true);
     emit RewardsWithdrawalRequested(msg.sender);
   }
 
@@ -390,25 +387,10 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
     }
   }
 
-  function _requestWithdrawal(bytes memory data, bool _rewards) private {
-    // Input data has the following layout:
-    //
-    //  +--------+--------+
-    //  | pubkey | amount |
-    //  +--------+--------+
-    //      48       8
-    bytes memory pubkey = new bytes(48);
-    assembly {
-        pubkey := mload(add(data, 48))
-    }
+  function _requestWithdrawal(bytes memory pubkey, uint8 amount, bool _rewards) private {
+    console.log("----------length %s", pubkey.length);
+    if (pubkey.length != 48) revert InvalidWithdrawal_Failed();
 
-    uint64 amount;
-    assembly {
-        let word := mload(add(data, 56))  
-
-        // Extract the last 8 bytes (uint64)
-        amount := and(shr(192, word), 0xFFFFFFFFFFFFFFFF)  
-    }
     if ((!_rewards && amount < BALANCE_CLASSIFICATION_THRESHOLD) || (_rewards && amount >= BALANCE_CLASSIFICATION_THRESHOLD)) {
       if (_rewards) {
           revert InvalidPectraWithdrawal_Rewards();
@@ -417,7 +399,13 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
       }
     }
 
-    (bool ret,) = pectraWithdrawalAddress().call{value: msg.value}(data);
+    // Input data has the following layout:
+    //
+    //  +--------+--------+
+    //  | pubkey | amount |
+    //  +--------+--------+
+    //      48       8
+    (bool ret,) = pectraWithdrawalAddress.call{value: msg.value}(abi.encodePacked(pubkey, amount));
     if (!ret) revert InvalidWithdrawal_Failed();
   }
 }

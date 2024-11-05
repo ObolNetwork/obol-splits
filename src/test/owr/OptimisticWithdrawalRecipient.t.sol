@@ -93,13 +93,19 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETHPectra.initialize(address(this));
   }
 
-  function testInitiateWithdrawal() public {
+  function testInitiateWithdrawal(uint8 amount) public {
+    vm.assume(amount >= 100 && amount <= 100000);
     address _user = vm.addr(0x1);
     vm.deal(_user, type(uint256).max);
 
+    bytes memory pubkey = new bytes(48);
+    for (uint256 i = 0; i < 48; i++) {
+        pubkey[i] = bytes1(0xAB);
+    }
+
     vm.startPrank(_user);
     vm.expectRevert(0x82b42900); // Unauthorized
-    owrETHPectra.requestPrincipalWithdrawal{value: 1 ether}(hex"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110908070605040302");
+    owrETHPectra.requestPrincipalWithdrawal{value: 1 ether}(pubkey, amount);
 
     vm.stopPrank();
     vm.startPrank(address(this));
@@ -108,13 +114,13 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     vm.stopPrank();
     vm.startPrank(_user);
-    owrETHPectra.requestRewardsWithdrawal{value: 1 ether}(hex"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110908070605040302");
+    owrETHPectra.requestRewardsWithdrawal{value: 1 ether}(pubkey, amount);
     vm.stopPrank();
 
     assertGt(withdrawalMock.receivedAmount(), 0);
     assertEq(address(withdrawalMock).balance, 1 ether);
   }
-
+  
   function testReceiveETH() public {
     address(owrETH).safeTransferETH(1 ether);
     assertEq(address(owrETH).balance, 1 ether);
