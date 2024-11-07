@@ -133,7 +133,7 @@ contract SymPod is SymPodStorageV1 {
   function verifyBalanceCheckpointProofs(
     BeaconChainProofs.BalanceRegistryProof calldata balanceRegistryProof,
     BeaconChainProofs.BalancesMultiProof calldata validatorBalancesProof
-  ) external {
+  ) external override {
     Checkpoint memory activeCheckpoint = currentCheckPoint;
     uint256 currentCheckpointTimestamp = activeCheckpoint.currentTimestamp;
     if (currentCheckpointTimestamp == 0) revert SymPod__InvalidCheckPointTimestamp();
@@ -168,7 +168,7 @@ contract SymPod is SymPodStorageV1 {
     uint64 beaconTimestamp,
     BeaconChainProofs.ValidatorRegistryProof calldata validatorRegistryProof,
     BeaconChainProofs.ValidatorsMultiProof calldata validatorProof
-  ) external {
+  ) external override {
     // this prevents verifying WC to advance checkpoint proofs
     if (currentCheckPointTimestamp > beaconTimestamp) revert SymPod__InvalidTimestamp();
 

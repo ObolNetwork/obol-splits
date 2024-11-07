@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
+import {BeaconChainProofs} from "src/libraries/BeaconChainProof.sol";
 
 interface IERC4626 {
     function convertToAssets(uint256 shares) external view returns (uint256 assets);
@@ -172,7 +173,34 @@ interface ISymPod {
         bytes32 depositDataRoot
     ) external payable;
 
+    function startCheckpoint(bool revertIfNoBalance) external;
+
+    function verifyBalanceCheckpointProofs(
+        BeaconChainProofs.BalanceRegistryProof calldata balanceRegistryProof,
+        BeaconChainProofs.BalancesMultiProof calldata validatorBalancesProof
+    ) external;
+
+    function verifyValidatorWithdrawalCredentials(
+        uint64 beaconTimestamp,
+        BeaconChainProofs.ValidatorRegistryProof calldata validatorRegistryProof,
+        BeaconChainProofs.ValidatorsMultiProof calldata validatorProof
+    ) external; 
+
+    function verifyExpiredBalance(
+        uint64 beaconTimestamp,
+        BeaconChainProofs.ValidatorRegistryProof calldata validatorRegistryProof,
+        BeaconChainProofs.ValidatorProof calldata validatorProof
+    ) external;
+    
+    function verifyExceedBalanceDelta(
+        uint64 beaconTimestamp,
+        BeaconChainProofs.BalanceRegistryProof calldata balanceRegistryProof,
+        BeaconChainProofs.BalanceProof calldata balanceProof
+    ) external;
+
     function onSlash(uint256 amountWei) external returns (bytes32 withdrawalKey);
+
+    function initWithdraw(uint256 amountInWei, uint256 nonce) external returns (bytes32 withdrawalKey);
 
     function completeWithdraw(bytes32 withdrawalKey)
     external 
