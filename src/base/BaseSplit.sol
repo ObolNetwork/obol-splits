@@ -49,7 +49,7 @@ abstract contract BaseSplit is Clone {
     return _getArgAddress(WITHDRAWAL_ADDRESS_OFFSET);
   }
 
-  /// Token addresss
+  /// Token address
   /// @dev equivalent to address public immutable token
   function token() public pure virtual returns (address) {
     return _getArgAddress(TOKEN_ADDRESS_OFFSET);
