@@ -146,7 +146,7 @@ contract IMSCFactory is Test {
     );
   }
 
-  function test_RevertIfRecipeintSizeTooMany() public {
+  function test_RevertIfRecipientSizeTooMany() public {
     bytes32 deploymentSalt = keccak256(abi.encodePacked(uint256(1102)));
 
     uint256 size = 400;
