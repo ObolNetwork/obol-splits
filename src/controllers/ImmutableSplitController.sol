@@ -41,7 +41,7 @@ contract ImmutableSplitController is Clone {
   // onwer (address, 20 bytes)
   // 2; third item
   uint256 internal constant OWNER_OFFSET = 24;
-  // recipeints size (uint8, 1 byte )
+  // recipients size (uint8, 1 byte )
   // 3; third item
   uint256 internal constant RECIPIENTS_SIZE_OFFSET = 44;
   // recipients data ()
@@ -118,7 +118,7 @@ contract ImmutableSplitController is Clone {
     }
   }
 
-  /// Number of recipeints
+  /// Number of recipients
   /// @dev  equivalent to address internal immutable _recipientsSize;
   function _recipientsSize() internal pure returns (uint256) {
     return _getArgUint8(RECIPIENTS_SIZE_OFFSET);
