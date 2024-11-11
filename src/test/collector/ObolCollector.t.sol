@@ -69,7 +69,7 @@ contract ObolCollectorTest is Test {
   function test_token() public {
     assertEq(collectorWithFee.token(), address(mERC20), "invalid token");
 
-    assertEq(ethCollectorWithFee.token(), address(0), "ivnalid token eth");
+    assertEq(ethCollectorWithFee.token(), address(0), "invalid token eth");
   }
 
   function test_DistributeERC20WithFee() public {
