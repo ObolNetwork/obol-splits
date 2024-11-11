@@ -22,7 +22,7 @@ contract ObolEigenLayerPodController {
   /// @dev contract already initialized
   error AlreadyInitialized();
 
-  /// @dev Emiited on intialize
+  /// @dev Emitted on initialize
   event Initialized(address eigenPod, address owner);
 
   /// -----------------------------------------------------------------------
