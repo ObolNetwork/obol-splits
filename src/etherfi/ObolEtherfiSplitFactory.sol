@@ -32,7 +32,7 @@ contract ObolEtherfiSplitFactory is BaseSplitFactory {
   /// @dev Create a new collector
   /// @dev address(0) is used to represent ETH
   /// @param withdrawalAddress Address of the splitWallet to transfer weETH to
-  /// @return collector Address of the wrappper split
+  /// @return collector Address of the wrapper split
   function createCollector(address, address withdrawalAddress) external override returns (address collector) {
     if (withdrawalAddress == address(0)) revert Invalid_Address();
 
