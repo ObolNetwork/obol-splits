@@ -43,7 +43,7 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
     new ObolEigenLayerPodControllerFactory(feeRecipient, feeShare, address(0), POD_MANAGER_GOERLI, DELAY_ROUTER_GOERLI);
   }
 
-  function test_RevertIfInvalidPodManger() external {
+  function test_RevertIfInvalidPodManager() external {
     vm.expectRevert(Invalid_EigenPodManaager.selector);
     new ObolEigenLayerPodControllerFactory(
       feeRecipient, feeShare, DELEGATION_MANAGER_GOERLI, address(0), DELAY_ROUTER_GOERLI
