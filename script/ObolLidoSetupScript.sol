@@ -8,7 +8,7 @@ import {SplitterConfiguration} from "./SplitterConfiguration.sol";
 
 /// @title ObolLidoScript
 /// @author Obol
-/// @notice Creates Split and ObolLidoSplit Adddresses
+/// @notice Creates Split and ObolLidoSplit Addresses
 ///
 /// @dev Takes a json file following the format defined at ./data/lido-data-sample.json
 /// and deploys split and ObolLido split contracts.
@@ -68,9 +68,9 @@ contract ObolLidoSetupScript is Script, SplitterConfiguration {
       vm.stopBroadcast();
 
       vm.serializeAddress(objKey, "splitAddress", split);
-      string memory repsonse = vm.serializeAddress(objKey, "obolLidoSplitAddress", obolLidoSplitAdress);
+      string memory response = vm.serializeAddress(objKey, "obolLidoSplitAddress", obolLidoSplitAdress);
 
-      finalJSON = vm.serializeString(jsonKey, objKey, repsonse);
+      finalJSON = vm.serializeString(jsonKey, objKey, response);
     }
 
     vm.writeJson(finalJSON, "./result.json");
