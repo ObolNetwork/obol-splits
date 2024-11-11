@@ -59,9 +59,9 @@ contract DeployOTWRAndSplit is Script, SplitterConfiguration {
       string memory objKey = vm.toString(i);
 
       vm.serializeAddress(objKey, "splitAddress", split);
-      string memory repsonse = vm.serializeAddress(objKey, "OTWRAddress", otwrAddress);
+      string memory response = vm.serializeAddress(objKey, "OTWRAddress", otwrAddress);
 
-      finalJSON = vm.serializeString(jsonKey, objKey, repsonse);
+      finalJSON = vm.serializeString(jsonKey, objKey, response);
     }
 
     vm.writeJson(finalJSON, "./otwr-split.json");
