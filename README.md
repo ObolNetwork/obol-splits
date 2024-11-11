@@ -2,7 +2,7 @@
 
 <h1 align="center">Obol Splits</h1>
 
-This repo contains Obol Splits smart contracts. This suite of smart contracts and associated tests are intended to serve as a public good to to enable the safe and secure creation of Distributed Validators for Ethereum Consensus-based networks.
+This repo contains Obol Splits smart contracts. This suite of smart contracts and associated tests are intended to serve as a public good to enable the safe and secure creation of Distributed Validators for Ethereum Consensus-based networks.
 
 ### Disclaimer
 
