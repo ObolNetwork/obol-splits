@@ -73,7 +73,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     owrETH_OR = owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
   }
 
-  function testGetTranches() public view {
+  function testGetTranches() public  {
     // eth
     (address _principalRecipient, address _rewardRecipient, uint256 wtrancheThreshold) = owrETH.getTranches();
 
@@ -82,7 +82,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(wtrancheThreshold, ETH_STAKE, "invalid eth tranche threshold");
   }
 
-  function testOWRPectraInitialization() public view {
+  function testOWRPectraInitialization() public {
     assertTrue(owrETHPectra.initialized());
     assertEq(owrETHPectra.owner(), address(this));
   }
