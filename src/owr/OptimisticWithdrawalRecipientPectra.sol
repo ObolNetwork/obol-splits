@@ -6,8 +6,6 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-import "forge-std/console.sol";
-
 /// @title OptimisticWithdrawalRecipientPectra
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
@@ -46,6 +44,9 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   // Invalid request
   error InvalidRequest_Initialize();
 
+  // Invalid request parameters
+  error InvalidRequest_Params();
+
   /// -----------------------------------------------------------------------
   /// events
   /// -----------------------------------------------------------------------
@@ -73,15 +74,15 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /// @param account Account withdrawing funds for
   /// @param amount Amount withdrawn
   event Withdrawal(address account, uint256 amount);
-  
+
   /// Emitted when a Pectra withdrawal request is done
-  event RewardsWithdrawalRequested(address indexed requester);
-  
+  event RewardsWithdrawalRequested(address indexed requester, bytes pubkey, uint256 amount);
+
   /// Emitted when a Pectra withdrawal request is done
-  event PrincipalWithdrawalRequested(address indexed requester);
+  event PrincipalWithdrawalRequested(address indexed requester, bytes pubkey, uint256 amount);
 
   /// Emitted when a Pectra consolidation request is done
-  event ConsolidationRequested(address indexed requester);
+  event ConsolidationRequested(address indexed requester, bytes from, bytes to);
 
   /// -----------------------------------------------------------------------
   /// storage
@@ -189,7 +190,11 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /*     emit ReceiveETH(msg.value); */
   /* } */
 
-  function requestConsolidation(bytes memory source, bytes memory target) external payable onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE) {
+  function requestConsolidation(bytes calldata source, bytes calldata target)
+    external
+    payable
+    onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE)
+  {
     if (source.length != 48 || target.length != 48) revert InvalidConsolidation_Failed();
 
     // ;; Input data has the following layout:
@@ -201,19 +206,55 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
 
     (bool ret,) = pectraConsolidationAddress.call{value: msg.value}(abi.encodePacked(source, target));
     if (!ret) revert InvalidConsolidation_Failed();
-    emit ConsolidationRequested(msg.sender);
+    emit ConsolidationRequested(msg.sender, source, target);
+  }
+
+  /// Requests principal withdrawal for a batch
+  function batchRequestPrincipalWithdrawal(bytes[] calldata pubkeys, uint8[] calldata amounts)
+    external
+    payable
+    onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE)
+  {
+    if (pubkeys.length != amounts.length) revert InvalidRequest_Params();
+    uint256 len = pubkeys.length;
+    for (uint256 i = 0; i < len; i++) {
+      _requestWithdrawal(pubkeys[i], amounts[i], false);
+      emit PrincipalWithdrawalRequested(msg.sender, pubkeys[i], amounts[i]);
+    }
   }
 
   /// Requests principal withdrawal
-  function requestPrincipalWithdrawal(bytes memory pubkey, uint8 amount) external payable onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE) {
+  function requestPrincipalWithdrawal(bytes calldata pubkey, uint8 amount)
+    external
+    payable
+    onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE)
+  {
     _requestWithdrawal(pubkey, amount, false);
-    emit PrincipalWithdrawalRequested(msg.sender);
+    emit PrincipalWithdrawalRequested(msg.sender, pubkey, amount);
+  }
+
+  /// Requests rewards withdrawal for a batch
+  function batchRequestRewardsWithdrawal(bytes[] calldata pubkeys, uint8[] calldata amounts)
+    external
+    payable
+    onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE)
+  {
+    if (pubkeys.length != amounts.length) revert InvalidRequest_Params();
+    uint256 len = pubkeys.length;
+    for (uint256 i = 0; i < len; i++) {
+      _requestWithdrawal(pubkeys[i], amounts[i], true);
+      emit RewardsWithdrawalRequested(msg.sender, pubkeys[i], amounts[i]);
+    }
   }
 
   /// Requests rewards withdrawal
-  function requestRewardsWithdrawal(bytes memory pubkey, uint8 amount) external payable onlyOwnerOrRoles(REWARD_WITHDRAWAL_ROLE) {
+  function requestRewardsWithdrawal(bytes calldata pubkey, uint8 amount)
+    external
+    payable
+    onlyOwnerOrRoles(REWARD_WITHDRAWAL_ROLE)
+  {
     _requestWithdrawal(pubkey, amount, true);
-    emit RewardsWithdrawalRequested(msg.sender);
+    emit RewardsWithdrawalRequested(msg.sender, pubkey, amount);
   }
 
   /// Distributes target token inside the contract to recipients
@@ -388,15 +429,14 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   }
 
   function _requestWithdrawal(bytes memory pubkey, uint8 amount, bool _rewards) private {
-    console.log("----------length %s", pubkey.length);
     if (pubkey.length != 48) revert InvalidWithdrawal_Failed();
 
-    if ((!_rewards && amount < BALANCE_CLASSIFICATION_THRESHOLD) || (_rewards && amount >= BALANCE_CLASSIFICATION_THRESHOLD)) {
-      if (_rewards) {
-          revert InvalidPectraWithdrawal_Rewards();
-      } else {
-          revert InvalidPectraWithdrawal_Principal();
-      }
+    if (
+      (!_rewards && amount < BALANCE_CLASSIFICATION_THRESHOLD)
+        || (_rewards && amount >= BALANCE_CLASSIFICATION_THRESHOLD)
+    ) {
+      if (_rewards) revert InvalidPectraWithdrawal_Rewards();
+      else revert InvalidPectraWithdrawal_Principal();
     }
 
     // Input data has the following layout:
