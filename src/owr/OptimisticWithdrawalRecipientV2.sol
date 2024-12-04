@@ -6,13 +6,13 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-/// @title OptimisticWithdrawalRecipientPectra
+/// @title OptimisticWithdrawalRecipientV2
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
 /// based on threshold to it's recipients
 /// @dev Only ETH can be distributed for a given deployment. There is a
 /// recovery method for tokens sent by accident.
-contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
+contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -90,8 +90,8 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
   /// storage - immutable
   /// -----------------------------------------------------------------------
-  address public immutable pectraWithdrawalAddress;
-  address public immutable pectraConsolidationAddress;
+  address public immutable executionLayerWithdrawalSystemContract;
+  address public immutable consolidationSystemContract;
 
   /// -----------------------------------------------------------------------
   /// storage - constants
@@ -162,10 +162,10 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
 
   // solhint-disable-next-line no-empty-blocks
-  /// clone implementation doesn't use constructor
-  constructor(address _pectraWithdrawalAddress, address _pectraConsolidationAddress) {
-    pectraConsolidationAddress = _pectraConsolidationAddress;
-    pectraWithdrawalAddress = _pectraWithdrawalAddress;
+  /// Sets the system contract addresses for execution layer withdrawals and consolidations.
+  constructor(address _executionLayerWithdrawalSystemContract, address _consolidationSystemContract) {
+    consolidationSystemContract = _consolidationSystemContract;
+    executionLayerWithdrawalSystemContract = _executionLayerWithdrawalSystemContract;
   }
 
   /// -----------------------------------------------------------------------
@@ -184,12 +184,8 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
     initialized = true;
   }
 
-  /// emit event when receiving ETH
-  /// @dev implemented w/i clone bytecode
-  /* receive() external payable { */
-  /*     emit ReceiveETH(msg.value); */
-  /* } */
-
+  /// Performs a Pectra consolidation request
+  /// @dev migrate to another OWR
   function requestConsolidation(bytes calldata source, bytes calldata target)
     external
     payable
@@ -204,12 +200,13 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
     // ;;  +--------+--------+
     // ;;      48       48
 
-    (bool ret,) = pectraConsolidationAddress.call{value: msg.value}(abi.encodePacked(source, target));
+    (bool ret,) = consolidationSystemContract.call{value: msg.value}(abi.encodePacked(source, target));
     if (!ret) revert InvalidConsolidation_Failed();
     emit ConsolidationRequested(msg.sender, source, target);
   }
 
-  /// Requests principal withdrawal for a batch
+  /// Request a principal withdrawal
+  /// @dev batch request principal withdrawal
   function batchRequestPrincipalWithdrawal(bytes[] calldata pubkeys, uint8[] calldata amounts)
     external
     payable
@@ -223,17 +220,8 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
     }
   }
 
-  /// Requests principal withdrawal
-  function requestPrincipalWithdrawal(bytes calldata pubkey, uint8 amount)
-    external
-    payable
-    onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE)
-  {
-    _requestWithdrawal(pubkey, amount, false);
-    emit PrincipalWithdrawalRequested(msg.sender, pubkey, amount);
-  }
-
-  /// Requests rewards withdrawal for a batch
+  /// Request a reward  withdrawal
+  /// @dev batch request rewards withdrawal
   function batchRequestRewardsWithdrawal(bytes[] calldata pubkeys, uint8[] calldata amounts)
     external
     payable
@@ -245,16 +233,6 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
       _requestWithdrawal(pubkeys[i], amounts[i], true);
       emit RewardsWithdrawalRequested(msg.sender, pubkeys[i], amounts[i]);
     }
-  }
-
-  /// Requests rewards withdrawal
-  function requestRewardsWithdrawal(bytes calldata pubkey, uint8 amount)
-    external
-    payable
-    onlyOwnerOrRoles(REWARD_WITHDRAWAL_ROLE)
-  {
-    _requestWithdrawal(pubkey, amount, true);
-    emit RewardsWithdrawalRequested(msg.sender, pubkey, amount);
   }
 
   /// Distributes target token inside the contract to recipients
@@ -431,13 +409,8 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
   function _requestWithdrawal(bytes memory pubkey, uint8 amount, bool _rewards) private {
     if (pubkey.length != 48) revert InvalidWithdrawal_Failed();
 
-    if (
-      (!_rewards && amount < BALANCE_CLASSIFICATION_THRESHOLD)
-        || (_rewards && amount >= BALANCE_CLASSIFICATION_THRESHOLD)
-    ) {
-      if (_rewards) revert InvalidPectraWithdrawal_Rewards();
-      else revert InvalidPectraWithdrawal_Principal();
-    }
+    if (_rewards && amount >= BALANCE_CLASSIFICATION_THRESHOLD) revert InvalidPectraWithdrawal_Rewards();
+    if (!_rewards && amount < BALANCE_CLASSIFICATION_THRESHOLD) revert InvalidPectraWithdrawal_Principal();
 
     // Input data has the following layout:
     //
@@ -445,7 +418,7 @@ contract OptimisticWithdrawalRecipientPectra is Clone, OwnableRoles {
     //  | pubkey | amount |
     //  +--------+--------+
     //      48       8
-    (bool ret,) = pectraWithdrawalAddress.call{value: msg.value}(abi.encodePacked(pubkey, amount));
+    (bool ret,) = executionLayerWithdrawalSystemContract.call{value: msg.value}(abi.encodePacked(pubkey, amount));
     if (!ret) revert InvalidWithdrawal_Failed();
   }
 }

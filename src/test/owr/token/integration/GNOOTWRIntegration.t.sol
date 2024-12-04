@@ -29,8 +29,9 @@ contract GNOOWTRIntegration is OWRTestHelper, Test {
   }
 
   function test_Distribute() public {
-    OptimisticTokenWithdrawalRecipient gnoRecipient =
-      owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold);
+    OptimisticTokenWithdrawalRecipient gnoRecipient = owrFactoryModule.createOWRecipient(
+      address(mERC20), recoveryAddress, principalRecipient, rewardRecipient, threshold
+    );
 
     uint256 amountToStake = 0.001 ether;
     for (uint256 i = 0; i < 5; i++) {
@@ -85,9 +86,10 @@ contract GNOOWTRIntegration is OWRTestHelper, Test {
     vm.assume(amountToDistribute > 0);
     fuzzThreshold = bound(fuzzThreshold, 1, type(uint96).max);
 
-    OptimisticTokenWithdrawalRecipient gnoRecipient =
-      owrFactoryModule.createOWRecipient(address(mERC20), recoveryAddress, fuzzPrincipalRecipient, fuzzRewardRecipient, fuzzThreshold);
-    
+    OptimisticTokenWithdrawalRecipient gnoRecipient = owrFactoryModule.createOWRecipient(
+      address(mERC20), recoveryAddress, fuzzPrincipalRecipient, fuzzRewardRecipient, fuzzThreshold
+    );
+
     uint256 amountToShare = bound(amountToDistribute, 1e18, type(uint96).max);
 
     mERC20.transfer(address(gnoRecipient), amountToShare);
@@ -109,6 +111,5 @@ contract GNOOWTRIntegration is OWRTestHelper, Test {
       assertEq(gnoRecipient.claimedPrincipalFunds(), 0, "invalid claimed principal funds 8");
       assertEq(mERC20.balanceOf(fuzzRewardRecipient), amountToShare, "invalid reward balance 9");
     }
-  
   }
 }

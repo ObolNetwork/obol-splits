@@ -160,7 +160,8 @@ contract ObolEtherfiSplitTest is ObolEtherfiSplitTestHelper, Test {
       fuzzFeeRecipient, fuzzFeeShare, ERC20(EETH_MAINNET_ADDRESS), ERC20(WEETH_MAINNET_ADDRESS)
     );
 
-    ObolEtherfiSplit fuzzSplitWithFee = ObolEtherfiSplit(fuzzFactorySplitWithFee.createCollector(address(0), anotherSplit));
+    ObolEtherfiSplit fuzzSplitWithFee =
+      ObolEtherfiSplit(fuzzFactorySplitWithFee.createCollector(address(0), anotherSplit));
 
     vm.prank(RANDOM_EETH_ACCOUNT_ADDRESS);
 

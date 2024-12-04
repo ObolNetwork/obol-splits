@@ -7,7 +7,6 @@ import {MockERC20} from "src/test/utils/mocks/MockERC20.sol";
 import {BaseSplit} from "src/base/BaseSplit.sol";
 
 contract ObolCollectorTest is Test {
-
   uint256 internal constant PERCENTAGE_SCALE = 1e5;
 
   address feeRecipient;

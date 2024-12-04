@@ -2,15 +2,16 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {OptimisticWithdrawalRecipient} from "src/owr/OptimisticWithdrawalRecipient.sol";
-import {OptimisticWithdrawalRecipientFactory} from "src/owr/OptimisticWithdrawalRecipientFactory.sol";
+import {OptimisticWithdrawalRecipientV2} from "src/owr/OptimisticWithdrawalRecipientV2.sol";
+import {OptimisticWithdrawalRecipientV2Factory} from "src/owr/OptimisticWithdrawalRecipientV2Factory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-import {OWRReentrancy} from "./OWRReentrancy.sol";
+import {OWRV2Reentrancy} from "./OWRV2Reentrancy.sol";
 import {OWRTestHelper} from "./OWRTestHelper.t.sol";
+import {ExecutionLayerWithdrawalSystemContractMock} from "./pectra/ExecutionLayerWithdrawalSystemContractMock.sol";
 import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
-contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
+contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
   using SafeTransferLib for address;
 
   event ReceiveETH(uint256 amount);
@@ -19,12 +20,14 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
   address public ENS_REVERSE_REGISTRAR_GOERLI = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
-  OptimisticWithdrawalRecipient public owrModule;
-  OptimisticWithdrawalRecipientFactory public owrFactory;
+  OptimisticWithdrawalRecipientV2 public owrModule;
+  OptimisticWithdrawalRecipientV2Factory public owrFactory;
   address internal recoveryAddress;
 
-  OptimisticWithdrawalRecipient owrETH;  
-  OptimisticWithdrawalRecipient owrETH_OR;
+  OptimisticWithdrawalRecipientV2 owrETH;
+  OptimisticWithdrawalRecipientV2 owrETH_OR;
+
+  ExecutionLayerWithdrawalSystemContractMock withdrawalMock;
 
   MockERC20 mERC20;
 
@@ -44,9 +47,11 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
       bytes.concat(bytes32(0))
     );
 
-    owrFactory = new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
+    withdrawalMock = new ExecutionLayerWithdrawalSystemContractMock();
+    owrFactory = new OptimisticWithdrawalRecipientV2Factory(
+      "demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this), address(withdrawalMock), address(withdrawalMock)
+    );
 
-    owrModule = owrFactory.owrImpl();
 
     mERC20 = new MockERC20("demo", "DMT", 18);
     mERC20.mint(type(uint256).max);
@@ -57,8 +62,8 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     recoveryAddress = makeAddr("recoveryAddress");
 
-    owrETH = owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
-    owrETH_OR = owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold, address(this));
+    owrETH_OR = owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold, address(this));
   }
 
   function testGetTranches() public {
@@ -70,6 +75,48 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     assertEq(wtrancheThreshold, ETH_STAKE, "invalid eth tranche threshold");
   }
 
+  function testOWRPectraInitialization() public {
+    assertTrue(owrETH.initialized());
+    assertEq(owrETH.owner(), address(this));
+  }
+
+  function testReinitialization() public {
+    assertTrue(owrETH.initialized());
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Initialize.selector);
+    owrETH.initialize(address(this));
+  }
+
+  function testInitiateWithdrawalXQ(uint8 amount) public {
+    vm.assume(amount >= 100 && amount <= 100000);
+    address _user = vm.addr(0x1);
+    vm.deal(_user, type(uint256).max);
+
+    bytes memory pubkey = new bytes(48);
+    for (uint256 i = 0; i < 48; i++) {
+      pubkey[i] = bytes1(0xAB);
+    }
+
+    vm.startPrank(_user);
+    bytes[] memory pubkeys = new bytes[](1);
+    pubkeys[0] = pubkey;
+    uint8[] memory amounts = new uint8[](1);
+    amounts[0] = amount;
+    vm.expectRevert(0x82b42900); // Unauthorized
+    owrETH.batchRequestPrincipalWithdrawal{value: 1 ether}(pubkeys, amounts);
+    vm.stopPrank();
+    vm.startPrank(address(this));
+
+    owrETH.grantRoles(_user, 1111);
+    owrETH.grantRoles(_user, 2222);
+
+    vm.stopPrank();
+    vm.startPrank(_user);
+    owrETH.batchRequestRewardsWithdrawal{value: 1 ether}(pubkeys, amounts);
+    vm.stopPrank();
+
+    assertGt(withdrawalMock.receivedAmount(), 0);
+    assertEq(address(withdrawalMock).balance, 1 ether);
+  }
 
   function testReceiveETH() public {
     address(owrETH).safeTransferETH(1 ether);
@@ -124,10 +171,10 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
   }
 
   function testCannot_recoverFundsToNonRecipient() public {
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidTokenRecovery_InvalidRecipient.selector);
     owrETH.recoverFunds(address(mERC20), address(1));
 
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidTokenRecovery_InvalidRecipient.selector);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidTokenRecovery_InvalidRecipient.selector);
     owrETH_OR.recoverFunds(address(mERC20), address(2));
   }
 
@@ -218,17 +265,17 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     vm.deal(address(owrETH), 1);
 
     vm.deal(address(owrETH), type(uint136).max);
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidDistribution_TooLarge.selector);
     owrETH.distributeFunds();
 
-    vm.expectRevert(OptimisticWithdrawalRecipient.InvalidDistribution_TooLarge.selector);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidDistribution_TooLarge.selector);
     owrETH.distributeFundsPull();
   }
 
   function testCannot_reenterOWR() public {
-    OWRReentrancy wr = new OWRReentrancy();
+    OWRV2Reentrancy wr = new OWRV2Reentrancy();
 
-    owrETH = owrFactory.createOWRecipient(recoveryAddress, address(wr), rewardRecipient, 1 ether);
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, address(wr), rewardRecipient, 1 ether, address(this));
     address(owrETH).safeTransferETH(33 ether);
 
     vm.expectRevert(SafeTransferLib.ETHTransferFailed.selector);
@@ -379,7 +426,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     (address _principalRecipient, address _rewardRecipient, uint256 _trancheThreshold) =
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
-    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold);
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold, address(this));
 
     /// test eth
     for (uint256 i = 0; i < _numDeposits; i++) {
@@ -433,7 +480,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     (address _principalRecipient, address _rewardRecipient, uint256 _trancheThreshold) =
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
-    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold);
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold, address(this));
 
     /// test eth
 
