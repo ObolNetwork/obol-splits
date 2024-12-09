@@ -10,17 +10,16 @@ import {SymPodBeacon} from "src/symbiotic/SymPodBeacon.sol";
 
 contract DeploySymPod is Script {
   uint256 BALANCE_DELTA_PERCENT = 10;
-  address ETH_DEPOSIT_CONTRACT = address(0);
-  address BEACON_ROOTS_ORACLE = address(0);
+  address BEACON_ROOTS_ORACLE = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
 
-  function run(address configuratorOwner, address upgradesAdmin, uint256 withdrawalDelayPeriod) external {
+  function run(address ethDepositContract, address configuratorOwner, address upgradesAdmin, uint256 withdrawalDelayPeriod) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
 
     vm.startBroadcast(privKey);
     address symPodConfigurator = address(new SymPodConfigurator(configuratorOwner));
     address symPod = address(
       new SymPod(
-        symPodConfigurator, ETH_DEPOSIT_CONTRACT, BEACON_ROOTS_ORACLE, withdrawalDelayPeriod, BALANCE_DELTA_PERCENT
+        symPodConfigurator, ethDepositContract, BEACON_ROOTS_ORACLE, withdrawalDelayPeriod, BALANCE_DELTA_PERCENT
       )
     );
     address symPodBeacon = address(new SymPodBeacon(symPod, upgradesAdmin));

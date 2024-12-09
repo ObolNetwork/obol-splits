@@ -65,6 +65,8 @@ contract SymPod is SymPodStorageV1 {
     WITHDRAW_DELAY_PERIOD_SECONDS = _withdrawDelayPeriod;
     BEACON_ROOTS_ORACLE_ADDRESS = _beaconRootsOracle;
     BALANCE_DELTA_PERCENT = _balanceDelta;
+
+    _disableInitializers();
   }
 
   /// @notice payable fallback function that receives ether deposited to the contract
