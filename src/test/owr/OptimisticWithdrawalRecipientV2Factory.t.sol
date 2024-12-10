@@ -40,7 +40,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is OWRTestHelper, Test {
     withdrawalMock = new ExecutionLayerWithdrawalSystemContractMock();
     owrFactoryModule =
       new OptimisticWithdrawalRecipientV2Factory(
-      "demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this), address(withdrawalMock), address(withdrawalMock)
+      "demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this), address(withdrawalMock), address(withdrawalMock), address(withdrawalMock)
     );
     recoveryAddress = makeAddr("recoveryAddress");
     (principalRecipient, rewardRecipient) = generateTrancheRecipients(10);

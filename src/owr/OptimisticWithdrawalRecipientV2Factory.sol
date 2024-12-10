@@ -64,9 +64,10 @@ contract OptimisticWithdrawalRecipientV2Factory {
     address _ensReverseRegistrar,
     address _ensOwner,
     address _executionLayerWithdrawalSystemContract,
-    address _consolidationSystemContract
+    address _consolidationSystemContract,
+    address _consolidationFeeContract
   ) {
-    owrImpl = new OptimisticWithdrawalRecipientV2(_executionLayerWithdrawalSystemContract, _consolidationSystemContract);
+    owrImpl = new OptimisticWithdrawalRecipientV2(_executionLayerWithdrawalSystemContract, _consolidationSystemContract, _consolidationFeeContract);
     owrImpl.initialize(address(this));
     IENSReverseRegistrar(_ensReverseRegistrar).setName(_ensName);
     IENSReverseRegistrar(_ensReverseRegistrar).claim(_ensOwner);

@@ -92,6 +92,7 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
   address public immutable executionLayerWithdrawalSystemContract;
   address public immutable consolidationSystemContract;
+  address public immutable consolidationFeeContract;
 
   /// -----------------------------------------------------------------------
   /// storage - constants
@@ -163,9 +164,14 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
 
   // solhint-disable-next-line no-empty-blocks
   /// Sets the system contract addresses for execution layer withdrawals and consolidations.
-  constructor(address _executionLayerWithdrawalSystemContract, address _consolidationSystemContract) {
+  constructor(
+    address _executionLayerWithdrawalSystemContract,
+    address _consolidationSystemContract,
+    address _consolidationFeeContract
+  ) {
     consolidationSystemContract = _consolidationSystemContract;
     executionLayerWithdrawalSystemContract = _executionLayerWithdrawalSystemContract;
+    consolidationFeeContract = _consolidationFeeContract;
   }
 
   /// -----------------------------------------------------------------------
@@ -186,23 +192,30 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
 
   /// Performs a Pectra consolidation request
   /// @dev migrate to another OWR
+  /// compute fee before calling to send the right msg.value amount
   function requestConsolidation(bytes calldata source, bytes calldata target)
     external
     payable
     onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE)
   {
-    if (source.length != 48 || target.length != 48) revert InvalidConsolidation_Failed();
+    _requestConsolidation(source, target);
+  }
 
-    // ;; Input data has the following layout:
-    // ;;
-    // ;;  +--------+--------+
-    // ;;  | source | target |
-    // ;;  +--------+--------+
-    // ;;      48       48
+  /// Performs a Pectra consolidation request
+  /// @dev migrate to another OWR
+  function requestConsolidation(
+    bytes calldata source,
+    bytes calldata target,
+    int256 factor,
+    int256 numerator,
+    int256 denominator,
+    uint256 slippage
+  ) external payable onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE) {
+    if (slippage > 1e5) slippage = 1e4;
+    uint256 fee = _computeConsolidationFee(factor, numerator, denominator);
+    if (msg.value < fee || msg.value > (fee + (fee * slippage / 1e5))) revert InvalidRequest_Params();
 
-    (bool ret,) = consolidationSystemContract.call{value: msg.value}(abi.encodePacked(source, target));
-    if (!ret) revert InvalidConsolidation_Failed();
-    emit ConsolidationRequested(msg.sender, source, target);
+    _requestConsolidation(source, target);
   }
 
   /// Request a principal withdrawal
@@ -320,9 +333,49 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     return pullBalances[account];
   }
 
+  // Perform a fee computation for a consolidation request
+  function computeConsolidationFee(int256 baseFeeMultiplier, int256 consolidationLoad, int256 loadDampingFactor) external returns (uint256) {
+    // factor, numerator, denominator
+    return _computeConsolidationFee(baseFeeMultiplier, consolidationLoad, loadDampingFactor);
+  }
+
   /// -----------------------------------------------------------------------
   /// functions - private & internal
   /// -----------------------------------------------------------------------
+  // toFixed copys data from memory into a uint256. If the length is less than 32,
+  // the output is right-padded with zeros.
+  function _toFixed(bytes memory data, uint256 start, uint256 end) public pure returns (uint256) {
+    if (end - start > 32) revert InvalidRequest_Params();
+    bytes memory out = new bytes(32);
+    for (uint256 i = start; i < end; i++) {
+      out[i - start] = data[i];
+    }
+    return uint256(bytes32(out));
+  }
+
+  function _requestConsolidation(bytes calldata source, bytes calldata target) private {
+    if (source.length != 48 || target.length != 48) revert InvalidConsolidation_Failed();
+
+    // ;; Input data has the following layout:
+    // ;;
+    // ;;  +--------+--------+
+    // ;;  | source | target |
+    // ;;  +--------+--------+
+    // ;;      48       48
+
+    (bool ret,) = consolidationSystemContract.call{value: msg.value}(abi.encodePacked(source, target));
+    if (!ret) revert InvalidConsolidation_Failed();
+    emit ConsolidationRequested(msg.sender, source, target);
+  }
+
+  /// Compute consolidation request fee
+  function _computeConsolidationFee(int256 factor, int256 numerator, int256 denominator) internal returns (uint256) {
+    (bool succes, bytes memory data) = consolidationFeeContract.call(
+      bytes.concat(bytes32(uint256(factor)), bytes32(uint256(numerator)), bytes32(uint256(denominator)))
+    );
+    if (succes) return 0;
+    return _toFixed(data, 0, 32);
+  }
 
   /// Distributes target token inside the contract to next-in-line recipients
   /// @dev can PUSH or PULL funds to recipients
