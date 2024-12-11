@@ -80,7 +80,11 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 | OptimisticWithdrawalRecipient        | [0xa70eb35c1ee7f96688ea5e530ddf1ebedd0c8259](https://holesky.etherscan.io/address/0xa70eb35c1ee7f96688ea5e530ddf1ebedd0c8259) |
 | OptimisticTokenWithdrawalRecipientFactory | [0xD6c9f28062834185FF65D61388D9E2d9D804Fc03](https://holesky.etherscan.io/address/0xD6c9f28062834185FF65D61388D9E2d9D804Fc03) |
 | OptimisticTokenWithdrawalRecipient        | [0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6](https://holesky.etherscan.io/address/0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6) |
-
+| SymPod | [0x947595C64D7F8B2b9159Dd4021b2a6ecA7F8EbB3](https://holesky.etherscan.io/address/0x947595C64D7F8B2b9159Dd4021b2a6ecA7F8EbB3)) |
+| SymPodBeacon | [0xe55bd225DEdeB814eADaE2df4D3F6Ed95934Aa34](https://holesky.etherscan.io/address/0xe55bd225DEdeB814eADaE2df4D3F6Ed95934Aa34)) |
+| SymPodConfigurator | [0x2e82DaaF8320404a5B85022Ea39c18acCC5DB094](https://holesky.etherscan.io/address/0x2e82DaaF8320404a5B85022Ea39c18acCC5DB094)) |
+| SymPodFactory | [0x6F476eBB75A5E4C21F59Fcab10759FE67fd3F52D](https://holesky.etherscan.io/address/0x6F476eBB75A5E4C21F59Fcab10759FE67fd3F52D) |
+| SymPodSlasher | [0xEe3Bf3e7a50C20B843F4373Eb69539A6a35D4c13](https://holesky.etherscan.io/address/0xEe3Bf3e7a50C20B843F4373Eb69539A6a35D4c13)) |
 
 ### Mainnet Contracts
 | Contract Type                        | Address                                                                                             |
