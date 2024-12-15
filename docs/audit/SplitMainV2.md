@@ -51,20 +51,18 @@ Source Units in Scope: **`1`** (**100%**)
 | 📝 | src/splitter/SplitMainV2.sol | 1 | **** | 720 | 645 | 245 | 346 | 209 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
 | 📝 | **Totals** | **1** | **** | **720**  | **645** | **245** | **346** | **209** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='Unchecked Blocks'>Σ</abbr>** |
 
-<sub>
-Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
-<div id="table-legend" style="display:none">
-
-<ul>
-<li> <b>Lines</b>: total lines of the source unit </li>
-<li> <b>nLines</b>: normalized lines of the source unit (e.g. normalizes functions spanning multiple lines) </li>
-<li> <b>nSLOC</b>: normalized source lines of code (only source-code lines; no comments, no blank lines) </li>
-<li> <b>Comment Lines</b>: lines containing single or block comments </li>
-<li> <b>Complexity Score</b>: a custom complexity score derived from code statements that are known to introduce code complexity (branches, loops, calls, external interfaces, ...) </li>
-</ul>
-
+<div class="legend-container">
+    Legend: <a class="toggle-btn" onclick="toggleVisibility('table-legend', this)">[➕]</a>
+    <div id="table-legend" class="legend-content" style="display:none">
+        <ul>
+            <li><b>Lines</b>: total lines of the source unit</li>
+            <li><b>nLines</b>: normalized lines of the source unit (e.g. normalizes functions spanning multiple lines)</li>
+            <li><b>nSLOC</b>: normalized source lines of code (only source-code lines; no comments, no blank lines)</li>
+            <li><b>Comment Lines</b>: lines containing single or block comments</li>
+            <li><b>Complexity Score</b>: a custom complexity score derived from code statements that are known to introduce code complexity (branches, loops, calls, external interfaces, ...)</li>
+        </ul>
+    </div>
 </div>
-</sub>
 
 
 #### <span id=t-out-of-scope>Out of Scope</span>
