@@ -8,7 +8,7 @@ contract ExecutionLayerWithdrawalSystemContractMock {
 
   receive() external payable {}
 
-  fallback() external payable {
+  fallback(bytes calldata) external payable returns (bytes memory) {
     // Input data has the following layout:
     //
     //  +--------+--------+
@@ -31,5 +31,7 @@ contract ExecutionLayerWithdrawalSystemContractMock {
     }
 
     receivedAmount = amount;
+
+    return abi.encodePacked(bytes32(uint256(0.1 ether)));
   }
 }

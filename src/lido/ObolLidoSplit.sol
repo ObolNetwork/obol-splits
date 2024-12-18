@@ -24,7 +24,9 @@ contract ObolLidoSplit is BaseSplit {
   /// @param _feeShare fee share scaled by PERCENTAGE_SCALE
   /// @param _stETH stETH address
   /// @param _wstETH wstETH address
-  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH)  BaseSplit(_feeRecipient, _feeShare) {
+  constructor(address _feeRecipient, uint256 _feeShare, ERC20 _stETH, ERC20 _wstETH)
+    BaseSplit(_feeRecipient, _feeShare)
+  {
     stETH = _stETH;
     wstETH = _wstETH;
   }

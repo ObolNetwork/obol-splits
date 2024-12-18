@@ -204,7 +204,7 @@ contract ImmutableSplitControllerFactory {
     uint256 recipientsSize = accounts.length;
     if (recipientsSize > type(uint8).max) revert InvalidSplit__TooManyAccounts(recipientsSize);
 
-    uint256[] memory recipients = new uint[](recipientsSize);
+    uint256[] memory recipients = new uint256[](recipientsSize);
 
     uint256 i = 0;
     for (; i < recipientsSize;) {

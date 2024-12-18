@@ -99,7 +99,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     vm.startPrank(_user);
     bytes[] memory pubkeys = new bytes[](1);
     pubkeys[0] = pubkey;
-    uint8[] memory amounts = new uint8[](1);
+    uint64[] memory amounts = new uint64[](1);
     amounts[0] = amount;
     vm.expectRevert(0x82b42900); // Unauthorized
     owrETH.batchRequestPrincipalWithdrawal{value: 1 ether}(pubkeys, amounts);

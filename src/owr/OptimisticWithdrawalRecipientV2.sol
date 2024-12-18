@@ -47,6 +47,12 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   // Invalid request parameters
   error InvalidRequest_Params();
 
+  // Invalid fee request parameters
+  error InvalidRequest_SystemFee();
+
+  // Invalid system contract value
+  error InvalidRequest_NotEnoughFee();
+
   /// -----------------------------------------------------------------------
   /// events
   /// -----------------------------------------------------------------------
@@ -190,62 +196,53 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     initialized = true;
   }
 
-  /// Performs a Pectra consolidation request
+  /// Performs a system consolidation request
   /// @dev migrate to another OWR
-  /// compute fee before calling to send the right msg.value amount
-  function requestConsolidation(bytes calldata source, bytes calldata target)
+  ///      compute fee before calling to send the right msg.value amount
+  ///      excess is refunded
+  function batchRequestConsolidation(bytes[] calldata pubkeysSrc, bytes calldata target)
     external
     payable
     onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE)
   {
-    _requestConsolidation(source, target);
-  }
+    if (pubkeysSrc.length == 0) revert InvalidRequest_Params();
 
-  /// Performs a Pectra consolidation request
-  /// @dev migrate to another OWR
-  function requestConsolidation(
-    bytes calldata source,
-    bytes calldata target,
-    int256 factor,
-    int256 numerator,
-    int256 denominator,
-    uint256 slippage
-  ) external payable onlyOwnerOrRoles(CONSOLIDATION_WITHDRAWAL_ROLE) {
-    if (slippage > 1e5) slippage = 1e4;
-    uint256 fee = _computeConsolidationFee(factor, numerator, denominator);
-    if (msg.value < fee || msg.value > (fee + (fee * slippage / 1e5))) revert InvalidRequest_Params();
+    uint256 totalFee = 0;
+    uint256 _msgValue = msg.value;
 
-    _requestConsolidation(source, target);
+    uint256 len = pubkeysSrc.length;
+    for (uint256 i; i < len;) {
+      uint256 _currentFee = _computeSystemContractFee(true);
+      totalFee += _currentFee;
+      if (totalFee > _msgValue) revert InvalidRequest_NotEnoughFee();
+
+      _requestConsolidation(pubkeysSrc[i], target, _currentFee);
+      unchecked {
+        ++i;
+      }
+    }
+
+    if (_msgValue > totalFee) payable(msg.sender).transfer(_msgValue - totalFee);
   }
 
   /// Request a principal withdrawal
   /// @dev batch request principal withdrawal
-  function batchRequestPrincipalWithdrawal(bytes[] calldata pubkeys, uint8[] calldata amounts)
+  function batchRequestPrincipalWithdrawal(bytes[] calldata pubkeys, uint64[] calldata amounts)
     external
     payable
     onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE)
   {
-    if (pubkeys.length != amounts.length) revert InvalidRequest_Params();
-    uint256 len = pubkeys.length;
-    for (uint256 i = 0; i < len; i++) {
-      _requestWithdrawal(pubkeys[i], amounts[i], false);
-      emit PrincipalWithdrawalRequested(msg.sender, pubkeys[i], amounts[i]);
-    }
+    _requestWithdrawalBatch(pubkeys, amounts, false);
   }
 
   /// Request a reward  withdrawal
   /// @dev batch request rewards withdrawal
-  function batchRequestRewardsWithdrawal(bytes[] calldata pubkeys, uint8[] calldata amounts)
+  function batchRequestRewardsWithdrawal(bytes[] calldata pubkeys, uint64[] calldata amounts)
     external
     payable
     onlyOwnerOrRoles(PRINCIPAL_WITHDRAWAL_ROLE)
   {
-    if (pubkeys.length != amounts.length) revert InvalidRequest_Params();
-    uint256 len = pubkeys.length;
-    for (uint256 i = 0; i < len; i++) {
-      _requestWithdrawal(pubkeys[i], amounts[i], true);
-      emit RewardsWithdrawalRequested(msg.sender, pubkeys[i], amounts[i]);
-    }
+    _requestWithdrawalBatch(pubkeys, amounts, true);
   }
 
   /// Distributes target token inside the contract to recipients
@@ -333,10 +330,27 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     return pullBalances[account];
   }
 
-  // Perform a fee computation for a consolidation request
-  function computeConsolidationFee(int256 baseFeeMultiplier, int256 consolidationLoad, int256 loadDampingFactor) external returns (uint256) {
-    // factor, numerator, denominator
-    return _computeConsolidationFee(baseFeeMultiplier, consolidationLoad, loadDampingFactor);
+  // Perform a fee computation for a system request
+  function computeSystemContractFee(bool isConsolidation) external view returns (uint256) {
+    return _computeSystemContractFee(isConsolidation);
+  }
+
+  // Perform a fee computation for a batch system request
+  function computeSystemContractFeeForBatch(uint256 growthRate, bool isConsolidation, uint256 count)
+    external
+    view
+    returns (uint256)
+  {
+    uint256 totalFee;
+    uint256 currentFee = _computeSystemContractFee(isConsolidation);
+    for (uint256 i; i < count;) {
+      totalFee += currentFee;
+      currentFee = (currentFee * growthRate) / 1e18;
+      unchecked {
+        ++i;
+      }
+    }
+    return totalFee;
   }
 
   /// -----------------------------------------------------------------------
@@ -353,28 +367,16 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     return uint256(bytes32(out));
   }
 
-  function _requestConsolidation(bytes calldata source, bytes calldata target) private {
-    if (source.length != 48 || target.length != 48) revert InvalidConsolidation_Failed();
+  /// Compute system contracts fee
+  function _computeSystemContractFee(bool isConsolidation) internal view returns (uint256) {
+    bool success;
+    bytes memory feeData;
 
-    // ;; Input data has the following layout:
-    // ;;
-    // ;;  +--------+--------+
-    // ;;  | source | target |
-    // ;;  +--------+--------+
-    // ;;      48       48
-
-    (bool ret,) = consolidationSystemContract.call{value: msg.value}(abi.encodePacked(source, target));
-    if (!ret) revert InvalidConsolidation_Failed();
-    emit ConsolidationRequested(msg.sender, source, target);
-  }
-
-  /// Compute consolidation request fee
-  function _computeConsolidationFee(int256 factor, int256 numerator, int256 denominator) internal returns (uint256) {
-    (bool succes, bytes memory data) = consolidationFeeContract.call(
-      bytes.concat(bytes32(uint256(factor)), bytes32(uint256(numerator)), bytes32(uint256(denominator)))
-    );
-    if (succes) return 0;
-    return _toFixed(data, 0, 32);
+    (success, feeData) = isConsolidation
+      ? consolidationSystemContract.staticcall("")
+      : executionLayerWithdrawalSystemContract.staticcall("");
+    if (!success) revert InvalidRequest_SystemFee();
+    return uint256(bytes32(feeData));
   }
 
   /// Distributes target token inside the contract to next-in-line recipients
@@ -459,7 +461,43 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     }
   }
 
-  function _requestWithdrawal(bytes memory pubkey, uint8 amount, bool _rewards) private {
+  function _requestConsolidation(bytes calldata source, bytes calldata target, uint256 fee) private {
+    if (source.length != 48 || target.length != 48) revert InvalidConsolidation_Failed();
+
+    // ;; Input data has the following layout:
+    // ;;
+    // ;;  +--------+--------+
+    // ;;  | source | target |
+    // ;;  +--------+--------+
+    // ;;      48       48
+
+    (bool ret,) = consolidationSystemContract.call{value: fee}(abi.encodePacked(source, target));
+    if (!ret) revert InvalidConsolidation_Failed();
+    emit ConsolidationRequested(msg.sender, source, target);
+  }
+
+  function _requestWithdrawalBatch(bytes[] calldata pubkeys, uint64[] calldata amounts, bool _rewards) private {
+    if (pubkeys.length != amounts.length) revert InvalidRequest_Params();
+
+    uint256 totalFee = 0;
+    uint256 _msgValue = msg.value;
+    uint256 len = pubkeys.length;
+    for (uint256 i; i < len;) {
+      uint256 _currentFee = _computeSystemContractFee(false);
+      totalFee += _currentFee;
+      if (totalFee > _msgValue) revert InvalidRequest_NotEnoughFee();
+
+      _requestWithdrawal(pubkeys[i], amounts[i], _rewards, _currentFee);
+
+      unchecked {
+        ++i;
+      }
+    }
+
+    if (_msgValue > totalFee) payable(msg.sender).transfer(_msgValue - totalFee);
+  }
+
+  function _requestWithdrawal(bytes memory pubkey, uint64 amount, bool _rewards, uint256 fee) private {
     if (pubkey.length != 48) revert InvalidWithdrawal_Failed();
 
     if (_rewards && amount >= BALANCE_CLASSIFICATION_THRESHOLD) revert InvalidPectraWithdrawal_Rewards();
@@ -471,7 +509,10 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     //  | pubkey | amount |
     //  +--------+--------+
     //      48       8
-    (bool ret,) = executionLayerWithdrawalSystemContract.call{value: msg.value}(abi.encodePacked(pubkey, amount));
+    (bool ret,) = executionLayerWithdrawalSystemContract.call{value: fee}(abi.encodePacked(pubkey, amount));
     if (!ret) revert InvalidWithdrawal_Failed();
+
+    if (_rewards) emit RewardsWithdrawalRequested(msg.sender, pubkey, amount);
+    else emit PrincipalWithdrawalRequested(msg.sender, pubkey, amount);
   }
 }

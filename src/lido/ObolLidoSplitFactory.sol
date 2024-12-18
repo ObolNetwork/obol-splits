@@ -11,7 +11,6 @@ import "./ObolLidoSplit.sol";
 /// @notice A factory contract for cheaply deploying ObolLidoSplit.
 /// @dev The address returned should be used to as reward address for Lido
 contract ObolLidoSplitFactory is BaseSplitFactory {
-
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
