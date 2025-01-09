@@ -13,7 +13,7 @@ contract IMSC is Test {
   error Unauthorized();
   error Invalid_SplitBalance();
 
-  address internal SPLIT_MAIN_GOERLI = 0x2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE;
+  address internal SPLIT_MAIN_SEPOLIA = 0x5924cD81dC672151527B1E4b5Ef57B69cBD07Eda;
   uint256 public constant PERCENTAGE_SCALE = 1e6;
 
   ImmutableSplitControllerFactory public factory;
@@ -31,10 +31,9 @@ contract IMSC is Test {
   address owner;
 
   function setUp() public {
-    uint256 goerliBlock = 8_529_931;
-    vm.createSelectFork(getChain("goerli").rpcUrl);
+    vm.createSelectFork(getChain("sepolia").rpcUrl);
 
-    factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_GOERLI);
+    factory = new ImmutableSplitControllerFactory(SPLIT_MAIN_SEPOLIA);
     cntrlImpl = factory.controller();
 
     accounts = new address[](2);
@@ -63,7 +62,7 @@ contract IMSC is Test {
     address predictedControllerAddress =
       factory.predictSplitControllerAddress(owner, controllerAccounts, controllerPercentAllocations, 0, deploymentSalt);
 
-    split = ISplitMain(SPLIT_MAIN_GOERLI).createSplit(accounts, percentAllocations, 0, predictedControllerAddress);
+    split = ISplitMain(SPLIT_MAIN_SEPOLIA).createSplit(accounts, percentAllocations, 0, predictedControllerAddress);
 
     // deploy controller
     controller =
@@ -77,7 +76,7 @@ contract IMSC is Test {
   }
 
   function testCan_getSplitMain() public {
-    assertEq(controller.splitMain(), SPLIT_MAIN_GOERLI, "valid splitMain address");
+    assertEq(controller.splitMain(), SPLIT_MAIN_SEPOLIA, "valid splitMain address");
   }
 
   function testCan_getOwner() public {
@@ -136,7 +135,7 @@ contract IMSC is Test {
     controller.updateSplit();
 
     assertEq(
-      ISplitMain(SPLIT_MAIN_GOERLI).getHash(split),
+      ISplitMain(SPLIT_MAIN_SEPOLIA).getHash(split),
       _hashSplit(controllerAccounts, controllerPercentAllocations, 0),
       "invalid split hash"
     );
@@ -168,7 +167,7 @@ contract IMSC is Test {
 
     // create split
     address fuzzSplit =
-      ISplitMain(SPLIT_MAIN_GOERLI).createSplit(splitterAccts, splitterPercentAlloc, 0, predictedControllerAddress);
+      ISplitMain(SPLIT_MAIN_SEPOLIA).createSplit(splitterAccts, splitterPercentAlloc, 0, predictedControllerAddress);
 
     // create controller
     controller =
@@ -177,12 +176,12 @@ contract IMSC is Test {
     assertEq(controller.owner(), ownerAddress, "invalid owner address");
 
     // get current split hash
-    bytes32 currentSplitHash = ISplitMain(SPLIT_MAIN_GOERLI).getHash(fuzzSplit);
+    bytes32 currentSplitHash = ISplitMain(SPLIT_MAIN_SEPOLIA).getHash(fuzzSplit);
     // update split
     vm.prank(ownerAddress);
     controller.updateSplit();
 
-    bytes32 newSplitHash = ISplitMain(SPLIT_MAIN_GOERLI).getHash(fuzzSplit);
+    bytes32 newSplitHash = ISplitMain(SPLIT_MAIN_SEPOLIA).getHash(fuzzSplit);
 
     bytes32 calculatedSplitHash = _hashSplit(ctrllerAccounts, ctrllerPercentAlloc, 0);
 
