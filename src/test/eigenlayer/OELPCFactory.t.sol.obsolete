@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "forge-std/Test.sol";
 import {ObolEigenLayerPodControllerFactory} from "src/eigenlayer/ObolEigenLayerPodControllerFactory.sol";
-import {EigenLayerTestBase} from "src/test/eigenlayer/EigenLayerTestBase.sol";
+import {EigenLayerTestBase} from "./EigenLayerTestBase.sol";
 
 contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
   error Invalid_Owner();
@@ -24,8 +24,7 @@ contract ObolEigenLayerPodControllerFactoryTest is EigenLayerTestBase {
   uint256 feeShare;
 
   function setUp() public {
-    uint256 goerliBlock = 10_205_449;
-    vm.createSelectFork(getChain("goerli").rpcUrl, goerliBlock);
+    vm.createSelectFork(getChain("goerli").rpcUrl);
 
     owner = makeAddr("owner");
     user1 = makeAddr("user1");

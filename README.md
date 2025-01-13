@@ -10,7 +10,7 @@ The following smart contracts are provided as is, without warranty. Details of t
 
 ## Quickstart
 
-This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.tech/docs/next/sc/introducing-obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
+This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.org/learn/intro/obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
 
 ### Installation
 
@@ -54,21 +54,6 @@ This command generates compilation output into the `out` directory.
 ### Deployment
 
 This repo can be deployed with `forge create` or running the deployment scripts.
-
-#### Goerli
-
-OptimisticWithdrawalRecipientFactory: https://goerli.etherscan.io/address/0xe9557FCC055c89515AE9F3A4B1238575Fcd80c26
-
-OptimisticWithdrawalRecipient: https://goerli.etherscan.io/address/0x898516b26D99d0F389598acFcd9F115Ab8184Fe3
-
-ImmutableSplitControllerFactory: https://goerli.etherscan.io/address/0x64a2c4A50B1f46c3e2bF753CFe270ceB18b5e18f
-
-ImmutableSplitController: https://goerli.etherscan.io/address/0x009894cdA6cB6d99866ca8E04e8EDeabd625712F
-
-ObolLidoSplitFactory: https://goerli.etherscan.io/address/0x40435F54cc57943C727d8f856A52d4E55501cA8C
-
-ObolLidoSplit: https://goerli.etherscan.io/address/0xdF46B2f36ffb67492A73263Ae3C3849B99DA9967
-
 
 #### Sepolia
 
