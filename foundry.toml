@@ -15,10 +15,8 @@ fs_permissions = [{ access = "read-write", path = "./"}]
 
 
 [rpc_endpoints]
-goerli = "${GOERLI_RPC_URL}"
 mainnet = "${MAINNET_RPC_URL}"
 sepolia = "${SEPOLIA_RPC_URL}"
-# See more config options https://github.com/gakonst/foundry/tree/master/config
 
 [fmt]
 bracket_spacing = false

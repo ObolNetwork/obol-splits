@@ -10,7 +10,7 @@ The following smart contracts are provided as is, without warranty. Details of t
 
 ## Quickstart
 
-This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.tech/docs/next/sc/introducing-obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
+This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.org/learn/intro/obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
 
 ### Installation
 
@@ -55,16 +55,6 @@ This command generates compilation output into the `out` directory.
 
 This repo can be deployed with `forge create` or running the deployment scripts.
 
-### Goerli Network Contracts
-| Contract Type                        | Address                                                                                             |
-|--------------------------------------|-----------------------------------------------------------------------------------------------------|
-| OptimisticWithdrawalRecipientFactory | [0xe9557FCC055c89515AE9F3A4B1238575Fcd80c26](https://goerli.etherscan.io/address/0xe9557FCC055c89515AE9F3A4B1238575Fcd80c26) |
-| OptimisticWithdrawalRecipient        | [0x898516b26D99d0F389598acFcd9F115Ab8184Fe3](https://goerli.etherscan.io/address/0x898516b26D99d0F389598acFcd9F115Ab8184Fe3) |
-| ImmutableSplitControllerFactory     | [0x64a2c4A50B1f46c3e2bF753CFe270ceB18b5e18f](https://goerli.etherscan.io/address/0x64a2c4A50B1f46c3e2bF753CFe270ceB18b5e18f) |
-| ImmutableSplitController            | [0x009894cdA6cB6d99866ca8E04e8EDeabd625712F](https://goerli.etherscan.io/address/0x009894cdA6cB6d99866ca8E04e8EDeabd625712F) |
-| ObolLidoSplitFactory                | [0x40435F54cc57943C727d8f856A52d4E55501cA8C](https://goerli.etherscan.io/address/0x40435F54cc57943C727d8f856A52d4E55501cA8C) |
-| ObolLidoSplit                       | [0xdF46B2f36ffb67492A73263Ae3C3849B99DA9967](https://goerli.etherscan.io/address/0xdF46B2f36ffb67492A73263Ae3C3849B99DA9967) |
-
 ### Sepolia Network Contracts
 | Contract Type                        | Address                                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------|
@@ -80,7 +70,6 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 | OptimisticWithdrawalRecipient        | [0xa70eb35c1ee7f96688ea5e530ddf1ebedd0c8259](https://holesky.etherscan.io/address/0xa70eb35c1ee7f96688ea5e530ddf1ebedd0c8259) |
 | OptimisticTokenWithdrawalRecipientFactory | [0xD6c9f28062834185FF65D61388D9E2d9D804Fc03](https://holesky.etherscan.io/address/0xD6c9f28062834185FF65D61388D9E2d9D804Fc03) |
 | OptimisticTokenWithdrawalRecipient        | [0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6](https://holesky.etherscan.io/address/0xb927bf07d1686A7Ad06Fae18e632232a8498F0f6) |
-
 
 ### Mainnet Contracts
 | Contract Type                        | Address                                                                                             |
