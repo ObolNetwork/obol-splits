@@ -61,24 +61,24 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// @param recoveryAddressToken Recovered token (cannot be ETH)
   /// @param recipient Address receiving recovered token
   /// @param amount Amount of recovered token
-  event RecoverNonOWRecipientFunds(address recoveryAddressToken, address recipient, uint256 amount);
+  event RecoverNonOWRecipientFunds(address indexed recoveryAddressToken, address indexed recipient, uint256 amount);
 
   /// Emitted after funds withdrawn using pull flow
   /// @param account Account withdrawing funds for
   /// @param amount Amount withdrawn
-  event Withdrawal(address account, uint256 amount);
+  event Withdrawal(address indexed account, uint256 amount);
 
   /// Emitted when a Pectra consolidation request is done
   /// @param requester Address of the requester
   /// @param from Source validator public key
   /// @param to Target validator public key
-  event ConsolidationRequested(address indexed requester, bytes from, bytes to);
+  event ConsolidationRequested(address indexed requester, bytes indexed from, bytes indexed to);
 
   /// Emitted when a Pectra withdrawal request is done
   /// @param requester Address of the requester
   /// @param pubKey Validator public key
   /// @param amount Withdrawal amount
-  event WithdrawalRequested(address indexed requester, bytes pubKey, uint256 amount);
+  event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount);
 
   /// -----------------------------------------------------------------------
   /// storage
