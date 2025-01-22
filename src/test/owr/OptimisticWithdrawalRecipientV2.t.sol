@@ -17,7 +17,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
 
   event ReceiveETH(uint256 amount);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
-  event RecoverNonOWRecipientFunds(address nonOWRToken, address recipient, uint256 amount);
+  event RecoverNonOWRecipientFunds(address indexed nonOWRToken, address indexed recipient, uint256 amount);
 
   address public ENS_REVERSE_REGISTRAR = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
