@@ -104,37 +104,70 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     owrETH.initialize(address(this));
   }
 
-  // function testInitiateWithdrawalXQ(uint8 amount) public {
-  //   vm.assume(amount >= 100 && amount <= 100000);
-  //   address _user = vm.addr(0x1);
-  //   vm.deal(_user, type(uint256).max);
+  function testRequestConsolidation() public {
+    address _user = vm.addr(0x1);
+    vm.deal(_user, type(uint256).max);
 
-  //   bytes memory pubkey = new bytes(48);
-  //   for (uint256 i = 0; i < 48; i++) {
-  //     pubkey[i] = bytes1(0xAB);
-  //   }
+    bytes memory srcPubkey = new bytes(48);
+    bytes memory dstPubkey = new bytes(48);
+    for (uint256 i = 0; i < 48; i++) {
+      srcPubkey[i] = bytes1(0xAB);
+      dstPubkey[i] = bytes1(0xCD);
+    }
 
-  //   vm.startPrank(_user);
-  //   bytes[] memory pubkeys = new bytes[](1);
-  //   pubkeys[0] = pubkey;
-  //   uint64[] memory amounts = new uint64[](1);
-  //   amounts[0] = amount;
-  //   vm.expectRevert(0x82b42900); // Unauthorized
-  //   owrETH.batchRequestPrincipalWithdrawal{value: 1 ether}(pubkeys, amounts);
-  //   vm.stopPrank();
-  //   vm.startPrank(address(this));
+    vm.startPrank(_user);
+    bytes[] memory srcPubkeys = new bytes[](1);
+    srcPubkeys[0] = srcPubkey;
+    bytes memory encodedData = abi.encode(srcPubkey, dstPubkey);
+    vm.expectRevert(0x82b42900); // Unauthorized
+    owrETH.requestConsolidation{value: 1 ether}(srcPubkeys, dstPubkey);
+    vm.stopPrank();
+    vm.startPrank(address(this));
 
-  //   owrETH.grantRoles(_user, 1111);
-  //   owrETH.grantRoles(_user, 2222);
+    owrETH.grantRoles(_user, owrETH.WITHDRAWAL_ROLE());
 
-  //   vm.stopPrank();
-  //   vm.startPrank(_user);
-  //   owrETH.batchRequestRewardsWithdrawal{value: 1 ether}(pubkeys, amounts);
-  //   vm.stopPrank();
+    vm.stopPrank();
+    vm.startPrank(_user);
+    owrETH.requestConsolidation{value: 1 ether}(srcPubkeys, dstPubkey);
+    vm.stopPrank();
 
-  //   assertGt(withdrawalMock.receivedAmount(), 0);
-  //   assertEq(address(withdrawalMock).balance, 1 ether);
-  // }
+    assertEq(consolidationMock.getConsolidationRequests().length, 1);
+    assertEq(consolidationMock.getConsolidationRequests()[0], encodedData);
+    assertEq(address(consolidationMock).balance, 1 ether);
+  }
+
+  function testRequestWithdrawal() public {
+    address _user = vm.addr(0x1);
+    vm.deal(_user, type(uint256).max);
+
+    bytes memory pubkey = new bytes(48);
+    uint64 amount = 1234;
+    for (uint256 i = 0; i < 48; i++) {
+      pubkey[i] = bytes1(0xAB);
+    }
+
+    vm.startPrank(_user);
+    bytes[] memory pubkeys = new bytes[](1);
+    pubkeys[0] = pubkey;
+    uint64[] memory amounts = new uint64[](1);
+    amounts[0] = amount;
+    bytes memory encodedData = abi.encode(pubkey, amount);
+    vm.expectRevert(0x82b42900); // Unauthorized
+    owrETH.requestWithdrawal{value: 1 ether}(pubkeys, amounts);
+    vm.stopPrank();
+    vm.startPrank(address(this));
+
+    owrETH.grantRoles(_user, owrETH.WITHDRAWAL_ROLE());
+
+    vm.stopPrank();
+    vm.startPrank(_user);
+    owrETH.requestWithdrawal{value: 1 ether}(pubkeys, amounts);
+    vm.stopPrank();
+
+    assertEq(withdrawalMock.getWithdrawalRequests().length, 1);
+    assertEq(withdrawalMock.getWithdrawalRequests()[0], encodedData);
+    assertEq(address(withdrawalMock).balance, 1 ether);
+  }
 
   function testReceiveETH() public {
     address(owrETH).safeTransferETH(1 ether);

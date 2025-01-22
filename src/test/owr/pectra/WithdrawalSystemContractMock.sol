@@ -6,6 +6,10 @@ import "forge-std/console.sol";
 contract WithdrawalSystemContractMock {
   bytes[] public withdrawalRequests;
 
+  function getWithdrawalRequests() external view returns (bytes[] memory) {
+    return withdrawalRequests;
+  }
+
   receive() external payable {}
 
   fallback(bytes calldata) external payable returns (bytes memory) {

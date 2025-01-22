@@ -95,6 +95,9 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// storage - constants
   /// -----------------------------------------------------------------------
 
+  uint256 public constant WITHDRAWAL_ROLE = 1111;
+  uint256 public constant CONSOLIDATION_ROLE = 2222;
+
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
 
@@ -105,9 +108,6 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
   uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
   uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
-
-  uint256 internal constant WITHDRAWAL_ROLE = 1111;
-  uint256 internal constant CONSOLIDATION_ROLE = 2222;
 
   /// -----------------------------------------------------------------------
   /// storage - cwia offsets

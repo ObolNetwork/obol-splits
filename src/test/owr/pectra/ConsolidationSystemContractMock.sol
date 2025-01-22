@@ -6,6 +6,10 @@ import "forge-std/console.sol";
 contract ConsolidationSystemContractMock {
   bytes[] public consolidationRequests;
 
+  function getConsolidationRequests() external view returns (bytes[] memory) {
+    return consolidationRequests;
+  }
+
   receive() external payable {}
 
   fallback(bytes calldata) external payable returns (bytes memory) {
