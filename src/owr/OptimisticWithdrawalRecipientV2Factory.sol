@@ -64,6 +64,16 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// constructor
   /// -----------------------------------------------------------------------
 
+  /// @param _ensName ENS name to register
+  /// @param _ensReverseRegistrar ENS reverse registrar address
+  /// @param _ensOwner ENS owner address
+  /// @param _consolidationSystemContract Consolidation system contract address
+  /// @param _withdrawalSystemContract Withdrawal system contract address
+  /// @dev System contracts are expected to be deployed at:
+  ///      Consolidation: 0x00431F263cE400f4455c2dCf564e53007Ca4bbBb
+  ///      https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7251.md#constants
+  ///      Withdrawal: 0x0c15F14308530b7CDB8460094BbB9cC28b9AaaAA
+  //       https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7002.md#configuration
   constructor(
     string memory _ensName,
     address _ensReverseRegistrar,
