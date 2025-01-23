@@ -6,8 +6,7 @@ import {OptimisticWithdrawalRecipientV2} from "src/owr/OptimisticWithdrawalRecip
 import {OptimisticWithdrawalRecipientV2Factory} from "src/owr/OptimisticWithdrawalRecipientV2Factory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {OWRTestHelper} from "../owr/OWRTestHelper.t.sol";
-import {ConsolidationSystemContractMock} from "./pectra/ConsolidationSystemContractMock.sol";
-import {WithdrawalSystemContractMock} from "./pectra/WithdrawalSystemContractMock.sol";
+import {SystemContractMock} from "./pectra/SystemContractMock.sol";
 import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
 contract OptimisticWithdrawalRecipientV2FactoryTest is OWRTestHelper, Test {
@@ -22,8 +21,8 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is OWRTestHelper, Test {
 
   address public ENS_REVERSE_REGISTRAR = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
-  ConsolidationSystemContractMock consolidationMock;
-  WithdrawalSystemContractMock withdrawalMock;
+  SystemContractMock consolidationMock;
+  SystemContractMock withdrawalMock;
   OptimisticWithdrawalRecipientV2Factory owrFactory;
 
   address public recoveryAddress;
@@ -43,8 +42,8 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is OWRTestHelper, Test {
       bytes.concat(bytes32(0))
     );
 
-    consolidationMock = new ConsolidationSystemContractMock();
-    withdrawalMock = new WithdrawalSystemContractMock();
+    consolidationMock = new SystemContractMock(48+48);
+    withdrawalMock = new SystemContractMock(48+8);
     owrFactory = new OptimisticWithdrawalRecipientV2Factory(
       "demo.obol.eth",
       ENS_REVERSE_REGISTRAR,

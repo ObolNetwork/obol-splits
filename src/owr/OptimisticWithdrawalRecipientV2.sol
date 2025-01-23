@@ -70,9 +70,9 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
 
   /// Emitted when a Pectra consolidation request is done
   /// @param requester Address of the requester
-  /// @param from Source validator public key
-  /// @param to Target validator public key
-  event ConsolidationRequested(address indexed requester, bytes indexed from, bytes indexed to);
+  /// @param source Source validator public key
+  /// @param target Target validator public key
+  event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
 
   /// Emitted when a Pectra withdrawal request is done
   /// @param requester Address of the requester
@@ -95,8 +95,8 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// storage - constants
   /// -----------------------------------------------------------------------
 
-  uint256 public constant WITHDRAWAL_ROLE = 1111;
-  uint256 public constant CONSOLIDATION_ROLE = 2222;
+  uint256 public constant WITHDRAWAL_ROLE = 0x01;
+  uint256 public constant CONSOLIDATION_ROLE = 0x02;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
@@ -196,6 +196,8 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
       if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
 
       _requestConsolidation(sourcePubKeys[i], targetPubKey, _currentFee);
+      remainingFee -= _currentFee;
+
       unchecked {
         ++i;
       }
@@ -223,6 +225,7 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
       if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
 
       _requestWithdrawal(pubKeys[i], amounts[i], _currentFee);
+      remainingFee -= _currentFee;
 
       unchecked {
         ++i;
@@ -309,14 +312,11 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
 
   /// Compute system contracts fee
-  function _computeSystemContractFee(address systemContractAddress) internal view returns (uint256) {
-    bool success;
-    bytes memory feeData;
+  function _computeSystemContractFee(address systemContractAddress) internal returns (uint256) {
+    (bool ok, bytes memory result) = systemContractAddress.call(new bytes(0));
+    if (!ok) revert InvalidRequest_SystemGetFee();
 
-    (success, feeData) = systemContractAddress.staticcall("");
-    if (!success) revert InvalidRequest_SystemGetFee();
-
-    return uint256(bytes32(feeData));
+    return uint256(bytes32(result));
   }
 
   /// Executes single consolidation request
@@ -324,14 +324,14 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     if (source.length != 48 || target.length != 48) revert InvalidRequest_Params();
 
     // Input data has the following layout:
-    // 
+    //
     //  +--------+--------+
     //  | source | target |
     //  +--------+--------+
     //      48       48
 
-    (bool ret, ) = consolidationSystemContract.call{value: fee}(abi.encodePacked(source, target));
-    if (!ret) revert InvalidConsolidation_Failed();
+    (bool ok, ) = consolidationSystemContract.call{value: fee}(abi.encodePacked(source, target));
+    if (!ok) revert InvalidConsolidation_Failed();
 
     emit ConsolidationRequested(msg.sender, source, target);
   }
