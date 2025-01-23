@@ -17,6 +17,8 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
   event ReceiveETH(uint256 amount);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
   event RecoverNonOWRecipientFunds(address indexed nonOWRToken, address indexed recipient, uint256 amount);
+  event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
+  event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount);
 
   address public ENS_REVERSE_REGISTRAR = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
@@ -106,6 +108,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
   function testCannot_requestConsolidation() public {
     // Unauthorized
     address _user = vm.addr(0x2);
+    owrETH.grantRoles(_user, owrETH.WITHDRAWAL_ROLE());
     vm.deal(_user, type(uint256).max);
     vm.startPrank(_user);
     vm.expectRevert(0x82b42900);
@@ -124,7 +127,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     owrETH.requestConsolidation{value: 1 wei}(single, new bytes(48));
   }
 
-  function testRequestConsolidation() public {
+  function testRequestSingleConsolidation() public {
     bytes[] memory srcPubkeys = new bytes[](1);
     bytes memory srcPubkey = new bytes(48);
     bytes memory dstPubkey = new bytes(48);
@@ -139,6 +142,8 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
 
     vm.deal(_user, 1 ether);
     vm.startPrank(_user);
+    vm.expectEmit(true, true, true, true);
+    emit ConsolidationRequested(_user, srcPubkey, dstPubkey);
     owrETH.requestConsolidation{value: 100 wei}(srcPubkeys, dstPubkey);
     vm.stopPrank();
 
@@ -150,9 +155,42 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     assertEq(_user.balance, 1 ether - 2 wei);
   }
 
+  function testRequestBatchConsolidation() public {
+    uint256 excessFee = 100 wei;
+    uint256 expectedTotalFee;
+    uint256 numRequests = 10;
+    bytes[] memory srcPubkeys = new bytes[](numRequests);
+    bytes memory dstPubkey = new bytes(48);
+
+    for (uint8 i = 0; i < numRequests; i++) {
+      expectedTotalFee += 2 << i; // must match SystemContractMock logic
+
+      bytes memory srcPubkey = new bytes(48);
+      for (uint8 j = 0; j < 48; j++) {
+        srcPubkey[i] = bytes1(i + 1);
+        dstPubkey[i] = bytes1(0xFF);
+      }
+      srcPubkeys[i] = srcPubkey;
+    }
+
+    address _user = vm.addr(0x1);
+    owrETH.grantRoles(_user, owrETH.CONSOLIDATION_ROLE());
+
+    vm.deal(_user, expectedTotalFee + excessFee);
+    vm.startPrank(_user);
+    owrETH.requestConsolidation{value: expectedTotalFee}(srcPubkeys, dstPubkey);
+    vm.stopPrank();
+
+    bytes[] memory requestsMade = consolidationMock.getRequests();
+    assertEq(requestsMade.length, numRequests);
+    assertEq(_user.balance, excessFee);
+    assertEq(address(consolidationMock).balance, expectedTotalFee);
+  }
+
   function testCannot_requestWithdrawal() public {
     // Unauthorized
     address _user = vm.addr(0x2);
+    owrETH.grantRoles(_user, owrETH.CONSOLIDATION_ROLE());
     vm.deal(_user, type(uint256).max);
     vm.startPrank(_user);
     vm.expectRevert(0x82b42900);
@@ -171,7 +209,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     owrETH.requestWithdrawal{value: 1 wei}(single, new uint64[](1));
   }
 
-  function testRequestWithdrawal() public {
+  function testRequestSingleWithdrawal() public {
     bytes[] memory pubkeys = new bytes[](1);
     uint64[] memory amounts = new uint64[](1);
     bytes memory pubkey = new bytes(48);
@@ -187,6 +225,8 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
 
     vm.deal(_user, 1 ether);
     vm.startPrank(_user);
+    vm.expectEmit(true, true, true, true);
+    emit WithdrawalRequested(_user, pubkey, amount);
     owrETH.requestWithdrawal{value: 100 wei}(pubkeys, amounts);
     vm.stopPrank();
 
@@ -196,6 +236,38 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     assertEq(requestsMade[0], encodedData);
     assertEq(address(withdrawalMock).balance, 2 wei);
     assertEq(_user.balance, 1 ether - 2 wei);
+  }
+
+  function testRequestBatchWithdrawal() public {
+    uint256 excessFee = 100 wei;
+    uint256 expectedTotalFee;
+    uint256 numRequests = 10;
+    bytes[] memory pubkeys = new bytes[](numRequests);
+    uint64[] memory amounts = new uint64[](numRequests);
+
+    for (uint8 i = 0; i < numRequests; i++) {
+      expectedTotalFee += 2 << i; // must match SystemContractMock logic
+
+      bytes memory pubkey = new bytes(48);
+      for (uint8 j = 0; j < 48; j++) {
+        pubkey[i] = bytes1(i + 1);
+      }
+      pubkeys[i] = pubkey;
+      amounts[i] = uint64(1 << i);
+    }
+
+    address _user = vm.addr(0x1);
+    owrETH.grantRoles(_user, owrETH.WITHDRAWAL_ROLE());
+
+    vm.deal(_user, expectedTotalFee + excessFee);
+    vm.startPrank(_user);
+    owrETH.requestWithdrawal{value: expectedTotalFee}(pubkeys, amounts);
+    vm.stopPrank();
+
+    bytes[] memory requestsMade = withdrawalMock.getRequests();
+    assertEq(requestsMade.length, numRequests);
+    assertEq(_user.balance, excessFee);
+    assertEq(address(withdrawalMock).balance, expectedTotalFee);
   }
 
   function testReceiveETH() public {
