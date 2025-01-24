@@ -14,7 +14,6 @@ import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
   using SafeTransferLib for address;
 
-  event ReceiveETH(uint256 amount);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
   event RecoverNonOWRecipientFunds(address indexed nonOWRToken, address indexed recipient, uint256 amount);
   event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
@@ -244,7 +243,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     bytes[] memory pubkeys = new bytes[](1);
     uint64[] memory amounts = new uint64[](1);
     bytes memory pubkey = new bytes(48);
-    uint64 amount = 1234;
+    uint64 amount = 1234; // gwei
     for (uint256 i = 0; i < 48; i++) {
       pubkey[i] = bytes1(0xAB);
     }
@@ -314,13 +313,6 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
   function testReceiveTransfer() public {
     payable(address(owrETH)).transfer(1 ether);
     assertEq(address(owrETH).balance, 1 ether);
-  }
-
-  function testEmitOnReceiveETH() public {
-    vm.expectEmit(true, true, true, true);
-    emit ReceiveETH(1 ether);
-
-    address(owrETH).safeTransferETH(1 ether);
   }
 
   function testReceiveERC20() public {

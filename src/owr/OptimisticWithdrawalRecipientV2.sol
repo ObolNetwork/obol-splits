@@ -32,7 +32,7 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   // Failed to call system contract get_fee()
   error InvalidRequest_SystemGetFee();
 
-  // Insufficient fee value to conclude the request
+  // Insufficient fee provided in the call's value to conclude the request
   error InvalidRequest_NotEnoughFee();
 
   // Failed to call system contract add_consolidation_request()
@@ -176,11 +176,11 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     _distributeFunds(PULL);
   }
 
-  /// Request validators consolidation with system contract
+  /// Request validators consolidation with the EIP7251 system contract
   /// @dev all source validators will be consolidated into the target validator
-  ///      the caller must compute fee before calling and send sufficient msg.value amount
-  ///      excessed amount will be refunded
-  /// @param sourcePubKeys source validators public keys to be consolidated
+  ///      the caller must compute the fee before calling and send a sufficient msg.value amount
+  ///      excess amount will be refunded
+  /// @param sourcePubKeys validator public keys to be consolidated
   /// @param targetPubKey target validator public key
   function requestConsolidation(
     bytes[] calldata sourcePubKeys,
@@ -195,22 +195,24 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
       uint256 _currentFee = _computeSystemContractFee(consolidationSystemContract);
       if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
 
-      _requestConsolidation(sourcePubKeys[i], targetPubKey, _currentFee);
       remainingFee -= _currentFee;
+      _requestConsolidation(sourcePubKeys[i], targetPubKey, _currentFee);
 
       unchecked {
         ++i;
       }
     }
 
+    // Future optimization idea: do not send if gas cost exceeds the value.
     if (remainingFee > 0) payable(msg.sender).transfer(remainingFee);
   }
 
-  /// Request partial/full withdrawal with system contract
-  /// @dev the caller must compute fee before calling and send sufficient msg.value amount
-  ///      excessed amount will be refunded
+  /// Request partial/full withdrawal from the EIP7002 system contract
+  /// @dev the caller must compute the fee before calling and send a sufficient msg.value amount
+  ///      excess amount will be refunded
+  ///      withdrawals that leave a validator with (0..32) ether will cause the transaction to fail
   /// @param pubKeys validator public keys
-  /// @param amounts withdrawal amounts
+  /// @param amounts withdrawal amounts in gwei
   function requestWithdrawal(
     bytes[] calldata pubKeys,
     uint64[] calldata amounts
@@ -224,14 +226,15 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
       uint256 _currentFee = _computeSystemContractFee(withdrawalSystemContract);
       if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
 
-      _requestWithdrawal(pubKeys[i], amounts[i], _currentFee);
       remainingFee -= _currentFee;
+      _requestWithdrawal(pubKeys[i], amounts[i], _currentFee);
 
       unchecked {
         ++i;
       }
     }
 
+    // Future optimization idea: do not send if gas cost exceeds the value.
     if (remainingFee > 0) payable(msg.sender).transfer(remainingFee);
   }
 
@@ -269,15 +272,15 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// Withdraw token balance for account
   /// @param account Address to withdraw on behalf of
   function withdraw(address account) external {
-    uint256 tokenAmount = pullBalances[account];
+    uint256 amount = pullBalances[account];
     unchecked {
       // shouldn't underflow; fundsPendingWithdrawal = sum(pullBalances)
-      fundsPendingWithdrawal -= uint128(tokenAmount);
+      fundsPendingWithdrawal -= uint128(amount);
     }
     pullBalances[account] = 0;
-    account.safeTransferETH(tokenAmount);
+    account.safeTransferETH(amount);
 
-    emit Withdrawal(account, tokenAmount);
+    emit Withdrawal(account, amount);
   }
 
   /// -----------------------------------------------------------------------
@@ -302,7 +305,7 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
 
   /// Returns the balance for account `account`
   /// @param account Account to return balance for
-  /// @return Account's balance OWR token
+  /// @return Account's withdrawable ether balance
   function getPullBalance(address account) external view returns (uint256) {
     return pullBalances[account];
   }

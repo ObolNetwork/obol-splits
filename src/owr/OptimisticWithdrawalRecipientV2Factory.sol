@@ -100,14 +100,12 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// @param recoveryAddress Address to recover tokens to
   /// If this address is 0x0, recovery of unrelated tokens can be completed by
   /// either the principal or reward recipients.  If this address is set, only
-  /// this address can recover
-  /// tokens (or ether) that isn't the token of the OWRecipient contract
+  /// this address can recover ERC20 tokens allocated to the OWRV2 contract
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
   /// @param amountOfPrincipalStake Absolute amount of stake to be paid to
-  /// principal recipient (multiple of 32 ETH)
-  /// (reward recipient has no threshold & receives all residual flows)
-  /// it cannot be greater than uint96
+  /// principal recipient (reward recipient has no threshold &
+  /// receives all residual flows) it cannot be greater than uint96
   /// @param owner Owner of the new OptimisticWithdrawalRecipientV2 clone
   /// @return owr Address of new OptimisticWithdrawalRecipientV2 clone
   function createOWRecipient(
