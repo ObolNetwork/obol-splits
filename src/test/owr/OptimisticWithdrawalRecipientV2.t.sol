@@ -120,11 +120,24 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     bytes[] memory empty = new bytes[](0);
     owrETH.requestConsolidation{value: 1 ether}(empty, new bytes(48));
 
-    // Not enough fee (2 wei is the minimum fee)
+    // Not enough fee (1 wei is the minimum fee)
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_NotEnoughFee.selector);
     bytes[] memory single = new bytes[](1);
     single[0] = new bytes(48);
-    owrETH.requestConsolidation{value: 1 wei}(single, new bytes(48));
+    owrETH.requestConsolidation{value: 0}(single, new bytes(48));
+
+    // Failed get_fee() request
+    uint256 realFee = consolidationMock.fakeExponential(0);
+    consolidationMock.setFailNextFeeRequest(true);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_SystemGetFee.selector);
+    owrETH.requestConsolidation{value: realFee}(single, new bytes(48));
+    consolidationMock.setFailNextFeeRequest(false);
+
+    // Failed add_request() request
+    consolidationMock.setFailNextAddRequest(true);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidConsolidation_Failed.selector);
+    owrETH.requestConsolidation{value: realFee}(single, new bytes(48));
+    consolidationMock.setFailNextAddRequest(false);
   }
 
   function testRequestSingleConsolidation() public {
@@ -139,6 +152,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
 
     address _user = vm.addr(0x1);
     owrETH.grantRoles(_user, owrETH.CONSOLIDATION_ROLE());
+    uint256 realFee = consolidationMock.fakeExponential(0);
 
     vm.deal(_user, 1 ether);
     vm.startPrank(_user);
@@ -151,19 +165,19 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     bytes[] memory requestsMade = consolidationMock.getRequests();
     assertEq(requestsMade.length, 1);
     assertEq(requestsMade[0], encodedData);
-    assertEq(address(consolidationMock).balance, 2 wei);
-    assertEq(_user.balance, 1 ether - 2 wei);
+    assertEq(address(consolidationMock).balance, realFee);
+    assertEq(_user.balance, 1 ether - realFee);
   }
 
   function testRequestBatchConsolidation() public {
-    uint256 excessFee = 100 wei;
-    uint256 expectedTotalFee;
     uint256 numRequests = 10;
+    uint256 expectedTotalFee;
+    uint256 excessFee = 100 wei;
     bytes[] memory srcPubkeys = new bytes[](numRequests);
     bytes memory dstPubkey = new bytes(48);
 
     for (uint8 i = 0; i < numRequests; i++) {
-      expectedTotalFee += 2 << i; // must match SystemContractMock logic
+      expectedTotalFee += consolidationMock.fakeExponential(i);
 
       bytes memory srcPubkey = new bytes(48);
       for (uint8 j = 0; j < 48; j++) {
@@ -202,11 +216,24 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     bytes[] memory empty = new bytes[](0);
     owrETH.requestWithdrawal{value: 1 ether}(empty, new uint64[](1));
 
-    // Not enough fee (2 wei is the minimum fee)
+    // Not enough fee (1 wei is the minimum fee)
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_NotEnoughFee.selector);
     bytes[] memory single = new bytes[](1);
     single[0] = new bytes(48);
-    owrETH.requestWithdrawal{value: 1 wei}(single, new uint64[](1));
+    owrETH.requestWithdrawal{value: 0}(single, new uint64[](1));
+
+    // Failed get_fee() request
+    uint256 realFee = withdrawalMock.fakeExponential(0);
+    withdrawalMock.setFailNextFeeRequest(true);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_SystemGetFee.selector);
+    owrETH.requestWithdrawal{value: realFee}(single, new uint64[](1));
+    withdrawalMock.setFailNextFeeRequest(false);
+
+    // Failed add_request() request
+    withdrawalMock.setFailNextAddRequest(true);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidWithdrawal_Failed.selector);
+    owrETH.requestWithdrawal{value: realFee}(single, new uint64[](1));
+    withdrawalMock.setFailNextAddRequest(false);
   }
 
   function testRequestSingleWithdrawal() public {
@@ -222,6 +249,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
 
     address _user = vm.addr(0x2);
     owrETH.grantRoles(_user, owrETH.WITHDRAWAL_ROLE());
+    uint256 realFee = withdrawalMock.fakeExponential(0);
 
     vm.deal(_user, 1 ether);
     vm.startPrank(_user);
@@ -234,8 +262,8 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     bytes[] memory requestsMade = withdrawalMock.getRequests();
     assertEq(requestsMade.length, 1);
     assertEq(requestsMade[0], encodedData);
-    assertEq(address(withdrawalMock).balance, 2 wei);
-    assertEq(_user.balance, 1 ether - 2 wei);
+    assertEq(address(withdrawalMock).balance, realFee);
+    assertEq(_user.balance, 1 ether - realFee);
   }
 
   function testRequestBatchWithdrawal() public {
@@ -246,7 +274,7 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     uint64[] memory amounts = new uint64[](numRequests);
 
     for (uint8 i = 0; i < numRequests; i++) {
-      expectedTotalFee += 2 << i; // must match SystemContractMock logic
+      expectedTotalFee += withdrawalMock.fakeExponential(i);
 
       bytes memory pubkey = new bytes(48);
       for (uint8 j = 0; j < 48; j++) {

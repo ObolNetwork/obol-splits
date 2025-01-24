@@ -186,7 +186,7 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     bytes[] calldata sourcePubKeys,
     bytes calldata targetPubKey
   ) external payable onlyOwnerOrRoles(CONSOLIDATION_ROLE) {
-    if (sourcePubKeys.length == 0) revert InvalidRequest_Params();
+    if (sourcePubKeys.length == 0 || targetPubKey.length != 48) revert InvalidRequest_Params();
 
     uint256 remainingFee = msg.value;
     uint256 len = sourcePubKeys.length;
@@ -312,8 +312,8 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
 
   /// Compute system contracts fee
-  function _computeSystemContractFee(address systemContractAddress) internal returns (uint256) {
-    (bool ok, bytes memory result) = systemContractAddress.call(new bytes(0));
+  function _computeSystemContractFee(address systemContractAddress) internal view returns (uint256) {
+    (bool ok, bytes memory result) = systemContractAddress.staticcall("");
     if (!ok) revert InvalidRequest_SystemGetFee();
 
     return uint256(bytes32(result));
@@ -330,7 +330,7 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     //  +--------+--------+
     //      48       48
 
-    (bool ok, ) = consolidationSystemContract.call{value: fee}(abi.encodePacked(source, target));
+    (bool ok, ) = consolidationSystemContract.call{value: fee}(bytes.concat(source, target));
     if (!ok) revert InvalidConsolidation_Failed();
 
     emit ConsolidationRequested(msg.sender, source, target);
