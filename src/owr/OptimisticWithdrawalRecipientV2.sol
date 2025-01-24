@@ -310,6 +310,12 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     return pullBalances[account];
   }
 
+  /// Address to recover non-OWR tokens to
+  /// @dev equivalent to address public immutable recoveryAddress;
+  function recoveryAddress() public pure returns (address) {
+    return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
+  }
+
   /// -----------------------------------------------------------------------
   /// functions - private & internal
   /// -----------------------------------------------------------------------
@@ -437,12 +443,6 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
         revert InvalidRequest_Params();
       }
     }
-  }
-
-  /// Address to recover non-OWR tokens to
-  /// @dev equivalent to address public immutable recoveryAddress;
-  function recoveryAddress() public pure returns (address) {
-    return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
   }
 
   /// Get OWR tranche `i`
