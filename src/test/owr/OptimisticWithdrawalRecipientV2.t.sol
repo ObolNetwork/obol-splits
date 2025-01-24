@@ -161,10 +161,10 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     owrETH.requestConsolidation{value: 100 wei}(srcPubkeys, dstPubkey);
     vm.stopPrank();
 
-    bytes memory encodedData = abi.encodePacked(srcPubkey, dstPubkey);
+    bytes memory requestData = bytes.concat(srcPubkey, dstPubkey);
     bytes[] memory requestsMade = consolidationMock.getRequests();
     assertEq(requestsMade.length, 1);
-    assertEq(requestsMade[0], encodedData);
+    assertEq(requestsMade[0], requestData);
     assertEq(address(consolidationMock).balance, realFee);
     assertEq(_user.balance, 1 ether - realFee);
   }
@@ -199,6 +199,10 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     assertEq(requestsMade.length, numRequests);
     assertEq(_user.balance, excessFee);
     assertEq(address(consolidationMock).balance, expectedTotalFee);
+    for (uint256 i; i < numRequests; i++) {
+      bytes memory requestData = bytes.concat(srcPubkeys[i], dstPubkey);
+      assertEq(requestsMade[i], requestData);
+    }
   }
 
   function testCannot_requestWithdrawal() public {
@@ -258,10 +262,10 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     owrETH.requestWithdrawal{value: 100 wei}(pubkeys, amounts);
     vm.stopPrank();
 
-    bytes memory encodedData = abi.encodePacked(pubkey, amount);
+    bytes memory requestData = abi.encodePacked(pubkey, amount);
     bytes[] memory requestsMade = withdrawalMock.getRequests();
     assertEq(requestsMade.length, 1);
-    assertEq(requestsMade[0], encodedData);
+    assertEq(requestsMade[0], requestData);
     assertEq(address(withdrawalMock).balance, realFee);
     assertEq(_user.balance, 1 ether - realFee);
   }
@@ -296,6 +300,10 @@ contract OptimisticWithdrawalRecipientV2Test is OWRTestHelper, Test {
     assertEq(requestsMade.length, numRequests);
     assertEq(_user.balance, excessFee);
     assertEq(address(withdrawalMock).balance, expectedTotalFee);
+    for (uint256 i; i < numRequests; i++) {
+      bytes memory requestData = abi.encodePacked(pubkeys[i], amounts[i]);
+      assertEq(requestsMade[i], requestData);
+    }
   }
 
   function testReceiveETH() public {
