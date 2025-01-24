@@ -85,13 +85,6 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// -----------------------------------------------------------------------
 
   /// -----------------------------------------------------------------------
-  /// storage - immutable
-  /// -----------------------------------------------------------------------
-
-  address public immutable consolidationSystemContract;
-  address public immutable withdrawalSystemContract;
-
-  /// -----------------------------------------------------------------------
   /// storage - constants
   /// -----------------------------------------------------------------------
 
@@ -118,6 +111,13 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   // 20 = recoveryAddress_offset (0) + recoveryAddress_size (address, 20
   // bytes)
   uint256 internal constant TRANCHES_OFFSET = 20;
+
+  /// -----------------------------------------------------------------------
+  /// storage - immutable
+  /// -----------------------------------------------------------------------
+
+  address public immutable consolidationSystemContract;
+  address public immutable withdrawalSystemContract;
 
   /// -----------------------------------------------------------------------
   /// storage - mutables
