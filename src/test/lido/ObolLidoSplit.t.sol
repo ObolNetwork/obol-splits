@@ -158,16 +158,17 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
 
   function testFuzz_CanDistributeWithFee(
     address anotherSplit,
-    uint256 amountToDistribute,
+    uint8 amountToDistributeEth,
     address fuzzFeeRecipient,
-    uint256 fuzzFeeShare
+    uint16 fuzzFeeShare
   ) public {
     vm.assume(anotherSplit != address(0));
     vm.assume(fuzzFeeRecipient != anotherSplit);
     vm.assume(fuzzFeeShare > 0 && fuzzFeeShare < PERCENTAGE_SCALE);
     vm.assume(fuzzFeeRecipient != address(0));
-    vm.assume(amountToDistribute > 1 ether);
-    vm.assume(amountToDistribute < 10 ether);
+    vm.assume(amountToDistributeEth > 1 && amountToDistributeEth < 200);
+    
+    uint256 amountToDistribute = uint256(amountToDistributeEth) * 1 ether;
 
     ObolLidoSplitFactory fuzzFactorySplitWithFee = new ObolLidoSplitFactory(
       fuzzFeeRecipient,

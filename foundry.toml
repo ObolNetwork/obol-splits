@@ -12,6 +12,7 @@ remappings = [
 solc_version = '0.8.19'
 gas_reports = ["*"]
 fs_permissions = [{ access = "read-write", path = "./"}]
+evm_version = "shanghai"
 
 [rpc_endpoints]
 mainnet = "${MAINNET_RPC_URL}"
