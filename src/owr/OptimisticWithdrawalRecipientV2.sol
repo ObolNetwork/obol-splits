@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {Clone} from "solady/utils/Clone.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {IDepositContract} from "../interfaces/IDepositContract.sol";
 
 /// @title OptimisticWithdrawalRecipientV2
 /// @author Obol
@@ -12,7 +12,7 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 /// based on threshold to it's recipients.
 /// @dev Only ETH can be distributed for a given deployment. There is a
 /// recovery method for tokens sent by accident.
-contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
+contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -94,30 +94,17 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
 
-  uint256 internal constant ONE_WORD = 32;
-  uint256 internal constant ADDRESS_BITS = 160;
-
-  /// @dev threshold for pushing balance update as reward or principal
-  uint256 internal constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
-  uint256 internal constant PRINCIPAL_RECIPIENT_INDEX = 0;
-  uint256 internal constant REWARD_RECIPIENT_INDEX = 1;
-
-  /// -----------------------------------------------------------------------
-  /// storage - cwia offsets
-  /// -----------------------------------------------------------------------
-
-  // 0; first item
-  uint256 internal constant RECOVERY_ADDRESS_OFFSET = 0;
-  // 20 = recoveryAddress_offset (0) + recoveryAddress_size (address, 20
-  // bytes)
-  uint256 internal constant TRANCHES_OFFSET = 20;
-
   /// -----------------------------------------------------------------------
   /// storage - immutable
   /// -----------------------------------------------------------------------
 
   address public immutable consolidationSystemContract;
   address public immutable withdrawalSystemContract;
+  address public immutable depositSystemContract;
+  address public immutable recoveryAddress;
+  address public immutable principalRecipient;
+  address public immutable rewardRecipient;
+  uint256 public immutable principalThreshold;
 
   /// -----------------------------------------------------------------------
   /// storage - mutables
@@ -125,14 +112,12 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// @dev set to `true` after owner is initialized
   bool public initialized;
 
+  /// Amount of principal stake done via deposit() calls
+  uint256 public amountOfPrincipalStake;
+
   /// Amount of active balance set aside for pulls
   /// @dev ERC20s with very large decimals may overflow & cause issues
   uint128 public fundsPendingWithdrawal;
-
-  /// Amount of distributed OWRecipient token for principal
-  /// @dev Would be less than or equal to amount of stake
-  /// @dev ERC20s with very large decimals may overflow & cause issues
-  uint128 public claimedPrincipalFunds;
 
   /// Mapping to account balances for pulling
   mapping(address => uint256) internal pullBalances;
@@ -141,10 +126,22 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// constructor
   /// -----------------------------------------------------------------------
 
-  /// Sets the system contract addresses for withdrawals and consolidations.
-  constructor(address _consolidationSystemContract, address _withdrawalSystemContract) {
+  constructor(
+    address _consolidationSystemContract,
+    address _withdrawalSystemContract,
+    address _depositSystemContract,
+    address _recoveryAddress,
+    address _principalRecipient,
+    address _rewardRecipient,
+    uint256 _principalThreshold
+  ) {
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
+    depositSystemContract = _depositSystemContract;
+    recoveryAddress = _recoveryAddress;
+    principalRecipient = _principalRecipient;
+    rewardRecipient = _rewardRecipient;
+    principalThreshold = _principalThreshold;
   }
 
   /// -----------------------------------------------------------------------
@@ -161,6 +158,29 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     if (initialized) revert Invalid_AlreadyInitialized();
     _initializeOwner(_owner);
     initialized = true;
+  }
+
+  /// @dev Fallback function to receive ETH
+  ///      Because we do not use Clone, we must implement this explicitly
+  receive() external payable {}
+
+  /// @notice Submit a Phase 0 DepositData object.
+  /// @param pubkey A BLS12-381 public key.
+  /// @param withdrawal_credentials Commitment to a public key for withdrawals.
+  /// @param signature A BLS12-381 signature.
+  /// @param deposit_data_root The SHA-256 hash of the SSZ-encoded DepositData object.
+  /// Used as a protection against malformed input.
+  /// @dev This function is a proxy to the deposit() function on the depositSystemContract.
+  ///      The deposited amount is added to the principal stake.
+  ///      Any deposits made directly to the depositSystemContract will not be accounted for.
+  function deposit(
+    bytes calldata pubkey,
+    bytes calldata withdrawal_credentials,
+    bytes calldata signature,
+    bytes32 deposit_data_root
+  ) external payable {
+    IDepositContract(depositSystemContract).deposit{value: msg.value}(pubkey, withdrawal_credentials, signature, deposit_data_root);
+    amountOfPrincipalStake += msg.value;
   }
 
   /// Distributes target token inside the contract to recipients
@@ -246,15 +266,12 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
 
     // if recoveryAddress is set, recipient must match it
     // else, recipient must be one of the OWR recipients
-
-    address _recoveryAddress = recoveryAddress();
-    if (_recoveryAddress == address(0)) {
+    if (recoveryAddress == address(0)) {
       // ensure txn recipient is a valid OWR recipient
-      (address principalRecipient, address rewardRecipient, ) = getTranches();
       if (recipient != principalRecipient && recipient != rewardRecipient) {
         revert InvalidTokenRecovery_InvalidRecipient();
       }
-    } else if (recipient != _recoveryAddress) {
+    } else if (recipient != recoveryAddress) {
       revert InvalidTokenRecovery_InvalidRecipient();
     }
 
@@ -287,33 +304,11 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
   /// functions - view & pure
   /// -----------------------------------------------------------------------
 
-  /// Return unpacked tranches
-  /// @return principalRecipient Addres of principal recipient
-  /// @return rewardRecipient Address of reward recipient
-  /// @return amountOfPrincipalStake Absolute payment threshold for principal
-  function getTranches()
-    public
-    pure
-    returns (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake)
-  {
-    uint256 tranche = _getTranche(PRINCIPAL_RECIPIENT_INDEX);
-    principalRecipient = address(uint160(tranche));
-    amountOfPrincipalStake = tranche >> ADDRESS_BITS;
-
-    rewardRecipient = address(uint160(_getTranche(REWARD_RECIPIENT_INDEX)));
-  }
-
   /// Returns the balance for account `account`
   /// @param account Account to return balance for
   /// @return Account's withdrawable ether balance
   function getPullBalance(address account) external view returns (uint256) {
     return pullBalances[account];
-  }
-
-  /// Address to recover non-OWR tokens to
-  /// @dev equivalent to address public immutable recoveryAddress;
-  function recoveryAddress() public pure returns (address) {
-    return _getArgAddress(RECOVERY_ADDRESS_OFFSET);
   }
 
   /// -----------------------------------------------------------------------
@@ -370,11 +365,8 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
 
     // load storage into memory
     uint256 currentbalance = address(this).balance;
-    uint256 _claimedPrincipalFunds = uint256(claimedPrincipalFunds);
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
     uint256 _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
-
-    (address principalRecipient, address rewardRecipient, uint256 amountOfPrincipalStake) = getTranches();
 
     // determine which recipeint is getting paid based on funds to be
     // distributed
@@ -382,16 +374,13 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
     uint256 _rewardPayout = 0;
 
     unchecked {
-      // _claimedPrincipalFunds should always be <= amountOfPrincipalStake
-      uint256 principalStakeRemaining = amountOfPrincipalStake - _claimedPrincipalFunds;
-
-      if (_fundsToBeDistributed >= BALANCE_CLASSIFICATION_THRESHOLD && principalStakeRemaining > 0) {
-        if (_fundsToBeDistributed > principalStakeRemaining) {
+      if (_fundsToBeDistributed >= principalThreshold && amountOfPrincipalStake > 0) {
+        if (_fundsToBeDistributed > amountOfPrincipalStake) {
           // this means there is reward part of the funds to be
           // distributed
-          _principalPayout = principalStakeRemaining;
+          _principalPayout = amountOfPrincipalStake;
           // shouldn't underflow
-          _rewardPayout = _fundsToBeDistributed - principalStakeRemaining;
+          _rewardPayout = _fundsToBeDistributed - amountOfPrincipalStake;
         } else {
           // this means there is no reward part of the funds to be
           // distributed
@@ -407,7 +396,7 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
       // Write to storage
       // the principal value
       // it cannot overflow because _principalPayout < _fundsToBeDistributed
-      if (_principalPayout > 0) claimedPrincipalFunds += uint128(_principalPayout);
+      if (_principalPayout > 0) amountOfPrincipalStake -= uint128(_principalPayout);
     }
 
     /// interactions
@@ -442,15 +431,6 @@ contract OptimisticWithdrawalRecipientV2 is Clone, OwnableRoles {
       } else {
         revert InvalidRequest_Params();
       }
-    }
-  }
-
-  /// Get OWR tranche `i`
-  /// @dev emulates to uint256[] internal immutable tranche;
-  function _getTranche(uint256 i) internal pure returns (uint256) {
-    unchecked {
-      // shouldn't overflow
-      return _getArgUint256(TRANCHES_OFFSET + i * ONE_WORD);
     }
   }
 }

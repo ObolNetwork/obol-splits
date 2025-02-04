@@ -18,7 +18,7 @@ contract DistributeFunds is Script {
 
         vm.startBroadcast(privKey);
 
-        OptimisticWithdrawalRecipientV2 owr = OptimisticWithdrawalRecipientV2(deployedOWRV2);
+        OptimisticWithdrawalRecipientV2 owr = OptimisticWithdrawalRecipientV2(payable(deployedOWRV2));
         owr.distributeFunds();
 
         vm.stopBroadcast();

@@ -19,7 +19,7 @@ contract RequestWithdrawal is Script {
 
         vm.startBroadcast(privKey);
 
-        OptimisticWithdrawalRecipientV2 owr = OptimisticWithdrawalRecipientV2(owrv2);
+        OptimisticWithdrawalRecipientV2 owr = OptimisticWithdrawalRecipientV2(payable(owrv2));
 
         bytes[] memory pubKeys = new bytes[](1);
         pubKeys[0] = pubkey;

@@ -19,7 +19,7 @@ contract RequestConsolidation is Script {
 
         vm.startBroadcast(privKey);
 
-        OptimisticWithdrawalRecipientV2 owr = OptimisticWithdrawalRecipientV2(owrv2);
+        OptimisticWithdrawalRecipientV2 owr = OptimisticWithdrawalRecipientV2(payable(owrv2));
 
         // Call the function on the deployed contract
         bytes[] memory sourcePubKeys = new bytes[](1);
