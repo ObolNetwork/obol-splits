@@ -110,6 +110,16 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     owrETH.initialize(address(this));
   }
 
+  function testDeposit() public {
+    // Initial deposit is done in setUp()
+    assertEq(address(owrETH).balance, INITIAL_DEPOSIT_AMOUNT);
+
+    uint256 depositAmount = 1 ether;
+    owrETH.deposit{value: depositAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    assertEq(address(depositMock).balance, INITIAL_DEPOSIT_AMOUNT + depositAmount);
+    assertEq(owrETH.amountOfPrincipalStake(), INITIAL_DEPOSIT_AMOUNT + depositAmount);
+  }
+
   function testCannot_requestConsolidation() public {
     // Unauthorized
     address _user = vm.addr(0x2);
@@ -220,28 +230,39 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     owrETH.requestWithdrawal{value: 1 ether}(new bytes[](1), new uint64[](1));
     vm.stopPrank();
 
+    uint64[] memory amounts = new uint64[](1);
+    bytes[] memory single = new bytes[](1);
+    single[0] = new bytes(48);
+
     // Inequal array lengths
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
     bytes[] memory empty = new bytes[](0);
-    owrETH.requestWithdrawal{value: 1 ether}(empty, new uint64[](1));
+    owrETH.requestWithdrawal{value: 1 ether}(empty, amounts);
 
     // Not enough fee (1 wei is the minimum fee)
+    uint256 validAmount = principalThreshold / 1 gwei;
+    amounts[0] = uint64(validAmount);
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_NotEnoughFee.selector);
-    bytes[] memory single = new bytes[](1);
-    single[0] = new bytes(48);
-    owrETH.requestWithdrawal{value: 0}(single, new uint64[](1));
+    owrETH.requestWithdrawal{value: 0}(single, amounts);
+
+    // Amount below principalThreshold
+    uint256 lowAmount = (principalThreshold - 1 wei) / 1 gwei;
+    amounts[0] = uint64(lowAmount);
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
+    owrETH.requestWithdrawal{value: 100 wei}(single, amounts);
 
     // Failed get_fee() request
     uint256 realFee = withdrawalMock.fakeExponential(0);
+    amounts[0] = uint64(validAmount);
     withdrawalMock.setFailNextFeeRequest(true);
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_SystemGetFee.selector);
-    owrETH.requestWithdrawal{value: realFee}(single, new uint64[](1));
+    owrETH.requestWithdrawal{value: realFee}(single, amounts);
     withdrawalMock.setFailNextFeeRequest(false);
 
     // Failed add_request() request
     withdrawalMock.setFailNextAddRequest(true);
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidWithdrawal_Failed.selector);
-    owrETH.requestWithdrawal{value: realFee}(single, new uint64[](1));
+    owrETH.requestWithdrawal{value: realFee}(single, amounts);
     withdrawalMock.setFailNextAddRequest(false);
   }
 
@@ -249,7 +270,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     bytes[] memory pubkeys = new bytes[](1);
     uint64[] memory amounts = new uint64[](1);
     bytes memory pubkey = new bytes(48);
-    uint64 amount = 1234; // gwei
+    uint64 amount = uint64(principalThreshold / 1 gwei);
     for (uint256 i = 0; i < 48; i++) {
       pubkey[i] = bytes1(0xAB);
     }
@@ -290,7 +311,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
         pubkey[i] = bytes1(i + 1);
       }
       pubkeys[i] = pubkey;
-      amounts[i] = uint64(1 << i);
+      amounts[i] = uint64(principalThreshold / 1 gwei + i);
     }
 
     address _user = vm.addr(0x1);
@@ -420,17 +441,33 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   }
 
   function testCan_distributeToBothRecipients() public {
-    address(owrETH).safeTransferETH(36 ether);
-
-    uint256 principalPayout = 32 ether;
+    // First deposit of 32eth is done in setUp()
+    uint256 secondDeposit = 64 ether;
+    owrETH.deposit{value: secondDeposit}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     uint256 rewardPayout = 4 ether;
+    address(owrETH).safeTransferETH(INITIAL_DEPOSIT_AMOUNT + secondDeposit + rewardPayout);
 
     vm.expectEmit(true, true, true, true);
-    emit DistributeFunds(principalPayout, rewardPayout, 0);
+    emit DistributeFunds(INITIAL_DEPOSIT_AMOUNT + secondDeposit, rewardPayout, 0);
     owrETH.distributeFunds();
     assertEq(address(owrETH).balance, 0 ether);
-    assertEq(principalRecipient.balance, 32 ether);
-    assertEq(rewardsRecipient.balance, 4 ether);
+    assertEq(principalRecipient.balance, INITIAL_DEPOSIT_AMOUNT + secondDeposit);
+    assertEq(rewardsRecipient.balance, rewardPayout);
+  }
+
+  function testCan_distributeDirectDepositsAsReward() public {
+    // First deposit of 32eth is done in setUp()
+    uint256 secondDeposit = 64 ether;
+    uint256 rewardPayout = 4 ether;
+    address(owrETH).safeTransferETH(INITIAL_DEPOSIT_AMOUNT + secondDeposit + rewardPayout);
+
+    vm.expectEmit(true, true, true, true);
+    // Second deposit is classified as reward, because we did not call OWR.deposit()
+    emit DistributeFunds(INITIAL_DEPOSIT_AMOUNT, secondDeposit + rewardPayout, 0);
+    owrETH.distributeFunds();
+    assertEq(address(owrETH).balance, 0 ether);
+    assertEq(principalRecipient.balance, INITIAL_DEPOSIT_AMOUNT);
+    assertEq(rewardsRecipient.balance, rewardPayout + secondDeposit);
   }
 
   function testCan_distributeMultipleDepositsToPrincipalRecipient() public {

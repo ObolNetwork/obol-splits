@@ -171,7 +171,8 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// @param deposit_data_root The SHA-256 hash of the SSZ-encoded DepositData object.
   /// Used as a protection against malformed input.
   /// @dev This function is a proxy to the deposit() function on the depositSystemContract.
-  ///      The deposited amount is added to the principal stake.
+  ///      The deposited amount is accounted for in the amountOfPrincipalStake, which is used
+  ///      to determine the principalRecipient's share of the funds to be distributed.
   ///      Any deposits made directly to the depositSystemContract will not be accounted for.
   function deposit(
     bytes calldata pubkey,
@@ -179,7 +180,12 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     bytes calldata signature,
     bytes32 deposit_data_root
   ) external payable {
-    IDepositContract(depositSystemContract).deposit{value: msg.value}(pubkey, withdrawal_credentials, signature, deposit_data_root);
+    IDepositContract(depositSystemContract).deposit{value: msg.value}(
+      pubkey,
+      withdrawal_credentials,
+      signature,
+      deposit_data_root
+    );
     amountOfPrincipalStake += msg.value;
   }
 
@@ -232,7 +238,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   ///      excess amount will be refunded
   ///      withdrawals that leave a validator with (0..32) ether will cause the transaction to fail
   /// @param pubKeys validator public keys
-  /// @param amounts withdrawal amounts in gwei
+  /// @param amounts withdrawal amounts in gwei (must be >= principalThreshold)
   function requestWithdrawal(
     bytes[] calldata pubKeys,
     uint64[] calldata amounts
@@ -243,6 +249,9 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     uint256 len = pubKeys.length;
 
     for (uint256 i; i < len; ) {
+      uint256 amountWei = amounts[i] * 1 gwei;
+      if (amountWei < principalThreshold) revert InvalidRequest_Params();
+
       uint256 _currentFee = _computeSystemContractFee(withdrawalSystemContract);
       if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
 
@@ -286,7 +295,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     emit RecoverNonOWRecipientFunds(nonOWRToken, recipient, amount);
   }
 
-  /// Withdraw token balance for account
+  /// Withdraw token balance for an account
   /// @param account Address to withdraw on behalf of
   function withdraw(address account) external {
     uint256 amount = pullBalances[account];
@@ -304,7 +313,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// functions - view & pure
   /// -----------------------------------------------------------------------
 
-  /// Returns the balance for account `account`
+  /// Returns the balance for the account `account`
   /// @param account Account to return balance for
   /// @return Account's withdrawable ether balance
   function getPullBalance(address account) external view returns (uint256) {
@@ -315,7 +324,9 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// functions - private & internal
   /// -----------------------------------------------------------------------
 
-  /// Compute system contracts fee
+  /// Compute system contract's fee
+  /// @param systemContractAddress Address of the consolidation system contract
+  /// @return The computed fee
   function _computeSystemContractFee(address systemContractAddress) internal view returns (uint256) {
     (bool ok, bytes memory result) = systemContractAddress.staticcall("");
     if (!ok) revert InvalidRequest_SystemGetFee();
@@ -323,7 +334,10 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     return uint256(bytes32(result));
   }
 
-  /// Executes single consolidation request
+  /// Execute a single consolidation request
+  /// @param source Source validator public key
+  /// @param target Target validator public key
+  /// @param fee Fee for the consolidation request
   function _requestConsolidation(bytes calldata source, bytes calldata target, uint256 fee) private {
     if (source.length != 48 || target.length != 48) revert InvalidRequest_Params();
 
@@ -368,22 +382,19 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
     uint256 _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
 
-    // determine which recipeint is getting paid based on funds to be
-    // distributed
+    // determine which recipeint is getting paid based on funds to be distributed
     uint256 _principalPayout = 0;
     uint256 _rewardPayout = 0;
 
     unchecked {
       if (_fundsToBeDistributed >= principalThreshold && amountOfPrincipalStake > 0) {
         if (_fundsToBeDistributed > amountOfPrincipalStake) {
-          // this means there is reward part of the funds to be
-          // distributed
+          // this means there is reward part of the funds to be distributed
           _principalPayout = amountOfPrincipalStake;
           // shouldn't underflow
           _rewardPayout = _fundsToBeDistributed - amountOfPrincipalStake;
         } else {
-          // this means there is no reward part of the funds to be
-          // distributed
+          // this means there is no reward part of the funds to be distributed
           _principalPayout = _fundsToBeDistributed;
         }
       } else {

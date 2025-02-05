@@ -94,13 +94,13 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// Create a new OptimisticWithdrawalRecipientV2 instance
   /// @param recoveryAddress Address to recover tokens to
   /// If this address is 0x0, recovery of unrelated tokens can be completed by
-  /// either the principal or reward recipients.  If this address is set, only
-  /// this address can recover ERC20 tokens allocated to the OWRV2 contract
+  /// either the principal or reward recipients. If this address is set, only
+  /// this address can recover ERC20 tokens allocated to the OWRV2 contract.
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
   /// @param principalThreshold Principal vs rewards classification threshold
   /// @param owner Owner of the new OptimisticWithdrawalRecipientV2 instance
-  /// @return owr Address of new OptimisticWithdrawalRecipientV2 instance
+  /// @return owr Address of the new OptimisticWithdrawalRecipientV2 instance
   function createOWRecipient(
     address recoveryAddress,
     address principalRecipient,
