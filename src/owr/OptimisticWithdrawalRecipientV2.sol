@@ -213,6 +213,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     bytes calldata targetPubKey
   ) external payable onlyOwnerOrRoles(CONSOLIDATION_ROLE) {
     if (sourcePubKeys.length == 0 || targetPubKey.length != 48) revert InvalidRequest_Params();
+    if (sourcePubKeys.length > 63) revert InvalidRequest_Params();
 
     uint256 remainingFee = msg.value;
     uint256 len = sourcePubKeys.length;

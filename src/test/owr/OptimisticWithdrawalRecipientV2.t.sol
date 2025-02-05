@@ -153,6 +153,11 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidConsolidation_Failed.selector);
     owrETH.requestConsolidation{value: realFee}(single, new bytes(48));
     consolidationMock.setFailNextAddRequest(false);
+
+    // Maximum number of source pubkeys is 63
+    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
+    bytes[] memory batch64 = new bytes[](64);
+    owrETH.requestConsolidation{value: realFee}(batch64, new bytes(48));
   }
 
   function testRequestSingleConsolidation() public {
