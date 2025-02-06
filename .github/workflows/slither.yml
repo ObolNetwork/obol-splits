@@ -8,3 +8,4 @@ jobs:
       - uses: crytic/slither-action@v0.4.0
         with:
           fail-on: high
+          slither-args: "--exclude lib/solmate/src/,lib/solady/src/,lib/ds-test/src/,lib/splits-utils/test/"
