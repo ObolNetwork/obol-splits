@@ -23,9 +23,6 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// errors
   /// -----------------------------------------------------------------------
 
-  // The instance is already initialized
-  error Invalid_AlreadyInitialized();
-
   // Invalid request params, e.g. empty input
   error InvalidRequest_Params();
 
@@ -109,8 +106,6 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// -----------------------------------------------------------------------
   /// storage - mutables
   /// -----------------------------------------------------------------------
-  /// @dev set to `true` after owner is initialized
-  bool public initialized;
 
   /// Amount of principal stake (wei) done via deposit() calls
   uint256 public amountOfPrincipalStake;
@@ -130,6 +125,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     address _consolidationSystemContract,
     address _withdrawalSystemContract,
     address _depositSystemContract,
+    address _owner,
     address _principalRecipient,
     address _rewardRecipient,
     address _recoveryAddress,
@@ -142,6 +138,8 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     rewardRecipient = _rewardRecipient;
     recoveryAddress = _recoveryAddress;
     principalThreshold = _principalThreshold;
+
+    _initializeOwner(_owner);
   }
 
   /// -----------------------------------------------------------------------
@@ -151,14 +149,6 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// -----------------------------------------------------------------------
   /// functions - public & external
   /// -----------------------------------------------------------------------
-
-  /// @dev initializes the owner
-  /// @param _owner the owner address
-  function initialize(address _owner) public {
-    if (initialized) revert Invalid_AlreadyInitialized();
-    _initializeOwner(_owner);
-    initialized = true;
-  }
 
   /// @dev Fallback function to receive ETH
   ///      Because we do not use Clone, we must implement this explicitly
@@ -241,7 +231,9 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   ///      withdrawals that leave a validator with (0..32) ether,
   //       will only withdraw an amount that leaves the validator at 32 ether
   /// @param pubKeys validator public keys
-  /// @param amounts withdrawal amounts in gwei (must be >= principalThreshold)
+  /// @param amounts withdrawal amounts in gwei
+  ///                any amount below principalThreshold will be distributed as reward
+  ///                any amount >= principalThreshold will be distributed as principal
   function requestWithdrawal(
     bytes[] calldata pubKeys,
     uint64[] calldata amounts
@@ -252,8 +244,6 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     uint256 len = pubKeys.length;
 
     for (uint256 i; i < len; ) {
-      if (amounts[i] < principalThreshold) revert InvalidRequest_Params();
-
       uint256 _currentFee = _computeSystemContractFee(withdrawalSystemContract);
       if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
 

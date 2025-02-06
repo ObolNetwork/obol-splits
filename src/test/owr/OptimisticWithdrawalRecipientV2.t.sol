@@ -99,15 +99,8 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     assertEq(owrETH.principalThreshold(), BALANCE_CLASSIFICATION_THRESHOLD_GWEI, "invalid principal threshold");
   }
 
-  function testInitialization() public {
-    assertTrue(owrETH.initialized());
+  function testOwnerInitialization() public {
     assertEq(owrETH.owner(), address(this));
-  }
-
-  function testReinitialization() public {
-    assertTrue(owrETH.initialized());
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.Invalid_AlreadyInitialized.selector);
-    owrETH.initialize(address(this));
   }
 
   function testDeposit() public {
@@ -250,12 +243,6 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_NotEnoughFee.selector);
     owrETH.requestWithdrawal{value: 0}(single, amounts);
 
-    // Amount below principalThreshold
-    uint256 lowAmount = principalThreshold / 2;
-    amounts[0] = uint64(lowAmount);
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
-    owrETH.requestWithdrawal{value: 100 wei}(single, amounts);
-
     // Failed get_fee() request
     uint256 realFee = withdrawalMock.fakeExponential(0);
     amounts[0] = uint64(validAmount);
@@ -348,8 +335,8 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   }
 
   function testReceiveERC20() public {
-    address(mERC20).safeTransfer(address(owrETH), 1 ether);
-    assertEq(mERC20.balanceOf(address(owrETH)), 1 ether);
+    address(mERC20).safeTransfer(address(owrETH), 1e10);
+    assertEq(mERC20.balanceOf(address(owrETH)), 1e10);
   }
 
   function testCan_recoverNonOWRFundsToRecipient() public {

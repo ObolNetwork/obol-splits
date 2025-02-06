@@ -117,12 +117,12 @@ contract OptimisticWithdrawalRecipientV2Factory {
       consolidationSystemContract,
       withdrawalSystemContract,
       depositSystemContract,
+      owner,
       principalRecipient,
       rewardRecipient,
       recoveryAddress,
       principalThreshold
     );
-    owr.initialize(owner);
 
     emit CreateOWRecipient(
       address(owr),
