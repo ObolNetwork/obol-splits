@@ -18,7 +18,7 @@ contract OWRV2FactoryScript is Script {
   address constant consolidationSysContract = 0x00431F263cE400f4455c2dCf564e53007Ca4bbBb;
   // From https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7002.md#configuration
   address constant withdrawalSysContract = 0x0c15F14308530b7CDB8460094BbB9cC28b9AaaAA;
-  // By default the script is aiming devnet-5 (7088110746)
+  // By default the script is aiming devnet-6 (7072151312)
   address constant depositSysContract = 0x4242424242424242424242424242424242424242;
   // TBD
   address ensReverseRegistrar = address(0x0);
@@ -30,19 +30,19 @@ contract OWRV2FactoryScript is Script {
       revert("ensReverseRegistrar not set");
     }
 
-    if (block.chainid != 7088110746) { // devnet-5
+    if (block.chainid != 7072151312) { // devnet-6
       revert("update deposit contract address and chain id");
     }
     
     vm.startBroadcast(privKey);
     
     new OptimisticWithdrawalRecipientV2Factory{salt: keccak256(bytes(name))}(
-      name,
-      ensReverseRegistrar,
-      msg.sender,
       consolidationSysContract,
       withdrawalSysContract,
-      depositSysContract
+      depositSysContract,
+      name,
+      ensReverseRegistrar,
+      msg.sender
     );
 
     vm.stopBroadcast();

@@ -22,7 +22,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
 
   address public ENS_REVERSE_REGISTRAR = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
-  uint256 public constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
+  uint64 public constant BALANCE_CLASSIFICATION_THRESHOLD_GWEI = 16 ether / 1 gwei;
   uint256 public constant INITIAL_DEPOSIT_AMOUNT = 32 ether;
 
   OptimisticWithdrawalRecipientV2Factory public owrFactory;
@@ -38,7 +38,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   address internal recoveryAddress;
   address internal principalRecipient;
   address internal rewardsRecipient;
-  uint256 internal principalThreshold;
+  uint64 internal principalThreshold;
 
   function setUp() public {
     vm.mockCall(
@@ -57,12 +57,12 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     depositMock = new DepositContractMock();
 
     owrFactory = new OptimisticWithdrawalRecipientV2Factory(
-      "demo.obol.eth",
-      ENS_REVERSE_REGISTRAR,
-      address(this),
       address(consolidationMock),
       address(withdrawalMock),
-      address(depositMock)
+      address(depositMock),
+      "demo.obol.eth",
+      ENS_REVERSE_REGISTRAR,
+      address(this)
     );
 
     mERC20 = new MockERC20("demo", "DMT", 18);
@@ -71,21 +71,21 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     recoveryAddress = makeAddr("recoveryAddress");
     principalRecipient = makeAddr("principalRecipient");
     rewardsRecipient = makeAddr("rewardsRecipient");
-    principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD;
+    principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
 
     owrETH = owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      principalThreshold
     );
     owrETH_OR = owrFactory.createOWRecipient(
-      address(0),
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      address(0),
+      principalThreshold
     );
 
     owrETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
@@ -96,7 +96,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     assertEq(owrETH.recoveryAddress(), recoveryAddress, "invalid recovery address");
     assertEq(owrETH.principalRecipient(), principalRecipient, "invalid principal recipient");
     assertEq(owrETH.rewardRecipient(), rewardsRecipient, "invalid rewards recipient");
-    assertEq(owrETH.principalThreshold(), BALANCE_CLASSIFICATION_THRESHOLD, "invalid principal threshold");
+    assertEq(owrETH.principalThreshold(), BALANCE_CLASSIFICATION_THRESHOLD_GWEI, "invalid principal threshold");
   }
 
   function testInitialization() public {
@@ -245,13 +245,13 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     owrETH.requestWithdrawal{value: 1 ether}(empty, amounts);
 
     // Not enough fee (1 wei is the minimum fee)
-    uint256 validAmount = principalThreshold / 1 gwei;
+    uint256 validAmount = principalThreshold;
     amounts[0] = uint64(validAmount);
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_NotEnoughFee.selector);
     owrETH.requestWithdrawal{value: 0}(single, amounts);
 
     // Amount below principalThreshold
-    uint256 lowAmount = (principalThreshold - 1 wei) / 1 gwei;
+    uint256 lowAmount = principalThreshold / 2;
     amounts[0] = uint64(lowAmount);
     vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
     owrETH.requestWithdrawal{value: 100 wei}(single, amounts);
@@ -275,7 +275,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     bytes[] memory pubkeys = new bytes[](1);
     uint64[] memory amounts = new uint64[](1);
     bytes memory pubkey = new bytes(48);
-    uint64 amount = uint64(principalThreshold / 1 gwei);
+    uint64 amount = uint64(principalThreshold);
     for (uint256 i = 0; i < 48; i++) {
       pubkey[i] = bytes1(0xAB);
     }
@@ -316,7 +316,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
         pubkey[i] = bytes1(i + 1);
       }
       pubkeys[i] = pubkey;
-      amounts[i] = uint64(principalThreshold / 1 gwei + i);
+      amounts[i] = uint64(principalThreshold + i);
     }
 
     address _user = vm.addr(0x1);
@@ -503,7 +503,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   function testCannot_reenterOWR() public {
     OWRV2Reentrancy wr = new OWRV2Reentrancy();
 
-    owrETH = owrFactory.createOWRecipient(recoveryAddress, address(wr), rewardsRecipient, 1 ether, address(this));
+    owrETH = owrFactory.createOWRecipient(address(this), address(wr), rewardsRecipient, recoveryAddress, 1e9);
     owrETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     address(owrETH).safeTransferETH(33 ether);
 
@@ -643,7 +643,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   }
 
   function testFuzzCan_distributeDepositsToRecipients(
-    uint96 _threshold,
+    uint64 _threshold,
     uint8 _numDeposits,
     uint256 _ethAmount,
     uint256 _erc20Amount
@@ -651,15 +651,15 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     _ethAmount = uint256(bound(_ethAmount, 0.01 ether, 34 ether));
     _erc20Amount = uint256(bound(_erc20Amount, 0.01 ether, 34 ether));
     vm.assume(_numDeposits > 0);
-    vm.assume(_threshold > 0 && _threshold < 2048 ether);
-    principalThreshold = _threshold;
+    vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
+    uint256 principalThresholdWei = uint256(_threshold) * 1e9;
 
     owrETH = owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      _threshold
     );
     owrETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
 
@@ -675,23 +675,23 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     // assertEq(owrETH.distributedFunds(), _totalETHAmount, "undistributed funds");
     assertEq(owrETH.fundsPendingWithdrawal(), 0 ether, "funds pending withdraw");
 
-    if (BALANCE_CLASSIFICATION_THRESHOLD > _totalETHAmount) {
+    if (principalThresholdWei > _totalETHAmount) {
       // then all of the deposit should be classified as reward
       assertEq(principalRecipient.balance, 0, "should not classify reward as principal");
 
       assertEq(rewardsRecipient.balance, _totalETHAmount, "invalid amount");
     }
 
-    if (_ethAmount > BALANCE_CLASSIFICATION_THRESHOLD) {
+    if (_ethAmount > principalThresholdWei) {
       // then all of reward classified as principal
       // but check if _totalETHAmount > first threshold
-      if (_totalETHAmount > principalThreshold) {
+      if (_totalETHAmount > principalThresholdWei) {
         // there is reward
-        assertEq(principalRecipient.balance, principalThreshold, "invalid amount");
+        assertEq(principalRecipient.balance, principalThresholdWei, "invalid amount");
 
         assertEq(
           rewardsRecipient.balance,
-          _totalETHAmount - principalThreshold,
+          _totalETHAmount - principalThresholdWei,
           "should not classify principal as reward"
         );
       } else {
@@ -704,7 +704,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   }
 
   function testFuzzCan_distributePullDepositsToRecipients(
-    uint96 _threshold,
+    uint64 _threshold,
     uint8 _numDeposits,
     uint256 _ethAmount,
     uint256 _erc20Amount
@@ -712,15 +712,15 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     _ethAmount = uint256(bound(_ethAmount, 0.01 ether, 40 ether));
     _erc20Amount = uint256(bound(_erc20Amount, 0.01 ether, 40 ether));
     vm.assume(_numDeposits > 0);
-    vm.assume(_threshold > 0 && _threshold < 2048 ether);
-    principalThreshold = _threshold;
+    vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
+    uint256 principalThresholdWei = uint256(_threshold) * 1e9;
 
     owrETH = owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      _threshold
     );
     owrETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
 
@@ -739,8 +739,8 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     uint256 principal = owrETH.getPullBalance(principalRecipient);
     assertEq(
       owrETH.getPullBalance(principalRecipient),
-      (_ethAmount >= BALANCE_CLASSIFICATION_THRESHOLD)
-        ? principalThreshold > _totalETHAmount ? _totalETHAmount : principalThreshold
+      (_ethAmount >= principalThresholdWei)
+        ? principalThresholdWei > _totalETHAmount ? _totalETHAmount : principalThresholdWei
         : 0,
       "5/invalid recipient balance"
     );
@@ -748,8 +748,8 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     uint256 reward = owrETH.getPullBalance(rewardsRecipient);
     assertEq(
       owrETH.getPullBalance(rewardsRecipient),
-      (_ethAmount >= BALANCE_CLASSIFICATION_THRESHOLD)
-        ? _totalETHAmount > principalThreshold ? (_totalETHAmount - principalThreshold) : 0
+      (_ethAmount >= principalThresholdWei)
+        ? _totalETHAmount > principalThresholdWei ? (_totalETHAmount - principalThresholdWei) : 0
         : _totalETHAmount,
       "6/invalid recipient balance"
     );

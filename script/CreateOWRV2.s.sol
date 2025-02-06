@@ -20,19 +20,19 @@ contract CreateOWRecipientScript is Script {
 
         OptimisticWithdrawalRecipientV2Factory factory = OptimisticWithdrawalRecipientV2Factory(deployedOWRV2Factory);
 
+        address owner = msg.sender;
         address recoveryAddress = msg.sender;
         address principalRecipient = msg.sender;
         address rewardsRecipient = msg.sender;
-        uint256 trancheThreshold = 16 ether;
-        address owner = msg.sender;
+        uint64 principalThreshold = 16 ether / 1 gwei;
 
         // Call the createOWRecipient function
         factory.createOWRecipient(
-            recoveryAddress,
+            owner,
             principalRecipient,
             rewardsRecipient,
-            trancheThreshold,
-            owner
+            recoveryAddress,
+            principalThreshold
         );
 
         vm.stopBroadcast();

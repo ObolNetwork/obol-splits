@@ -104,7 +104,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   address public immutable recoveryAddress;
   address public immutable principalRecipient;
   address public immutable rewardRecipient;
-  uint256 public immutable principalThreshold;
+  uint64 public immutable principalThreshold;
 
   /// -----------------------------------------------------------------------
   /// storage - mutables
@@ -112,7 +112,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// @dev set to `true` after owner is initialized
   bool public initialized;
 
-  /// Amount of principal stake done via deposit() calls
+  /// Amount of principal stake (wei) done via deposit() calls
   uint256 public amountOfPrincipalStake;
 
   /// Amount of active balance set aside for pulls
@@ -130,17 +130,17 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     address _consolidationSystemContract,
     address _withdrawalSystemContract,
     address _depositSystemContract,
-    address _recoveryAddress,
     address _principalRecipient,
     address _rewardRecipient,
-    uint256 _principalThreshold
+    address _recoveryAddress,
+    uint64 _principalThreshold
   ) {
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
     depositSystemContract = _depositSystemContract;
-    recoveryAddress = _recoveryAddress;
     principalRecipient = _principalRecipient;
     rewardRecipient = _rewardRecipient;
+    recoveryAddress = _recoveryAddress;
     principalThreshold = _principalThreshold;
   }
 
@@ -173,20 +173,21 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// @dev This function is a proxy to the deposit() function on the depositSystemContract.
   ///      The deposited amount is accounted for in the amountOfPrincipalStake, which is used
   ///      to determine the principalRecipient's share of the funds to be distributed.
-  ///      Any deposits made directly to the depositSystemContract will not be accounted for.
+  ///      Any deposits made directly to the depositSystemContract will not be accounted for
+  ///      and will be sent to the rewardRecipient address.
   function deposit(
     bytes calldata pubkey,
     bytes calldata withdrawal_credentials,
     bytes calldata signature,
     bytes32 deposit_data_root
   ) external payable {
+    amountOfPrincipalStake += msg.value;
     IDepositContract(depositSystemContract).deposit{value: msg.value}(
       pubkey,
       withdrawal_credentials,
       signature,
       deposit_data_root
     );
-    amountOfPrincipalStake += msg.value;
   }
 
   /// Distributes target token inside the contract to recipients
@@ -212,8 +213,8 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     bytes[] calldata sourcePubKeys,
     bytes calldata targetPubKey
   ) external payable onlyOwnerOrRoles(CONSOLIDATION_ROLE) {
-    if (sourcePubKeys.length == 0 || targetPubKey.length != 48) revert InvalidRequest_Params();
-    if (sourcePubKeys.length > 63) revert InvalidRequest_Params();
+    if (sourcePubKeys.length == 0 || sourcePubKeys.length > 63 || targetPubKey.length != 48)
+      revert InvalidRequest_Params();
 
     uint256 remainingFee = msg.value;
     uint256 len = sourcePubKeys.length;
@@ -237,7 +238,8 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
   /// Request partial/full withdrawal from the EIP7002 system contract
   /// @dev the caller must compute the fee before calling and send a sufficient msg.value amount
   ///      excess amount will be refunded
-  ///      withdrawals that leave a validator with (0..32) ether will cause the transaction to fail
+  ///      withdrawals that leave a validator with (0..32) ether,
+  //       will only withdraw an amount that leaves the validator at 32 ether
   /// @param pubKeys validator public keys
   /// @param amounts withdrawal amounts in gwei (must be >= principalThreshold)
   function requestWithdrawal(
@@ -250,8 +252,7 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     uint256 len = pubKeys.length;
 
     for (uint256 i; i < len; ) {
-      uint256 amountWei = amounts[i] * 1 gwei;
-      if (amountWei < principalThreshold) revert InvalidRequest_Params();
+      if (amounts[i] < principalThreshold) revert InvalidRequest_Params();
 
       uint256 _currentFee = _computeSystemContractFee(withdrawalSystemContract);
       if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
@@ -382,13 +383,14 @@ contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
     uint256 currentbalance = address(this).balance;
     uint256 _memoryFundsPendingWithdrawal = uint256(fundsPendingWithdrawal);
     uint256 _fundsToBeDistributed = currentbalance - _memoryFundsPendingWithdrawal;
+    uint256 principalThresholdWei = uint256(principalThreshold) * 1e9;
 
     // determine which recipeint is getting paid based on funds to be distributed
     uint256 _principalPayout = 0;
     uint256 _rewardPayout = 0;
 
     unchecked {
-      if (_fundsToBeDistributed >= principalThreshold && amountOfPrincipalStake > 0) {
+      if (_fundsToBeDistributed >= principalThresholdWei && amountOfPrincipalStake > 0) {
         if (_fundsToBeDistributed > amountOfPrincipalStake) {
           // this means there is reward part of the funds to be distributed
           _principalPayout = amountOfPrincipalStake;

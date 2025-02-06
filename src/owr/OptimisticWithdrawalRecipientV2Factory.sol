@@ -31,14 +31,14 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// @param principalRecipient Address to distribute principal payment to
   /// @param rewardRecipient Address to distribute reward payment to
-  /// @param principalThreshold Principal vs rewards classification threshold
+  /// @param principalThreshold Principal vs rewards classification threshold (gwei)
   event CreateOWRecipient(
     address indexed owr,
     address indexed owner,
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
-    uint256 principalThreshold
+    uint64 principalThreshold
   );
 
   /// -----------------------------------------------------------------------
@@ -53,12 +53,12 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// constructor
   /// -----------------------------------------------------------------------
 
-  /// @param _ensName ENS name to register
-  /// @param _ensReverseRegistrar ENS reverse registrar address
-  /// @param _ensOwner ENS owner address
   /// @param _consolidationSystemContract Consolidation system contract address
   /// @param _withdrawalSystemContract Withdrawal system contract address
   /// @param _depositSystemContract Deposit system contract address
+  /// @param _ensName ENS name to register
+  /// @param _ensReverseRegistrar ENS reverse registrar address
+  /// @param _ensOwner ENS owner address
   /// @dev System contracts are expected to be deployed at:
   ///      Consolidation: 0x00431F263cE400f4455c2dCf564e53007Ca4bbBb
   ///      https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7251.md#constants
@@ -68,12 +68,12 @@ contract OptimisticWithdrawalRecipientV2Factory {
   ///      Deposit Sepolia: 0x7f02C3E3c98b133055B8B348B2Ac625669Ed295D
   ///      Deposit Mainnet: 0x00000000219ab540356cBB839Cbe05303d7705Fa
   constructor(
-    string memory _ensName,
-    address _ensReverseRegistrar,
-    address _ensOwner,
     address _consolidationSystemContract,
     address _withdrawalSystemContract,
-    address _depositSystemContract
+    address _depositSystemContract,
+    string memory _ensName,
+    address _ensReverseRegistrar,
+    address _ensOwner
   ) {
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
@@ -92,33 +92,34 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// -----------------------------------------------------------------------
 
   /// Create a new OptimisticWithdrawalRecipientV2 instance
-  /// @param recoveryAddress Address to recover tokens to
-  /// If this address is 0x0, recovery of unrelated tokens can be completed by
-  /// either the principal or reward recipients. If this address is set, only
-  /// this address can recover ERC20 tokens allocated to the OWRV2 contract.
+  /// @param recoveryAddress Address to receive ERC20 tokens transferred to this contract.
+  /// If this address is 0x0, ERC20 tokens owned by this contract can be permissionlessly
+  /// transferred to *either* the principal or reward recipient addresses. If this address is set,
+  /// ERC20 tokens can only be pushed to the recoveryAddress set.
+  /// @param owner Owner of the new OptimisticWithdrawalRecipientV2 instance
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
-  /// @param principalThreshold Principal vs rewards classification threshold
-  /// @param owner Owner of the new OptimisticWithdrawalRecipientV2 instance
+  /// @param recoveryAddress Address to recover non-OWR tokens to
+  /// @param principalThreshold Principal vs rewards classification threshold (gwei)
   /// @return owr Address of the new OptimisticWithdrawalRecipientV2 instance
   function createOWRecipient(
-    address recoveryAddress,
+    address owner,
     address principalRecipient,
     address rewardRecipient,
-    uint256 principalThreshold,
-    address owner
+    address recoveryAddress,
+    uint64 principalThreshold
   ) external returns (OptimisticWithdrawalRecipientV2 owr) {
     if (principalRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
     if (principalThreshold == 0) revert Invalid__ZeroThreshold();
-    if (principalThreshold > 2048 ether) revert Invalid__ThresholdTooLarge();
+    if (principalThreshold > 2048 * 1e9) revert Invalid__ThresholdTooLarge();
 
     owr = new OptimisticWithdrawalRecipientV2(
       consolidationSystemContract,
       withdrawalSystemContract,
       depositSystemContract,
-      recoveryAddress,
       principalRecipient,
       rewardRecipient,
+      recoveryAddress,
       principalThreshold
     );
     owr.initialize(owner);

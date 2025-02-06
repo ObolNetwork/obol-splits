@@ -16,12 +16,12 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
-    uint256 principalThreshold
+    uint64 principalThreshold
   );
 
   address public ENS_REVERSE_REGISTRAR = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
-  uint256 public constant BALANCE_CLASSIFICATION_THRESHOLD = 16 ether;
+  uint64 public constant BALANCE_CLASSIFICATION_THRESHOLD_GWEI = 16 ether / 1 gwei;
 
   SystemContractMock consolidationMock;
   SystemContractMock withdrawalMock;
@@ -31,7 +31,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
   address public recoveryAddress;
   address public principalRecipient;
   address public rewardsRecipient;
-  uint256 public principalThreshold;
+  uint64 public principalThreshold;
 
   function setUp() public {
     vm.mockCall(
@@ -50,27 +50,27 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     depositMock = new DepositContractMock();
 
     owrFactory = new OptimisticWithdrawalRecipientV2Factory(
-      "demo.obol.eth",
-      ENS_REVERSE_REGISTRAR,
-      address(this),
       address(consolidationMock),
       address(withdrawalMock),
-      address(depositMock)
+      address(depositMock),
+      "demo.obol.eth",
+      ENS_REVERSE_REGISTRAR,
+      address(this)
     );
 
     recoveryAddress = makeAddr("recoveryAddress");
     principalRecipient = makeAddr("principalRecipient");
     rewardsRecipient = makeAddr("rewardsRecipient");
-    principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD;
+    principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
   }
 
   function testCan_createOWRecipient() public {
     OptimisticWithdrawalRecipientV2 owr = owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      principalThreshold
     );
     assertEq(owr.owner(), address(this));
     assertEq(address(owr.consolidationSystemContract()), address(consolidationMock));
@@ -78,11 +78,11 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
 
     recoveryAddress = address(0);
     owr = owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      principalThreshold
     );
     assertEq(owr.recoveryAddress(), address(0));
   }
@@ -100,11 +100,11 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
       principalThreshold
     );
     owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      principalThreshold
     );
 
     recoveryAddress = address(0);
@@ -120,23 +120,23 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
       principalThreshold
     );
     owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      principalThreshold
     );
   }
 
   function testCannot_createWithInvalidRecipients() public {
     vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__Recipients.selector);
-    owrFactory.createOWRecipient(recoveryAddress, address(0), rewardsRecipient, principalThreshold, address(this));
+    owrFactory.createOWRecipient(address(this), address(0), rewardsRecipient, recoveryAddress, principalThreshold);
 
     vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__Recipients.selector);
-    owrFactory.createOWRecipient(recoveryAddress, address(0), address(0), principalThreshold, address(this));
+    owrFactory.createOWRecipient(address(this), address(0), address(0), recoveryAddress, principalThreshold);
 
     vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__Recipients.selector);
-    owrFactory.createOWRecipient(recoveryAddress, principalRecipient, address(0), principalThreshold, address(this));
+    owrFactory.createOWRecipient(address(this), principalRecipient, address(0), recoveryAddress, principalThreshold);
   }
 
   function testCannot_createWithInvalidThreshold() public {
@@ -144,20 +144,20 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
 
     vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ZeroThreshold.selector);
     owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      principalThreshold
     );
 
     vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ThresholdTooLarge.selector);
     owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       rewardsRecipient,
-      type(uint128).max,
-      address(this)
+      recoveryAddress,
+      type(uint64).max
     );
   }
 
@@ -165,8 +165,8 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
   /// Fuzzing Tests
   /// ----------------------------------------------------------------------
 
-  function testFuzzCan_createOWRecipient(uint96 _threshold) public {
-    vm.assume(_threshold > 0 && _threshold < 2048 ether);
+  function testFuzzCan_createOWRecipient(uint64 _threshold) public {
+    vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
 
     vm.expectEmit(false, true, true, true);
     emit CreateOWRecipient(
@@ -177,7 +177,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
       rewardsRecipient,
       _threshold
     );
-    owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardsRecipient, _threshold, address(this));
+    owrFactory.createOWRecipient(address(this), principalRecipient, rewardsRecipient, recoveryAddress, _threshold);
   }
 
   function testFuzzCannot_CreateWithZeroThreshold(address _rewardsRecipient) public {
@@ -187,19 +187,19 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     // eth
     vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ZeroThreshold.selector);
     owrFactory.createOWRecipient(
-      recoveryAddress,
+      address(this),
       principalRecipient,
       _rewardsRecipient,
-      principalThreshold,
-      address(this)
+      recoveryAddress,
+      principalThreshold
     );
   }
 
-  function testFuzzCannot_CreateWithLargeThreshold(address _rewardsRecipient, uint256 _threshold) public {
-    vm.assume(_threshold > type(uint96).max);
+  function testFuzzCannot_CreateWithLargeThreshold(address _rewardsRecipient, uint64 _threshold) public {
+    vm.assume(_threshold > 2048 * 1e9);
     vm.assume(_rewardsRecipient != address(0));
 
     vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ThresholdTooLarge.selector);
-    owrFactory.createOWRecipient(recoveryAddress, principalRecipient, _rewardsRecipient, _threshold, address(this));
+    owrFactory.createOWRecipient(address(this), principalRecipient, _rewardsRecipient, recoveryAddress, _threshold);
   }
 }
