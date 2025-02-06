@@ -3,16 +3,16 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import {OptimisticWithdrawalRecipientV2} from "src/owr/OptimisticWithdrawalRecipientV2.sol";
-import {OptimisticWithdrawalRecipientV2Factory} from "src/owr/OptimisticWithdrawalRecipientV2Factory.sol";
+import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
+import {ObolValidatorManagerFactory} from "src/ovm/ObolValidatorManagerFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-import {OWRV2Reentrancy} from "./OWRV2Reentrancy.sol";
+import {ObolValidatorManagerReentrancy} from "./ObolValidatorManagerReentrancy.sol";
 import {SystemContractMock} from "./mocks/SystemContractMock.sol";
 import {DepositContractMock} from "./mocks/DepositContractMock.sol";
 import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
-contract OptimisticWithdrawalRecipientV2Test is Test {
+contract ObolValidatorManagerTest is Test {
   using SafeTransferLib for address;
 
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
@@ -25,9 +25,9 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   uint64 public constant BALANCE_CLASSIFICATION_THRESHOLD_GWEI = 16 ether / 1 gwei;
   uint256 public constant INITIAL_DEPOSIT_AMOUNT = 32 ether;
 
-  OptimisticWithdrawalRecipientV2Factory public owrFactory;
-  OptimisticWithdrawalRecipientV2 owrETH;
-  OptimisticWithdrawalRecipientV2 owrETH_OR;
+  ObolValidatorManagerFactory public owrFactory;
+  ObolValidatorManager owrETH;
+  ObolValidatorManager owrETH_OR;
 
   SystemContractMock consolidationMock;
   SystemContractMock withdrawalMock;
@@ -56,7 +56,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     withdrawalMock = new SystemContractMock(48 + 8);
     depositMock = new DepositContractMock();
 
-    owrFactory = new OptimisticWithdrawalRecipientV2Factory(
+    owrFactory = new ObolValidatorManagerFactory(
       address(consolidationMock),
       address(withdrawalMock),
       address(depositMock),
@@ -73,14 +73,14 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     rewardsRecipient = makeAddr("rewardsRecipient");
     principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
 
-    owrETH = owrFactory.createOWRecipient(
+    owrETH = owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
       recoveryAddress,
       principalThreshold
     );
-    owrETH_OR = owrFactory.createOWRecipient(
+    owrETH_OR = owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -124,12 +124,12 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     vm.stopPrank();
 
     // Empty source array
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_Params.selector);
     bytes[] memory empty = new bytes[](0);
     owrETH.requestConsolidation{value: 1 ether}(empty, new bytes(48));
 
     // Not enough fee (1 wei is the minimum fee)
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_NotEnoughFee.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_NotEnoughFee.selector);
     bytes[] memory single = new bytes[](1);
     single[0] = new bytes(48);
     owrETH.requestConsolidation{value: 0}(single, new bytes(48));
@@ -137,18 +137,18 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     // Failed get_fee() request
     uint256 realFee = consolidationMock.fakeExponential(0);
     consolidationMock.setFailNextFeeRequest(true);
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_SystemGetFee.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_SystemGetFee.selector);
     owrETH.requestConsolidation{value: realFee}(single, new bytes(48));
     consolidationMock.setFailNextFeeRequest(false);
 
     // Failed add_request() request
     consolidationMock.setFailNextAddRequest(true);
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidConsolidation_Failed.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidConsolidation_Failed.selector);
     owrETH.requestConsolidation{value: realFee}(single, new bytes(48));
     consolidationMock.setFailNextAddRequest(false);
 
     // Maximum number of source pubkeys is 63
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_Params.selector);
     bytes[] memory batch64 = new bytes[](64);
     owrETH.requestConsolidation{value: realFee}(batch64, new bytes(48));
   }
@@ -233,27 +233,27 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     single[0] = new bytes(48);
 
     // Inequal array lengths
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_Params.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_Params.selector);
     bytes[] memory empty = new bytes[](0);
     owrETH.requestWithdrawal{value: 1 ether}(empty, amounts);
 
     // Not enough fee (1 wei is the minimum fee)
     uint256 validAmount = principalThreshold;
     amounts[0] = uint64(validAmount);
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_NotEnoughFee.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_NotEnoughFee.selector);
     owrETH.requestWithdrawal{value: 0}(single, amounts);
 
     // Failed get_fee() request
     uint256 realFee = withdrawalMock.fakeExponential(0);
     amounts[0] = uint64(validAmount);
     withdrawalMock.setFailNextFeeRequest(true);
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidRequest_SystemGetFee.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_SystemGetFee.selector);
     owrETH.requestWithdrawal{value: realFee}(single, amounts);
     withdrawalMock.setFailNextFeeRequest(false);
 
     // Failed add_request() request
     withdrawalMock.setFailNextAddRequest(true);
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidWithdrawal_Failed.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidWithdrawal_Failed.selector);
     owrETH.requestWithdrawal{value: realFee}(single, amounts);
     withdrawalMock.setFailNextAddRequest(false);
   }
@@ -370,10 +370,10 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
   }
 
   function testCannot_recoverFundsToNonRecipient() public {
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidTokenRecovery_InvalidRecipient.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidTokenRecovery_InvalidRecipient.selector);
     owrETH.recoverFunds(address(mERC20), address(1));
 
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidTokenRecovery_InvalidRecipient.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidTokenRecovery_InvalidRecipient.selector);
     owrETH_OR.recoverFunds(address(mERC20), address(2));
   }
 
@@ -480,17 +480,17 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     vm.deal(address(owrETH), 1);
 
     vm.deal(address(owrETH), type(uint136).max);
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidDistribution_TooLarge.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidDistribution_TooLarge.selector);
     owrETH.distributeFunds();
 
-    vm.expectRevert(OptimisticWithdrawalRecipientV2.InvalidDistribution_TooLarge.selector);
+    vm.expectRevert(ObolValidatorManager.InvalidDistribution_TooLarge.selector);
     owrETH.distributeFundsPull();
   }
 
   function testCannot_reenterOWR() public {
-    OWRV2Reentrancy wr = new OWRV2Reentrancy();
+    ObolValidatorManagerReentrancy re = new ObolValidatorManagerReentrancy();
 
-    owrETH = owrFactory.createOWRecipient(address(this), address(wr), rewardsRecipient, recoveryAddress, 1e9);
+    owrETH = owrFactory.createObolValidatorManager(address(this), address(re), rewardsRecipient, recoveryAddress, 1e9);
     owrETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     address(owrETH).safeTransferETH(33 ether);
 
@@ -498,7 +498,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     owrETH.distributeFunds();
 
     assertEq(address(owrETH).balance, 33 ether);
-    assertEq(address(wr).balance, 0 ether);
+    assertEq(address(re).balance, 0 ether);
     assertEq(address(0).balance, 0 ether);
   }
 
@@ -641,7 +641,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
     uint256 principalThresholdWei = uint256(_threshold) * 1e9;
 
-    owrETH = owrFactory.createOWRecipient(
+    owrETH = owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -702,7 +702,7 @@ contract OptimisticWithdrawalRecipientV2Test is Test {
     vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
     uint256 principalThresholdWei = uint256(_threshold) * 1e9;
 
-    owrETH = owrFactory.createOWRecipient(
+    owrETH = owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,

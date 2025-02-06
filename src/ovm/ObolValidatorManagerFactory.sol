@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import {OptimisticWithdrawalRecipientV2} from "./OptimisticWithdrawalRecipientV2.sol";
+import {ObolValidatorManager} from "./ObolValidatorManager.sol";
 import {IENSReverseRegistrar} from "../interfaces/IENSReverseRegistrar.sol";
 
-/// @title OptimisticWithdrawalRecipientV2Factory
+/// @title ObolValidatorManagerFactory
 /// @author Obol
-/// @notice A factory contract for deploying OptimisticWithdrawalRecipientV2.
-contract OptimisticWithdrawalRecipientV2Factory {
+/// @notice A factory contract for deploying ObolValidatorManager.
+contract ObolValidatorManagerFactory {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------
@@ -25,14 +25,14 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// events
   /// -----------------------------------------------------------------------
 
-  /// Emitted after a new OptimisticWithdrawalRecipientV2 module is deployed
-  /// @param owr Address of newly created OptimisticWithdrawalRecipientV2 instance
-  /// @param owner Owner of newly created OptimisticWithdrawalRecipientV2 instance
+  /// Emitted after a new ObolValidatorManager instance is deployed
+  /// @param owr Address of newly created ObolValidatorManager instance
+  /// @param owner Owner of newly created ObolValidatorManager instance
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// @param principalRecipient Address to distribute principal payment to
   /// @param rewardRecipient Address to distribute reward payment to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei)
-  event CreateOWRecipient(
+  event CreateObolValidatorManager(
     address indexed owr,
     address indexed owner,
     address recoveryAddress,
@@ -91,29 +91,29 @@ contract OptimisticWithdrawalRecipientV2Factory {
   /// functions - public & external
   /// -----------------------------------------------------------------------
 
-  /// Create a new OptimisticWithdrawalRecipientV2 instance
+  /// Create a new ObolValidatorManager instance
   /// @param recoveryAddress Address to receive ERC20 tokens transferred to this contract.
   /// If this address is 0x0, ERC20 tokens owned by this contract can be permissionlessly
   /// transferred to *either* the principal or reward recipient addresses. If this address is set,
   /// ERC20 tokens can only be pushed to the recoveryAddress set.
-  /// @param owner Owner of the new OptimisticWithdrawalRecipientV2 instance
+  /// @param owner Owner of the new ObolValidatorManager instance
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei)
-  /// @return owr Address of the new OptimisticWithdrawalRecipientV2 instance
-  function createOWRecipient(
+  /// @return owr Address of the new ObolValidatorManager instance
+  function createObolValidatorManager(
     address owner,
     address principalRecipient,
     address rewardRecipient,
     address recoveryAddress,
     uint64 principalThreshold
-  ) external returns (OptimisticWithdrawalRecipientV2 owr) {
+  ) external returns (ObolValidatorManager owr) {
     if (principalRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
     if (principalThreshold == 0) revert Invalid__ZeroThreshold();
     if (principalThreshold > 2048 * 1e9) revert Invalid__ThresholdTooLarge();
 
-    owr = new OptimisticWithdrawalRecipientV2(
+    owr = new ObolValidatorManager(
       consolidationSystemContract,
       withdrawalSystemContract,
       depositSystemContract,
@@ -124,7 +124,7 @@ contract OptimisticWithdrawalRecipientV2Factory {
       principalThreshold
     );
 
-    emit CreateOWRecipient(
+    emit CreateObolValidatorManager(
       address(owr),
       owner,
       recoveryAddress,

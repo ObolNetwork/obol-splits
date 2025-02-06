@@ -6,13 +6,13 @@ import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {IDepositContract} from "../interfaces/IDepositContract.sol";
 
-/// @title OptimisticWithdrawalRecipientV2
+/// @title ObolValidatorManager
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
 /// based on threshold to it's recipients.
 /// @dev Only ETH can be distributed for a given deployment. There is a
 /// recovery method for tokens sent by accident.
-contract OptimisticWithdrawalRecipientV2 is OwnableRoles {
+contract ObolValidatorManager is OwnableRoles {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------

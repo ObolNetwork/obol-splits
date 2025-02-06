@@ -2,15 +2,15 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {OptimisticWithdrawalRecipientV2} from "src/owr/OptimisticWithdrawalRecipientV2.sol";
-import {OptimisticWithdrawalRecipientV2Factory} from "src/owr/OptimisticWithdrawalRecipientV2Factory.sol";
+import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
+import {ObolValidatorManagerFactory} from "src/ovm/ObolValidatorManagerFactory.sol";
 import {MockERC20} from "../utils/mocks/MockERC20.sol";
 import {SystemContractMock} from "./mocks/SystemContractMock.sol";
 import {DepositContractMock} from "./mocks/DepositContractMock.sol";
 import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
-contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
-  event CreateOWRecipient(
+contract ObolValidatorManagerFactoryTest is Test {
+  event CreateObolValidatorManager(
     address indexed owr,
     address indexed owner,
     address recoveryAddress,
@@ -26,7 +26,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
   SystemContractMock consolidationMock;
   SystemContractMock withdrawalMock;
   DepositContractMock depositMock;
-  OptimisticWithdrawalRecipientV2Factory owrFactory;
+  ObolValidatorManagerFactory owrFactory;
 
   address public recoveryAddress;
   address public principalRecipient;
@@ -49,7 +49,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     withdrawalMock = new SystemContractMock(48 + 8);
     depositMock = new DepositContractMock();
 
-    owrFactory = new OptimisticWithdrawalRecipientV2Factory(
+    owrFactory = new ObolValidatorManagerFactory(
       address(consolidationMock),
       address(withdrawalMock),
       address(depositMock),
@@ -65,7 +65,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
   }
 
   function testCan_createOWRecipient() public {
-    OptimisticWithdrawalRecipientV2 owr = owrFactory.createOWRecipient(
+    ObolValidatorManager owr = owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -77,7 +77,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     assertEq(address(owr.withdrawalSystemContract()), address(withdrawalMock));
 
     recoveryAddress = address(0);
-    owr = owrFactory.createOWRecipient(
+    owr = owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -91,7 +91,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
 
-    emit CreateOWRecipient(
+    emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
       recoveryAddress,
@@ -99,7 +99,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
       rewardsRecipient,
       principalThreshold
     );
-    owrFactory.createOWRecipient(
+    owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -111,7 +111,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
 
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
-    emit CreateOWRecipient(
+    emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
       recoveryAddress,
@@ -119,7 +119,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
       rewardsRecipient,
       principalThreshold
     );
-    owrFactory.createOWRecipient(
+    owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -129,21 +129,33 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
   }
 
   function testCannot_createWithInvalidRecipients() public {
-    vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__Recipients.selector);
-    owrFactory.createOWRecipient(address(this), address(0), rewardsRecipient, recoveryAddress, principalThreshold);
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
+    owrFactory.createObolValidatorManager(
+      address(this),
+      address(0),
+      rewardsRecipient,
+      recoveryAddress,
+      principalThreshold
+    );
 
-    vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__Recipients.selector);
-    owrFactory.createOWRecipient(address(this), address(0), address(0), recoveryAddress, principalThreshold);
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
+    owrFactory.createObolValidatorManager(address(this), address(0), address(0), recoveryAddress, principalThreshold);
 
-    vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__Recipients.selector);
-    owrFactory.createOWRecipient(address(this), principalRecipient, address(0), recoveryAddress, principalThreshold);
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
+    owrFactory.createObolValidatorManager(
+      address(this),
+      principalRecipient,
+      address(0),
+      recoveryAddress,
+      principalThreshold
+    );
   }
 
   function testCannot_createWithInvalidThreshold() public {
     principalThreshold = 0;
 
-    vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ZeroThreshold.selector);
-    owrFactory.createOWRecipient(
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid__ZeroThreshold.selector);
+    owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -151,8 +163,8 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
       principalThreshold
     );
 
-    vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ThresholdTooLarge.selector);
-    owrFactory.createOWRecipient(
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid__ThresholdTooLarge.selector);
+    owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -169,7 +181,7 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
 
     vm.expectEmit(false, true, true, true);
-    emit CreateOWRecipient(
+    emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
       recoveryAddress,
@@ -177,7 +189,13 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
       rewardsRecipient,
       _threshold
     );
-    owrFactory.createOWRecipient(address(this), principalRecipient, rewardsRecipient, recoveryAddress, _threshold);
+    owrFactory.createObolValidatorManager(
+      address(this),
+      principalRecipient,
+      rewardsRecipient,
+      recoveryAddress,
+      _threshold
+    );
   }
 
   function testFuzzCannot_CreateWithZeroThreshold(address _rewardsRecipient) public {
@@ -185,8 +203,8 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     principalThreshold = 0;
 
     // eth
-    vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ZeroThreshold.selector);
-    owrFactory.createOWRecipient(
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid__ZeroThreshold.selector);
+    owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       _rewardsRecipient,
@@ -199,7 +217,13 @@ contract OptimisticWithdrawalRecipientV2FactoryTest is Test {
     vm.assume(_threshold > 2048 * 1e9);
     vm.assume(_rewardsRecipient != address(0));
 
-    vm.expectRevert(OptimisticWithdrawalRecipientV2Factory.Invalid__ThresholdTooLarge.selector);
-    owrFactory.createOWRecipient(address(this), principalRecipient, _rewardsRecipient, recoveryAddress, _threshold);
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid__ThresholdTooLarge.selector);
+    owrFactory.createObolValidatorManager(
+      address(this),
+      principalRecipient,
+      _rewardsRecipient,
+      recoveryAddress,
+      _threshold
+    );
   }
 }
