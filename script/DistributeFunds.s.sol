@@ -2,10 +2,10 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import {OptimisticWithdrawalRecipientV2} from "src/owr/OptimisticWithdrawalRecipientV2.sol";
+import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 
 //
-// This script calls distributeFunds() for a OptimisticWithdrawalRecipientV2 contract.
+// This script calls distributeFunds() for a ObolValidatorManager contract.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
@@ -18,8 +18,8 @@ contract DistributeFunds is Script {
 
         vm.startBroadcast(privKey);
 
-        OptimisticWithdrawalRecipientV2 owr = OptimisticWithdrawalRecipientV2(deployedOWRV2);
-        owr.distributeFunds();
+        ObolValidatorManager ovm = ObolValidatorManager(payable(deployedOWRV2));
+        ovm.distributeFunds();
 
         vm.stopBroadcast();
     }
