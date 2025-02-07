@@ -2,7 +2,9 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
+import "forge-std/console.sol";
 import {ObolValidatorManagerFactory} from "../src/ovm/ObolValidatorManagerFactory.sol";
+import {ObolValidatorManager} from "../src/ovm/ObolValidatorManager.sol";
 
 //
 // This script creates a new ObolValidatorManager contract.
@@ -13,26 +15,33 @@ import {ObolValidatorManagerFactory} from "../src/ovm/ObolValidatorManagerFactor
 //   --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast "<factory_address>"
 //
 contract CreateObolValidatorManagerScript is Script {
-    function run(address deployedOWRV2Factory) external {
+    function run(address deployedFactory) external {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
+        address deployerAddress = vm.addr(privKey);
+
+        console.log("Deployer address: ", deployerAddress);
 
         vm.startBroadcast(privKey);
 
-        ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(deployedOWRV2Factory);
+        ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(deployedFactory);
 
-        address owner = msg.sender;
-        address recoveryAddress = msg.sender;
-        address principalRecipient = msg.sender;
-        address rewardsRecipient = msg.sender;
+        address owner = deployerAddress;
+        address recoveryAddress = deployerAddress;
+        address principalRecipient = deployerAddress;
+        address rewardsRecipient = deployerAddress;
         uint64 principalThreshold = 16 ether / 1 gwei;
 
-        factory.createObolValidatorManager(
+        ObolValidatorManager ovm = factory.createObolValidatorManager(
             owner,
             principalRecipient,
             rewardsRecipient,
             recoveryAddress,
             principalThreshold
         );
+
+        require(ovm.owner() == deployerAddress, "ObolValidatorManager got wrong owner!");
+
+        console.log("ObolValidatorManager created at address: ", address(ovm));
 
         vm.stopBroadcast();
     }

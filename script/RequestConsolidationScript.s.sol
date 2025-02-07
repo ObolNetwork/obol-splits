@@ -9,23 +9,22 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
-//   forge script script/RequestConsolidation.s.sol --sig "run(address,bytes,bytes)" \
+//   forge script script/RequestConsolidationScript.s.sol --sig "run(address,bytes,bytes)" \
 //     --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast \
-//     "<owrv2_address>" "<src_pubkey>" "<dst_pubkey>"
+//     "<ovm_address>" "<src_pubkey>" "<dst_pubkey>"
 //
-contract RequestConsolidation is Script {
-    function run(address owrv2, bytes calldata src, bytes calldata dst) external {
+contract RequestConsolidationScript is Script {
+    function run(address ovmAddress, bytes calldata src, bytes calldata dst) external {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(privKey);
 
-        ObolValidatorManager ovm = ObolValidatorManager(payable(owrv2));
+        ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
 
         // Call the function on the deployed contract
         bytes[] memory sourcePubKeys = new bytes[](1);
         sourcePubKeys[0] = src;
 
-        // Estimated total gas used for script: 162523
         ovm.requestConsolidation{value: 100 wei}(sourcePubKeys, dst);
 
         vm.stopBroadcast();

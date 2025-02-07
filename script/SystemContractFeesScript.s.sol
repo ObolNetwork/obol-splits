@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
 
-contract SystemContractFees is Script {
+contract SystemContractFeesScript is Script {
   // From https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7251.md#execution-layer
   address constant consolidationSysContract = 0x00431F263cE400f4455c2dCf564e53007Ca4bbBb;
   // From https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7002.md#configuration

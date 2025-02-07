@@ -11,7 +11,7 @@ import {ObolValidatorManagerFactory} from "src/ovm/ObolValidatorManagerFactory.s
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Please set ensReverseRegistrar before running this script.
 // Example usage:
-//   forge script script/ObolValidatorManagerFactoryScript.s.sol --sig "run(string)" 
+//   forge script script/ObolValidatorManagerFactoryScript.s.sol --sig "run(string)"
 //   --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast "demo"
 //
 contract ObolValidatorManagerFactoryScript is Script {
@@ -19,24 +19,19 @@ contract ObolValidatorManagerFactoryScript is Script {
   address constant consolidationSysContract = 0x00431F263cE400f4455c2dCf564e53007Ca4bbBb;
   // From https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7002.md#configuration
   address constant withdrawalSysContract = 0x0c15F14308530b7CDB8460094BbB9cC28b9AaaAA;
-  // By default the script is aiming devnet-6 (7072151312)
+  // By default the script is aiming devnet
   address constant depositSysContract = 0x4242424242424242424242424242424242424242;
   // TBD
-  address ensReverseRegistrar = address(0x0);
+  address ensReverseRegistrar = address(0);
 
   function run(string calldata name) external {
+    if (ensReverseRegistrar == address(0)) 
+      revert("update ensReverseRegistrar & depositSysContract before using this script");
+
     uint256 privKey = vm.envUint("PRIVATE_KEY");
 
-    if (ensReverseRegistrar == address(0x0)) {
-      revert("ensReverseRegistrar not set");
-    }
-
-    if (block.chainid != 7072151312) { // devnet-6
-      revert("update deposit contract address and chain id");
-    }
-    
     vm.startBroadcast(privKey);
-    
+
     ObolValidatorManagerFactory factory = new ObolValidatorManagerFactory{salt: keccak256(bytes(name))}(
       consolidationSysContract,
       withdrawalSysContract,
@@ -46,7 +41,7 @@ contract ObolValidatorManagerFactoryScript is Script {
       msg.sender
     );
 
-    console.log('ObolValidatorManagerFactory deployed at: ', address(factory));
+    console.log("ObolValidatorManagerFactory deployed at: ", address(factory));
 
     vm.stopBroadcast();
   }
