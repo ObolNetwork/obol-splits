@@ -26,14 +26,14 @@ contract ObolValidatorManagerFactory {
   /// -----------------------------------------------------------------------
 
   /// Emitted after a new ObolValidatorManager instance is deployed
-  /// @param owr Address of newly created ObolValidatorManager instance
+  /// @param ovm Address of newly created ObolValidatorManager instance
   /// @param owner Owner of newly created ObolValidatorManager instance
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// @param principalRecipient Address to distribute principal payment to
   /// @param rewardRecipient Address to distribute reward payment to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei)
   event CreateObolValidatorManager(
-    address indexed owr,
+    address indexed ovm,
     address indexed owner,
     address recoveryAddress,
     address principalRecipient,
@@ -101,19 +101,19 @@ contract ObolValidatorManagerFactory {
   /// @param rewardRecipient Address to distribute reward payments to
   /// @param recoveryAddress Address to recover non-OWR tokens to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei)
-  /// @return owr Address of the new ObolValidatorManager instance
+  /// @return ovm Address of the new ObolValidatorManager instance
   function createObolValidatorManager(
     address owner,
     address principalRecipient,
     address rewardRecipient,
     address recoveryAddress,
     uint64 principalThreshold
-  ) external returns (ObolValidatorManager owr) {
+  ) external returns (ObolValidatorManager ovm) {
     if (principalRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
     if (principalThreshold == 0) revert Invalid__ZeroThreshold();
     if (principalThreshold > 2048 * 1e9) revert Invalid__ThresholdTooLarge();
 
-    owr = new ObolValidatorManager(
+    ovm = new ObolValidatorManager(
       consolidationSystemContract,
       withdrawalSystemContract,
       depositSystemContract,
@@ -125,7 +125,7 @@ contract ObolValidatorManagerFactory {
     );
 
     emit CreateObolValidatorManager(
-      address(owr),
+      address(ovm),
       owner,
       recoveryAddress,
       principalRecipient,

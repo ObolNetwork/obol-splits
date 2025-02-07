@@ -11,15 +11,15 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // Example usage:
 //   forge script script/RequestConsolidation.s.sol --sig "run(address,bytes,bytes)" \
 //     --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast \
-//     "<owrv2_address>" "<src_pubkey>" "<dst_pubkey>"
+//     "<ovm_address>" "<src_pubkey>" "<dst_pubkey>"
 //
 contract RequestConsolidation is Script {
-    function run(address owrv2, bytes calldata src, bytes calldata dst) external {
+    function run(address ovmAddress, bytes calldata src, bytes calldata dst) external {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(privKey);
 
-        ObolValidatorManager ovm = ObolValidatorManager(payable(owrv2));
+        ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
 
         // Call the function on the deployed contract
         bytes[] memory sourcePubKeys = new bytes[](1);

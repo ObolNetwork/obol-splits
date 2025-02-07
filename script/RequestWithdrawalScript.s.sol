@@ -11,15 +11,15 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // Example usage:
 //   forge script script/RequestWithdrawal.s.sol --sig "run(address,bytes,bytes)" \
 //     --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast \
-//     "<owrv2_address>" "<pubkey>" "<amount_gwei>"
+//     "<ovm_address>" "<pubkey>" "<amount_gwei>"
 //
 contract RequestWithdrawal is Script {
-    function run(address owrv2, bytes calldata pubkey, uint64 amount) external {
+    function run(address ovmAddress, bytes calldata pubkey, uint64 amount) external {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(privKey);
 
-        ObolValidatorManager ovm = ObolValidatorManager(payable(owrv2));
+        ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
 
         bytes[] memory pubKeys = new bytes[](1);
         pubKeys[0] = pubkey;
