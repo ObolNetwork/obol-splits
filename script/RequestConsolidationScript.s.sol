@@ -30,5 +30,3 @@ contract RequestConsolidationScript is Script {
         vm.stopBroadcast();
     }
 }
-
-// forge script script/RequestConsolidationScript.s.sol --sig "run(address,bytes,bytes)" --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast "0xe475c6c58f0366cf3813fd95a5522fe2BbE4472b" "84f1150a83ee050668f5c4d96d5d2cc1d5e19af297840bee6614371ce67960c149b60aab4c3bba3dae13704c14e220c9" "b44006ca9c0af2d763fd08d6f25ef69b8293cd8d4ec205b4e916e73322a73e08b1947dd2ae07b21b48f37f51aea9fc5b"
