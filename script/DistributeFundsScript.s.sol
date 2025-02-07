@@ -9,10 +9,10 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
-//   forge script script/DistributeFunds.s.sol --sig "run(address)" \
+//   forge script script/DistributeFundsScript.s.sol --sig "run(address)" \
 //   --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast "<ovm_address>"
 //
-contract DistributeFunds is Script {
+contract DistributeFundsScript is Script {
     function run(address ovmAddress) external {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
 
