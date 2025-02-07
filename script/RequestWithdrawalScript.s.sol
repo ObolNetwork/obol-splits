@@ -9,7 +9,7 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
-//   forge script script/RequestWithdrawalScript.s.sol --sig "run(address,bytes,bytes)" \
+//   forge script script/RequestWithdrawalScript.s.sol --sig "run(address,bytes,uint64)" \
 //     --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast \
 //     "<ovm_address>" "<pubkey>" "<amount_gwei>"
 //
