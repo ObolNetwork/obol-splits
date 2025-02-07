@@ -17,15 +17,18 @@ import {ObolValidatorManager} from "../src/ovm/ObolValidatorManager.sol";
 contract CreateObolValidatorManagerScript is Script {
     function run(address deployedFactory) external {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
+        address deployerAddress = vm.addr(privKey);
+
+        console.log("Deployer address: ", deployerAddress);
 
         vm.startBroadcast(privKey);
 
         ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(deployedFactory);
 
-        address owner = msg.sender;
-        address recoveryAddress = msg.sender;
-        address principalRecipient = msg.sender;
-        address rewardsRecipient = msg.sender;
+        address owner = deployerAddress;
+        address recoveryAddress = deployerAddress;
+        address principalRecipient = deployerAddress;
+        address rewardsRecipient = deployerAddress;
         uint64 principalThreshold = 16 ether / 1 gwei;
 
         ObolValidatorManager ovm = factory.createObolValidatorManager(
@@ -35,6 +38,8 @@ contract CreateObolValidatorManagerScript is Script {
             recoveryAddress,
             principalThreshold
         );
+
+        require(ovm.owner() == deployerAddress, "ObolValidatorManager got wrong owner!");
 
         console.log("ObolValidatorManager created at address: ", address(ovm));
 

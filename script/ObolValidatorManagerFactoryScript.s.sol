@@ -22,18 +22,13 @@ contract ObolValidatorManagerFactoryScript is Script {
   // By default the script is aiming devnet
   address constant depositSysContract = 0x4242424242424242424242424242424242424242;
   // TBD
-  address ensReverseRegistrar = address(0x0);
+  address ensReverseRegistrar = address(0);
 
   function run(string calldata name) external {
+    if (ensReverseRegistrar == address(0)) 
+      revert("update ensReverseRegistrar & depositSysContract before using this script");
+
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-
-    if (ensReverseRegistrar == address(0x0)) {
-      revert("ensReverseRegistrar not set");
-    }
-
-    if (block.chainid != 7088110746) {
-      revert("update deposit contract address and chain id");
-    }
 
     vm.startBroadcast(privKey);
 
