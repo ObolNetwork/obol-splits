@@ -48,6 +48,11 @@ contract ObolValidatorManager is OwnableRoles {
   /// events
   /// -----------------------------------------------------------------------
 
+  /// Emitted after principal recipient is changed
+  /// @param newPrincipalRecipient New principal recipient address
+  /// @param oldPrincipalRecipient Old principal recipient address
+  event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
+
   /// Emitted after funds are distributed to recipients
   /// @param principalPayout Amount of principal paid out
   /// @param rewardPayout Amount of reward paid out
@@ -87,6 +92,7 @@ contract ObolValidatorManager is OwnableRoles {
 
   uint256 public constant WITHDRAWAL_ROLE = 0x01;
   uint256 public constant CONSOLIDATION_ROLE = 0x02;
+  uint256 public constant SET_PRINCIPAL_ROLE = 0x04;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
@@ -99,13 +105,15 @@ contract ObolValidatorManager is OwnableRoles {
   address public immutable withdrawalSystemContract;
   address public immutable depositSystemContract;
   address public immutable recoveryAddress;
-  address public immutable principalRecipient;
   address public immutable rewardRecipient;
   uint64 public immutable principalThreshold;
 
   /// -----------------------------------------------------------------------
   /// storage - mutables
   /// -----------------------------------------------------------------------
+
+  /// Address to receive principal funds
+  address public principalRecipient;
 
   /// Amount of principal stake (wei) done via deposit() calls
   uint256 public amountOfPrincipalStake;
@@ -178,6 +186,19 @@ contract ObolValidatorManager is OwnableRoles {
       signature,
       deposit_data_root
     );
+  }
+
+  /// @notice Set the principal recipient address
+  /// @param _principalRecipient New address to receive principal funds
+  function setPrincipalRecipient(address _principalRecipient) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
+    if (_principalRecipient == address(0)) {
+      revert InvalidRequest_Params();
+    }
+
+    address oldPrincipalRecipient = principalRecipient;
+    principalRecipient = _principalRecipient;
+
+    emit NewPrincipalRecipient(_principalRecipient, oldPrincipalRecipient);
   }
 
   /// Distributes target token inside the contract to recipients

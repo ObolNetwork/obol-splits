@@ -15,6 +15,7 @@ import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 contract ObolValidatorManagerTest is Test {
   using SafeTransferLib for address;
 
+  event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
   event RecoverNonOWRecipientFunds(address indexed nonOWRToken, address indexed recipient, uint256 amount);
   event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
@@ -111,6 +112,31 @@ contract ObolValidatorManagerTest is Test {
     owrETH.deposit{value: depositAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     assertEq(address(depositMock).balance, INITIAL_DEPOSIT_AMOUNT + depositAmount);
     assertEq(owrETH.amountOfPrincipalStake(), INITIAL_DEPOSIT_AMOUNT + depositAmount);
+  }
+
+  function testSetPrincipalRecipient() public {
+    // initial recipient
+    assertEq(owrETH.principalRecipient(), principalRecipient, "invalid principal recipient");
+
+    address newRecipient = makeAddr("newRecipient");
+    vm.expectEmit(true, true, true, true);
+    emit NewPrincipalRecipient(newRecipient, principalRecipient);
+    owrETH.setPrincipalRecipient(newRecipient);
+    assertEq(owrETH.principalRecipient(), newRecipient);
+  }
+
+  function testCannot_setPrincipalRecipient() public {
+    // zero address
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_Params.selector);
+    owrETH.setPrincipalRecipient(address(0));
+
+    // unauthorized
+    address _user = vm.addr(0x2);
+    owrETH.grantRoles(_user, owrETH.WITHDRAWAL_ROLE()); // unrelated role
+    vm.startPrank(_user);
+    vm.expectRevert(bytes4(0x82b42900));
+    owrETH.setPrincipalRecipient(makeAddr("noaccess"));
+    vm.stopPrank();
   }
 
   function testCannot_requestConsolidation() public {
