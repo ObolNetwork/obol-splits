@@ -189,16 +189,16 @@ contract ObolValidatorManager is OwnableRoles {
   }
 
   /// @notice Set the principal recipient address
-  /// @param _principalRecipient New address to receive principal funds
-  function setPrincipalRecipient(address _principalRecipient) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
-    if (_principalRecipient == address(0)) {
+  /// @param newPrincipalRecipient New address to receive principal funds
+  function setPrincipalRecipient(address newPrincipalRecipient) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
+    if (newPrincipalRecipient == address(0)) {
       revert InvalidRequest_Params();
     }
 
     address oldPrincipalRecipient = principalRecipient;
-    principalRecipient = _principalRecipient;
+    principalRecipient = newPrincipalRecipient;
 
-    emit NewPrincipalRecipient(_principalRecipient, oldPrincipalRecipient);
+    emit NewPrincipalRecipient(newPrincipalRecipient, oldPrincipalRecipient);
   }
 
   /// Distributes target token inside the contract to recipients
