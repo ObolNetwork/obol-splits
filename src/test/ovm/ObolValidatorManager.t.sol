@@ -137,6 +137,11 @@ contract ObolValidatorManagerTest is Test {
     vm.expectRevert(bytes4(0x82b42900));
     owrETH.setPrincipalRecipient(makeAddr("noaccess"));
     vm.stopPrank();
+
+    // unauthorized for owner after renounce
+    owrETH.renounceOwnership();
+    vm.expectRevert(bytes4(0x82b42900));
+    owrETH.setPrincipalRecipient(makeAddr("noaccess"));
   }
 
   function testCannot_requestConsolidation() public {
