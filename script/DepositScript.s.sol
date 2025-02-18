@@ -68,7 +68,8 @@ contract DepositScript is Script {
       bytes memory withdrawal_credentials = vm.parseBytes(depositData.withdrawal_credentials);
       bytes memory signature = vm.parseBytes(depositData.signature);
       bytes32 deposit_data_root = vm.parseBytes32(depositData.deposit_data_root);
-      ovm.deposit{value: depositData.amount}(pubkey, withdrawal_credentials, signature, deposit_data_root);
+      uint256 deposit_amount = depositData.amount * 1 gwei;
+      ovm.deposit{value: deposit_amount}(pubkey, withdrawal_credentials, signature, deposit_data_root);
       
       console.log("Deposit successful for amount: %d ether", depositData.amount / 1 gwei);
     }
@@ -78,5 +79,3 @@ contract DepositScript is Script {
     vm.stopBroadcast();
   }
 }
-
-// forge script script/DepositScript.s.sol --sig "run(address,string)" --rpc-url https://rpc.pectra-devnet-6.ethpandaops.io/ --broadcast "0xAC1598a535a2Bd49a0B9779Ae45E958b3893589c" "./script/data/deposit-data.json"

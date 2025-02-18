@@ -119,7 +119,7 @@ contract ObolValidatorManagerTest is Test {
     owrETH.grantRoles(_user, owrETH.WITHDRAWAL_ROLE());
     vm.deal(_user, type(uint256).max);
     vm.startPrank(_user);
-    vm.expectRevert(0x82b42900);
+    vm.expectRevert(bytes4(0x82b42900));
     owrETH.requestConsolidation{value: 1 ether}(new bytes[](1), new bytes(48));
     vm.stopPrank();
 
@@ -224,7 +224,7 @@ contract ObolValidatorManagerTest is Test {
     owrETH.grantRoles(_user, owrETH.CONSOLIDATION_ROLE());
     vm.deal(_user, type(uint256).max);
     vm.startPrank(_user);
-    vm.expectRevert(0x82b42900);
+    vm.expectRevert(bytes4(0x82b42900));
     owrETH.requestWithdrawal{value: 1 ether}(new bytes[](1), new uint64[](1));
     vm.stopPrank();
 
