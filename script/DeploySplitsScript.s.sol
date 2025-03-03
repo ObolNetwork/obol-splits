@@ -22,7 +22,15 @@ import {LibString} from "solady/utils/LibString.sol";
 contract DeploySplitsScript is Script {
   using stdJson for string;
 
+  // To detect loops in splits configuration
+  address private constant DEPLOYING_SPLIT = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
+
   mapping(string => address) private deployments;
+  mapping(string => uint256) private indices;
+
+  address private deployerAddress;
+  ISplitFactoryV2 private pullFactory;
+  ISplitFactoryV2 private pushFactory;
 
   struct SplitConfig {
     // fields must be sorted alphabetically
@@ -46,113 +54,112 @@ contract DeploySplitsScript is Script {
       console.log("PRIVATE_KEY is not set");
       return;
     }
+    deployerAddress = vm.addr(privKey);
 
-    address deployerAddress = vm.addr(privKey);
-    console.log("Deployer address: %s", deployerAddress);
+    require(pullSplitFactory != address(0), "PullSplitFactory address is not set");
+    require(pushSplitFactory != address(0), "PushSplitFactory address is not set");
+    pullFactory = ISplitFactoryV2(pullSplitFactory);
+    pushFactory = ISplitFactoryV2(pushSplitFactory);
 
-    string memory splitsConfigFileName = getFileName(splitsConfigFilePath);
-    console.log("Reading splits configuration from file: %s", splitsConfigFileName);
+    console.log("Reading splits configuration from file: %s", splitsConfigFilePath);
+    SplitConfig[] memory configSplits = readSplitsConfig(splitsConfigFilePath);
+    require(configSplits.length > 0, "No splits found in the configuration file.");
 
-    string memory file = vm.readFile(splitsConfigFilePath);
-    bytes memory parsedJson = vm.parseJson(file);
-
-    SplitConfig[] memory splits = abi.decode(parsedJson, (SplitConfig[]));
-
-    console.log("Found %d split configurations", splits.length);
+    for (uint256 i = 0; i < configSplits.length; i++) {
+      indices[configSplits[i].name] = i;
+    }
 
     vm.startBroadcast(privKey);
 
-    // Deploying splits
-    for (uint256 i = 0; i < splits.length; i++) {
-      SplitConfig memory split = splits[i];
-      console.log("Deploying split %s", split.name);
-      console.log("  Split type: %s", split.splitType);
-      console.log("  Total allocation: %d", split.totalAllocation);
-      console.log("  Distribution incentive: %d", split.distributionIncentive);
-      console.log("  Owner: %s", split.owner);
+    // Recursively deploying splits
+    deploySplit(configSplits, configSplits[0].name);
 
-      address[] memory recipients = new address[](split.allocations.length);
-      uint256[] memory allocations = new uint256[](split.allocations.length);
-
-      for (uint256 j = 0; j < split.allocations.length; j++) {
-        recipients[j] = split.allocations[j].recipient;
-        allocations[j] = split.allocations[j].allocation;
-
-        console.log("  Recipient %d: %s, allocation: %d", j, recipients[j], allocations[j]);
-      }
-
-      ISplitFactoryV2.Split memory newSplit = ISplitFactoryV2.Split({
-        recipients: recipients,
-        allocations: allocations,
-        totalAllocation: split.totalAllocation,
-        distributionIncentive: uint16(split.distributionIncentive)
-      });
-
-      address splitAddress;
-      if (compareStrings(split.splitType, "pull")) {
-        ISplitFactoryV2 pullFactory = ISplitFactoryV2(pullSplitFactory);
-        splitAddress = pullFactory.createSplit(newSplit, split.owner, deployerAddress);
-      } else if (compareStrings(split.splitType, "push")) {
-        ISplitFactoryV2 pushFactory = ISplitFactoryV2(pushSplitFactory);
-        splitAddress = pushFactory.createSplit(newSplit, split.owner, deployerAddress);
-      } else {
-        console.log("Unknown split type: %s", split.splitType);
-        revert("Unsupported split type provided.");
-      }
-
-      console.log("  Split %s deployed at", split.name, splitAddress);
-      deployments[split.name] = splitAddress;
-    }
-
-    writeDeploymentJson(splitsConfigFileName, splits);
+    writeDeploymentJson(getFileName(splitsConfigFilePath), configSplits);
 
     vm.stopBroadcast();
   }
 
+  function deploySplit(SplitConfig[] memory configSplits, string memory splitName) public returns (address) {
+    if (deployments[splitName] == DEPLOYING_SPLIT) {
+      console.log("Split %s is already processing, it must be a loop", splitName);
+      revert("Loop detected in splits configuration.");
+    }
+    deployments[splitName] = DEPLOYING_SPLIT;
+
+    SplitConfig memory split = configSplits[indices[splitName]];
+
+    address[] memory recipients = new address[](split.allocations.length);
+    uint256[] memory allocations = new uint256[](split.allocations.length);
+
+    for (uint256 j = 0; j < split.allocations.length; j++) {
+      if (split.allocations[j].recipient != address(0)) {
+        recipients[j] = split.allocations[j].recipient;
+      // } else if (bytes(split.allocations[j].split).length > 0) {
+      //   recipients[j] = deploySplit(configSplits, split.allocations[j].split);
+      } else {
+        console.log("Recipient address is not set for allocation %d in split %s", j, splitName);
+        revert("Recipient address is not set for allocation.");
+      }
+
+      allocations[j] = split.allocations[j].allocation;
+    }
+
+    ISplitFactoryV2.Split memory newSplit = ISplitFactoryV2.Split({
+      recipients: recipients,
+      allocations: allocations,
+      totalAllocation: split.totalAllocation,
+      distributionIncentive: uint16(split.distributionIncentive)
+    });
+
+    address splitAddress;
+    if (compareStrings(split.splitType, "pull")) {
+      splitAddress = pullFactory.createSplit(newSplit, split.owner, deployerAddress);
+    } else if (compareStrings(split.splitType, "push")) {
+      splitAddress = pushFactory.createSplit(newSplit, split.owner, deployerAddress);
+    } else {
+      console.log("Unknown split type: %s", split.splitType);
+      revert("Unsupported split type provided. Allowed pull or push only.");
+    }
+
+    console.log("Split %s deployed at", split.name, splitAddress);
+    deployments[split.name] = splitAddress;
+
+    return splitAddress;
+  }
+
+  function readSplitsConfig(string memory splitsConfigFilePath) public view returns (SplitConfig[] memory) {
+    string memory file = vm.readFile(splitsConfigFilePath);
+    bytes memory parsedJson = vm.parseJson(file);
+    return abi.decode(parsedJson, (SplitConfig[]));
+  }
+
   function compareStrings(string memory a, string memory b) public pure returns (bool) {
-    return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
+    return LibString.eq(a, b);
   }
 
   function getFileName(string memory filePath) public pure returns (string memory) {
-    bytes memory pathBytes = bytes(filePath);
-    uint256 lastSlashIndex = 0;
-    for (uint256 i = 0; i < pathBytes.length; i++) {
-      if (pathBytes[i] == "/") {
-        lastSlashIndex = i;
-      }
-    }
-    bytes memory fileNameBytes = new bytes(pathBytes.length - lastSlashIndex - 1);
-    for (uint256 i = 0; i < fileNameBytes.length; i++) {
-      fileNameBytes[i] = pathBytes[lastSlashIndex + 1 + i];
-    }
-    return string(fileNameBytes);
+    return LibString.slice(filePath, LibString.lastIndexOf(filePath, "/") + 1, bytes(filePath).length);
   }
 
-  function fileExists(string memory filePath) internal view returns (bool) {
-    try vm.readFile(filePath) {
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function writeDeploymentJson(string memory splitsConfigFileName, SplitConfig[] memory splits) internal {
+  function writeDeploymentJson(string memory _splitsConfigFileName, SplitConfig[] memory _splits) internal {
     string memory deploymentsDir = string.concat(vm.projectRoot(), "/deployments");
-    if (!fileExists(deploymentsDir)) {
+    if (!vm.exists(deploymentsDir)) {
       vm.createDir(deploymentsDir, true);
     }
 
-    string memory file = string.concat(vm.projectRoot(), "/deployments/", splitsConfigFileName);
+    string memory file = string.concat(vm.projectRoot(), "/deployments/", _splitsConfigFileName);
     string memory json;
-    for (uint256 i = 0; i < splits.length; i++) {
-      SplitConfig memory split = splits[i];
+    for (uint256 i = 0; i < _splits.length; i++) {
+      SplitConfig memory split = _splits[i];
       json = json.serialize(split.name, deployments[split.name]);
     }
     vm.writeFile(file, json);
+
+    console.log("Deployments saved to file: %s", file);
   }
 }
 
-// forge script script/DeploySplitsScript.s.sol --sig "run(address,string)" -vvv --rpc-url https://eth-holesky.g.alchemy.com/v2/i473a8Ir6JiM046ZLMMH7lxyNbuULJye --broadcast "0x5cbA88D55Cec83caD5A105Ad40C8c9aF20bE21d1" "0xDc6259E13ec0621e6F19026b2e49D846525548Ed" "./script/data/single-split-config-sample.json"
+// forge script script/DeploySplitsScript.s.sol --sig "run(address,address,string)" -vvv --rpc-url https://eth-holesky.g.alchemy.com/v2/i473a8Ir6JiM046ZLMMH7lxyNbuULJye --broadcast "0x5cbA88D55Cec83caD5A105Ad40C8c9aF20bE21d1" "0xDc6259E13ec0621e6F19026b2e49D846525548Ed" "./script/data/single-split-config-sample.json"
 
 /* HOLESKY
 {

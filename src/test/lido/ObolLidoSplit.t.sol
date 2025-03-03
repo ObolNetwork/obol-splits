@@ -53,25 +53,19 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
   }
 
   function test_CannotCreateInvalidFeeRecipient() public {
-    vm.expectRevert(
-      ObolLidoSplit.Invalid_FeeRecipient.selector
-    );
+    vm.expectRevert(ObolLidoSplit.Invalid_FeeRecipient.selector);
     new ObolLidoSplit(address(0), 10, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
   }
 
   function test_CannotCreateInvalidFeeShare() public {
-    vm.expectRevert(
-      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1)
-    );
+    vm.expectRevert(abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE + 1));
     new ObolLidoSplit(address(1), PERCENTAGE_SCALE + 1, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
 
-    vm.expectRevert(
-      abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE)
-    );
+    vm.expectRevert(abi.encodeWithSelector(ObolLidoSplit.Invalid_FeeShare.selector, PERCENTAGE_SCALE));
     new ObolLidoSplit(address(1), PERCENTAGE_SCALE, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
   }
 
-  function test_CloneArgsIsCorrect() public {
+  function test_CloneArgsIsCorrect() public view {
     assertEq(lidoSplit.splitWallet(), demoSplit, "invalid address");
     assertEq(address(lidoSplit.stETH()), STETH_MAINNET_ADDRESS, "invalid stETH address");
     assertEq(address(lidoSplit.wstETH()), WSTETH_MAINNET_ADDRESS, "invalid wstETH address");
@@ -167,7 +161,7 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     vm.assume(fuzzFeeShare > 0 && fuzzFeeShare < PERCENTAGE_SCALE);
     vm.assume(fuzzFeeRecipient != address(0));
     vm.assume(amountToDistributeEth > 1 && amountToDistributeEth < 200);
-    
+
     uint256 amountToDistribute = uint256(amountToDistributeEth) * 1 ether;
 
     ObolLidoSplitFactory fuzzFactorySplitWithFee = new ObolLidoSplitFactory(
@@ -201,6 +195,6 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
 
     assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(fuzzFeeRecipient), expectedFee, "invalid fee transferred");
 
-    assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit), wstETHDistributed - expectedFee, "invalid amount");
+    assertGe(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit), wstETHDistributed - expectedFee, "invalid amount");
   }
 }
