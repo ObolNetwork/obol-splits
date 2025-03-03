@@ -23,6 +23,7 @@ contract DeploySplitsScript is Script {
   using stdJson for string;
 
   // To detect loops in splits configuration
+  uint256 private constant MAX_ARRAY_ENTRIES = 100;
   address private constant DEPLOYING_SPLIT = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
   mapping(string => address) private deployments;
@@ -33,7 +34,6 @@ contract DeploySplitsScript is Script {
   ISplitFactoryV2 private pushFactory;
 
   struct SplitConfig {
-    // fields must be sorted alphabetically
     SplitAllocation[] allocations;
     uint256 distributionIncentive;
     string name;
@@ -43,9 +43,8 @@ contract DeploySplitsScript is Script {
   }
 
   struct SplitAllocation {
-    // fields must be sorted alphabetically
     uint256 allocation;
-    address recipient;
+    string recipient;
   }
 
   function run(address pullSplitFactory, address pushSplitFactory, string memory splitsConfigFilePath) external {
@@ -64,6 +63,7 @@ contract DeploySplitsScript is Script {
     console.log("Reading splits configuration from file: %s", splitsConfigFilePath);
     SplitConfig[] memory configSplits = readSplitsConfig(splitsConfigFilePath);
     require(configSplits.length > 0, "No splits found in the configuration file.");
+    console.log("Found %d splits in the configuration file", configSplits.length);
 
     for (uint256 i = 0; i < configSplits.length; i++) {
       indices[configSplits[i].name] = i;
@@ -92,10 +92,10 @@ contract DeploySplitsScript is Script {
     uint256[] memory allocations = new uint256[](split.allocations.length);
 
     for (uint256 j = 0; j < split.allocations.length; j++) {
-      if (split.allocations[j].recipient != address(0)) {
-        recipients[j] = split.allocations[j].recipient;
-      // } else if (bytes(split.allocations[j].split).length > 0) {
-      //   recipients[j] = deploySplit(configSplits, split.allocations[j].split);
+      if (LibString.startsWith(split.allocations[j].recipient, "0x")) {
+        recipients[j] = vm.parseAddress(split.allocations[j].recipient);
+      } else if (bytes(split.allocations[j].recipient).length > 0) {
+        recipients[j] = deploySplit(configSplits, split.allocations[j].recipient);
       } else {
         console.log("Recipient address is not set for allocation %d in split %s", j, splitName);
         revert("Recipient address is not set for allocation.");
@@ -129,8 +129,49 @@ contract DeploySplitsScript is Script {
 
   function readSplitsConfig(string memory splitsConfigFilePath) public view returns (SplitConfig[] memory) {
     string memory file = vm.readFile(splitsConfigFilePath);
-    bytes memory parsedJson = vm.parseJson(file);
-    return abi.decode(parsedJson, (SplitConfig[]));
+
+    uint256 totalSplits = countJsonArray(file, "");
+    SplitConfig[] memory splits = new SplitConfig[](totalSplits);
+
+    for (uint256 i = 0; i < totalSplits; i++) {
+      string memory key = string.concat(".[", vm.toString(i), "]");
+
+      SplitConfig memory split;
+      split.name = file.readString(string.concat(key, ".name"));
+      split.owner = file.readAddress(string.concat(key, ".owner"));
+      split.splitType = file.readString(string.concat(key, ".splitType"));
+      split.totalAllocation = file.readUint(string.concat(key, ".totalAllocation"));
+      split.distributionIncentive = file.readUint(string.concat(key, ".distributionIncentive"));
+
+      uint256 totalAllocations = countJsonArray(file, string.concat(key, ".allocations"));
+      split.allocations = new SplitAllocation[](totalAllocations);
+
+      for (uint256 j = 0; j < totalAllocations; j++) {
+        string memory allocationKey = string.concat(key, ".allocations.[", vm.toString(j), "]");
+        if (!file.keyExists(allocationKey)) {
+          break;
+        }
+
+        SplitAllocation memory splitAllocation;
+        splitAllocation.recipient = file.readString(string.concat(allocationKey, ".recipient"));
+        splitAllocation.allocation = file.readUint(string.concat(allocationKey, ".allocation"));
+        split.allocations[j] = splitAllocation;
+      }
+
+      splits[i] = split;
+    }
+
+    return splits;
+  }
+
+  function countJsonArray(string memory json, string memory keyPrefix) public view returns (uint256) {
+    for (uint256 i = 0; i < MAX_ARRAY_ENTRIES; i++) {
+      string memory key = string.concat(keyPrefix, ".[", vm.toString(i), "]");
+      if (!json.keyExists(key)) {
+        return i;
+      }
+    }
+    return 0;
   }
 
   function compareStrings(string memory a, string memory b) public pure returns (bool) {
@@ -148,18 +189,19 @@ contract DeploySplitsScript is Script {
     }
 
     string memory file = string.concat(vm.projectRoot(), "/deployments/", _splitsConfigFileName);
-    string memory json;
+    string memory root;
+    string memory last;
     for (uint256 i = 0; i < _splits.length; i++) {
       SplitConfig memory split = _splits[i];
-      json = json.serialize(split.name, deployments[split.name]);
+      last = root.serialize(split.name, deployments[split.name]);
     }
-    vm.writeFile(file, json);
+    vm.writeFile(file, last);
 
     console.log("Deployments saved to file: %s", file);
   }
 }
 
-// forge script script/DeploySplitsScript.s.sol --sig "run(address,address,string)" -vvv --rpc-url https://eth-holesky.g.alchemy.com/v2/i473a8Ir6JiM046ZLMMH7lxyNbuULJye --broadcast "0x5cbA88D55Cec83caD5A105Ad40C8c9aF20bE21d1" "0xDc6259E13ec0621e6F19026b2e49D846525548Ed" "./script/data/single-split-config-sample.json"
+// forge script script/DeploySplitsScript.s.sol --sig "run(address,address,string)" --rpc-url https://eth-holesky.g.alchemy.com/v2/i473a8Ir6JiM046ZLMMH7lxyNbuULJye "0x5cbA88D55Cec83caD5A105Ad40C8c9aF20bE21d1" "0xDc6259E13ec0621e6F19026b2e49D846525548Ed" "./script/data/nested-split-config-sample.json" --broadcast -vvv
 
 /* HOLESKY
 {
