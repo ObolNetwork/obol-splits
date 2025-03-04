@@ -6,6 +6,7 @@ import {stdJson} from "forge-std/StdJson.sol";
 import {LibString} from "solady/utils/LibString.sol";
 
 // The base script contains shared functionality for Splits.
+// To be used for deployment and distribution scripts.
 contract BaseSplitsScript is Script {
   using stdJson for string;
 
@@ -34,6 +35,8 @@ contract BaseSplitsScript is Script {
     string memory file = vm.readFile(splitsConfigFilePath);
 
     uint256 totalSplits = countJsonArray(file, "", MAX_SPLITS);
+    require(totalSplits > 0, "No splits found in the configuration file.");
+
     SplitConfig[] memory splits = new SplitConfig[](totalSplits);
 
     for (uint256 i = 0; i < totalSplits; i++) {
@@ -47,6 +50,7 @@ contract BaseSplitsScript is Script {
       split.distributionIncentive = file.readUint(string.concat(key, ".distributionIncentive"));
 
       uint256 totalAllocations = countJsonArray(file, string.concat(key, ".allocations"), MAX_ALLOCATIONS);
+      require(totalAllocations > 0, "No allocations found for the current split.");
       split.allocations = new SplitAllocation[](totalAllocations);
 
       for (uint256 j = 0; j < totalAllocations; j++) {

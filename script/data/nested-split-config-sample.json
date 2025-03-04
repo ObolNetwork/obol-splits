@@ -4,7 +4,7 @@
         "owner": "0x46aB8712c7A5423b717F648529B1c7A17099750A",
         "totalAllocation": 1000,
         "distributionIncentive": 0,
-        "splitType": "pull",
+        "splitType": "push",
         "allocations": [
             {
                 "recipient": "dv",
@@ -21,7 +21,7 @@
         "owner": "0x46aB8712c7A5423b717F648529B1c7A17099750A",
         "totalAllocation": 1000,
         "distributionIncentive": 0,
-        "splitType": "pull",
+        "splitType": "push",
         "allocations": [
             {
                 "recipient": "0xE84E904936C595C55b9Ad08532d9aD0A5d76df72",
