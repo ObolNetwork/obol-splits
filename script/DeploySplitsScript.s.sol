@@ -5,6 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 import {ISplitFactoryV2} from "../src/interfaces/ISplitFactoryV2.sol";
 import {LibString} from "solady/utils/LibString.sol";
+import {BaseSplitsScript} from "./BaseSplitsScript.s.sol";
 
 //
 // This script deploys Split contracts using provided SplitFactory,
@@ -19,11 +20,10 @@ import {LibString} from "solady/utils/LibString.sol";
 // SplitFactory addresses can be found here:
 // https://github.com/0xSplits/splits-contracts-monorepo/tree/main/packages/splits-v2/deployments
 //
-contract DeploySplitsScript is Script {
+contract DeploySplitsScript is BaseSplitsScript {
   using stdJson for string;
 
   // To detect loops in splits configuration
-  uint256 private constant MAX_ARRAY_ENTRIES = 100;
   address private constant DEPLOYING_SPLIT = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
   mapping(string => address) private deployments;
@@ -32,20 +32,6 @@ contract DeploySplitsScript is Script {
   address private deployerAddress;
   ISplitFactoryV2 private pullFactory;
   ISplitFactoryV2 private pushFactory;
-
-  struct SplitConfig {
-    SplitAllocation[] allocations;
-    uint256 distributionIncentive;
-    string name;
-    address owner;
-    string splitType;
-    uint256 totalAllocation;
-  }
-
-  struct SplitAllocation {
-    uint256 allocation;
-    string recipient;
-  }
 
   function run(address pullSplitFactory, address pushSplitFactory, string memory splitsConfigFilePath) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
@@ -71,8 +57,9 @@ contract DeploySplitsScript is Script {
 
     vm.startBroadcast(privKey);
 
-    // Recursively deploying splits
-    deploySplit(configSplits, configSplits[0].name);
+    for (uint256 i = 0; i < configSplits.length; i++) {
+      deploySplit(configSplits, configSplits[i].name);
+    }
 
     writeDeploymentJson(getFileName(splitsConfigFilePath), configSplits);
 
@@ -80,6 +67,10 @@ contract DeploySplitsScript is Script {
   }
 
   function deploySplit(SplitConfig[] memory configSplits, string memory splitName) public returns (address) {
+    if (deployments[splitName] != address(0) && deployments[splitName] != DEPLOYING_SPLIT) {
+      return deployments[splitName];
+    }
+
     if (deployments[splitName] == DEPLOYING_SPLIT) {
       console.log("Split %s is already processing, it must be a loop", splitName);
       revert("Loop detected in splits configuration.");
@@ -125,53 +116,6 @@ contract DeploySplitsScript is Script {
     deployments[split.name] = splitAddress;
 
     return splitAddress;
-  }
-
-  function readSplitsConfig(string memory splitsConfigFilePath) public view returns (SplitConfig[] memory) {
-    string memory file = vm.readFile(splitsConfigFilePath);
-
-    uint256 totalSplits = countJsonArray(file, "");
-    SplitConfig[] memory splits = new SplitConfig[](totalSplits);
-
-    for (uint256 i = 0; i < totalSplits; i++) {
-      string memory key = string.concat(".[", vm.toString(i), "]");
-
-      SplitConfig memory split;
-      split.name = file.readString(string.concat(key, ".name"));
-      split.owner = file.readAddress(string.concat(key, ".owner"));
-      split.splitType = file.readString(string.concat(key, ".splitType"));
-      split.totalAllocation = file.readUint(string.concat(key, ".totalAllocation"));
-      split.distributionIncentive = file.readUint(string.concat(key, ".distributionIncentive"));
-
-      uint256 totalAllocations = countJsonArray(file, string.concat(key, ".allocations"));
-      split.allocations = new SplitAllocation[](totalAllocations);
-
-      for (uint256 j = 0; j < totalAllocations; j++) {
-        string memory allocationKey = string.concat(key, ".allocations.[", vm.toString(j), "]");
-        if (!file.keyExists(allocationKey)) {
-          break;
-        }
-
-        SplitAllocation memory splitAllocation;
-        splitAllocation.recipient = file.readString(string.concat(allocationKey, ".recipient"));
-        splitAllocation.allocation = file.readUint(string.concat(allocationKey, ".allocation"));
-        split.allocations[j] = splitAllocation;
-      }
-
-      splits[i] = split;
-    }
-
-    return splits;
-  }
-
-  function countJsonArray(string memory json, string memory keyPrefix) public view returns (uint256) {
-    for (uint256 i = 0; i < MAX_ARRAY_ENTRIES; i++) {
-      string memory key = string.concat(keyPrefix, ".[", vm.toString(i), "]");
-      if (!json.keyExists(key)) {
-        return i;
-      }
-    }
-    return 0;
   }
 
   function compareStrings(string memory a, string memory b) public pure returns (bool) {
