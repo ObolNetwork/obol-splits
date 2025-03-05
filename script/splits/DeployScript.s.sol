@@ -3,9 +3,9 @@ pragma solidity ^0.8.19;
 
 import {Script, console} from "forge-std/Script.sol";
 import {stdJson} from "forge-std/StdJson.sol";
-import {ISplitFactoryV2} from "../src/interfaces/ISplitFactoryV2.sol";
+import {ISplitFactoryV2} from "../../src/interfaces/ISplitFactoryV2.sol";
 import {LibString} from "solady/utils/LibString.sol";
-import {BaseSplitsScript} from "./BaseSplitsScript.s.sol";
+import {BaseScript} from "./BaseScript.s.sol";
 
 //
 // This script deploys Split contracts using provided SplitFactories,
@@ -13,14 +13,14 @@ import {BaseSplitsScript} from "./BaseSplitsScript.s.sol";
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
-//   forge script script/DeploySplitsScript.s.sol --sig "run(address,address,string)" \
+//   forge script script/splits/DeployScript.s.sol --sig "run(address,address,string)" \
 //     --rpc-url https://your-rpc-provider --broadcast -vvv \
 //      "<pull_split_factory>" "<push_split_factory>" "<splits_config_file_path>"
 //
 // SplitFactory addresses can be found here:
 // https://github.com/0xSplits/splits-contracts-monorepo/tree/main/packages/splits-v2/deployments
 //
-contract DeploySplitsScript is BaseSplitsScript {
+contract DeployScript is BaseScript {
   using stdJson for string;
 
   // To detect loops in splits configuration

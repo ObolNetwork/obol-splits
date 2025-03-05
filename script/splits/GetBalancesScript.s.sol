@@ -3,20 +3,19 @@ pragma solidity ^0.8.19;
 
 import {Script, console} from "forge-std/Script.sol";
 import {LibString} from "solady/utils/LibString.sol";
-import {BaseSplitsScript} from "./BaseSplitsScript.s.sol";
-import {ISplitWalletV2} from "../src/interfaces/ISplitWalletV2.sol";
+import {BaseScript} from "./BaseScript.s.sol";
+import {ISplitWalletV2} from "../../src/interfaces/ISplitWalletV2.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 
 //
-// This script deploys Split contracts using provided SplitFactories,
-// in accordance with the splits configuration file.
+// This script reads Split balances previously deployed with DeployScript.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
-//   forge script script/GetSplitBalancesScript.s.sol --sig "run(string)" -vvv \
+//   forge script script/splits/GetBalancesScript.s.sol --sig "run(string)" -vvv \
 //     --rpc-url https://your-rpc-provider "<splits_deployment_file_path>"
 //
-contract GetSplitBalancesScript is BaseSplitsScript {
+contract GetBalancesScript is BaseScript {
   using stdJson for string;
 
   function run(string memory splitsDeploymentFilePath) external view {
@@ -43,4 +42,3 @@ contract GetSplitBalancesScript is BaseSplitsScript {
   }
 }
 
-// forge script script/GetSplitBalancesScript.s.sol --sig "run(string)" -vvv --rpc-url https://eth-holesky.g.alchemy.com/v2/i473a8Ir6JiM046ZLMMH7lxyNbuULJye "./deployments/nested-split-config-sample.json"

@@ -6,8 +6,7 @@ import {stdJson} from "forge-std/StdJson.sol";
 import {LibString} from "solady/utils/LibString.sol";
 
 // The base script contains shared functionality for Splits.
-// To be used for deployment and distribution scripts.
-contract BaseSplitsScript is Script {
+contract BaseScript is Script {
   using stdJson for string;
 
   // Maximum number of splits in the configuration file
