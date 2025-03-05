@@ -8,13 +8,13 @@ import {LibString} from "solady/utils/LibString.sol";
 import {BaseSplitsScript} from "./BaseSplitsScript.s.sol";
 
 //
-// This script deploys Split contracts using provided SplitFactory,
-// in according with the splits configuration file.
+// This script deploys Split contracts using provided SplitFactories,
+// in accordance with the splits configuration file.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
-//   forge script script/DeploySplitsScript.s.sol --sig "run(address,address,string)" -vvv \
-//     --rpc-url https://rpc.pectra-devnet-6.ethpandaops.io/ --broadcast \
+//   forge script script/DeploySplitsScript.s.sol --sig "run(address,address,string)" \
+//     --rpc-url https://your-rpc-provider --broadcast -vvv \
 //      "<pull_split_factory>" "<push_split_factory>" "<splits_config_file_path>"
 //
 // SplitFactory addresses can be found here:
