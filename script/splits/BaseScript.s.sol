@@ -78,7 +78,31 @@ contract BaseScript is Script {
         return i;
       }
     }
-    
+
     revert("Exceeded maximum number of elements in JSON array");
+  }
+
+  function sortRecipientsAndAllocations(
+    address[] memory recipients,
+    uint256[] memory allocations,
+    int left,
+    int right
+  ) internal pure {
+    int i = left;
+    int j = right;
+    if (i == j) return;
+    address pivot = recipients[uint(left + (right - left) / 2)];
+    while (i <= j) {
+      while (recipients[uint(i)] < pivot) i++;
+      while (pivot < recipients[uint(j)]) j--;
+      if (i <= j) {
+        (recipients[uint(i)], recipients[uint(j)]) = (recipients[uint(j)], recipients[uint(i)]);
+        (allocations[uint(i)], allocations[uint(j)]) = (allocations[uint(j)], allocations[uint(i)]);
+        i++;
+        j--;
+      }
+    }
+    if (left < j) sortRecipientsAndAllocations(recipients, allocations, left, j);
+    if (i < right) sortRecipientsAndAllocations(recipients, allocations, i, right);
   }
 }

@@ -95,6 +95,8 @@ contract DeployScript is BaseScript {
       allocations[j] = split.allocations[j].allocation;
     }
 
+    sortRecipientsAndAllocations(recipients, allocations, 0, int(recipients.length - 1));
+
     ISplitFactoryV2.Split memory newSplit = ISplitFactoryV2.Split({
       recipients: recipients,
       allocations: allocations,

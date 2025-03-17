@@ -53,6 +53,7 @@ contract DistributeScript is BaseScript {
 
       address[] memory recipients = new address[](splitConfig.allocations.length);
       uint256[] memory allocations = new uint256[](splitConfig.allocations.length);
+      
       for (uint256 j = 0; j < splitConfig.allocations.length; j++) {
         allocations[j] = splitConfig.allocations[j].allocation;
 
@@ -63,6 +64,8 @@ contract DistributeScript is BaseScript {
           recipients[j] = vm.parseJsonAddress(deploymentsFile, jsonKey);
         }
       }
+
+      sortRecipientsAndAllocations(recipients, allocations, 0, int(recipients.length - 1));
 
       splitWallet.distribute(
         ISplitFactoryV2.Split({
