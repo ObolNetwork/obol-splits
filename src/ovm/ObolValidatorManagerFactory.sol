@@ -12,6 +12,9 @@ contract ObolValidatorManagerFactory {
   /// errors
   /// -----------------------------------------------------------------------
 
+  /// Owner cannot be address(0)
+  error Invalid_Owner();
+
   /// Some recipients are address(0)
   error Invalid__Recipients();
 
@@ -109,6 +112,7 @@ contract ObolValidatorManagerFactory {
     address recoveryAddress,
     uint64 principalThreshold
   ) external returns (ObolValidatorManager ovm) {
+    if (owner == address(0)) revert Invalid_Owner();
     if (principalRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
     if (principalThreshold == 0) revert Invalid__ZeroThreshold();
     if (principalThreshold > 2048 * 1e9) revert Invalid__ThresholdTooLarge();

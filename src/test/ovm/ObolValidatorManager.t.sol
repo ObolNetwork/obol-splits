@@ -17,7 +17,7 @@ contract ObolValidatorManagerTest is Test {
 
   event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
-  event RecoverNonOWRecipientFunds(address indexed nonOWRToken, address indexed recipient, uint256 amount);
+  event RecoverNonOVMFunds(address indexed nonOWRToken, address indexed recipient, uint256 amount);
   event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
   event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount);
 
@@ -370,30 +370,38 @@ contract ObolValidatorManagerTest is Test {
     assertEq(mERC20.balanceOf(address(owrETH)), 1e10);
   }
 
-  function testCan_recoverNonOWRFundsToRecipient() public {
+  function testCan_recoverNonOVMFundsToRecipient() public {
     address(owrETH).safeTransferETH(1 ether);
     address(mERC20).safeTransfer(address(owrETH), 1 ether);
     address(owrETH_OR).safeTransferETH(1 ether);
     address(mERC20).safeTransfer(address(owrETH_OR), 1 ether);
 
+    address _user = vm.addr(0x7);
+    owrETH.grantRoles(_user, owrETH.RECOVER_TOKEN_ROLE());
+    owrETH_OR.grantRoles(_user, owrETH_OR.RECOVER_TOKEN_ROLE());
+    vm.deal(_user, 1 ether);
+    vm.startPrank(_user);
+
     vm.expectEmit(true, true, true, true);
-    emit RecoverNonOWRecipientFunds(address(mERC20), recoveryAddress, 1 ether);
+    emit RecoverNonOVMFunds(address(mERC20), recoveryAddress, 1 ether);
     owrETH.recoverFunds(address(mERC20), recoveryAddress);
     assertEq(address(owrETH).balance, 1 ether);
     assertEq(mERC20.balanceOf(address(owrETH)), 0 ether);
     assertEq(mERC20.balanceOf(recoveryAddress), 1 ether);
 
     vm.expectEmit(true, true, true, true);
-    emit RecoverNonOWRecipientFunds(address(mERC20), principalRecipient, 1 ether);
+    emit RecoverNonOVMFunds(address(mERC20), principalRecipient, 1 ether);
     owrETH_OR.recoverFunds(address(mERC20), principalRecipient);
     assertEq(address(owrETH_OR).balance, 1 ether);
     assertEq(mERC20.balanceOf(address(owrETH_OR)), 0 ether);
     assertEq(mERC20.balanceOf(principalRecipient), 1 ether);
 
+    vm.stopPrank();
+
     address(mERC20).safeTransfer(address(owrETH_OR), 1 ether);
 
     vm.expectEmit(true, true, true, true);
-    emit RecoverNonOWRecipientFunds(address(mERC20), rewardsRecipient, 1 ether);
+    emit RecoverNonOVMFunds(address(mERC20), rewardsRecipient, 1 ether);
     owrETH_OR.recoverFunds(address(mERC20), rewardsRecipient);
     assertEq(address(owrETH_OR).balance, 1 ether);
     assertEq(mERC20.balanceOf(address(owrETH_OR)), 0 ether);
@@ -406,14 +414,15 @@ contract ObolValidatorManagerTest is Test {
 
     vm.expectRevert(ObolValidatorManager.InvalidTokenRecovery_InvalidRecipient.selector);
     owrETH_OR.recoverFunds(address(mERC20), address(2));
-  }
 
-  function testCan_OWRIsPayable() public {
-    owrETH.distributeFunds{value: 2 ether}();
+    address _user = vm.addr(0x7);
+    owrETH.grantRoles(_user, owrETH.SET_PRINCIPAL_ROLE()); // unrelated role
+    vm.startPrank(_user);
 
-    assertEq(address(owrETH).balance, 0 ether);
-    assertEq(principalRecipient.balance, 0);
-    assertEq(rewardsRecipient.balance, 2 ether);
+    vm.expectRevert(bytes4(0x82b42900)); // unauthorized
+    owrETH.recoverFunds(address(mERC20), address(1));
+
+    vm.stopPrank();
   }
 
   function testCan_distributeToNoRecipients() public {

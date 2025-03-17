@@ -128,6 +128,17 @@ contract ObolValidatorManagerFactoryTest is Test {
     );
   }
 
+  function testCannot_createWithInvalidOwner() public {
+    vm.expectRevert(ObolValidatorManagerFactory.Invalid_Owner.selector);
+    owrFactory.createObolValidatorManager(
+      address(0),
+      principalRecipient,
+      rewardsRecipient,
+      recoveryAddress,
+      principalThreshold
+    );
+  }
+
   function testCannot_createWithInvalidRecipients() public {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
     owrFactory.createObolValidatorManager(

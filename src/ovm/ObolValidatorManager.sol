@@ -63,7 +63,7 @@ contract ObolValidatorManager is OwnableRoles {
   /// @param recoveryAddressToken Recovered token (cannot be ETH)
   /// @param recipient Address receiving recovered token
   /// @param amount Amount of recovered token
-  event RecoverNonOWRecipientFunds(address indexed recoveryAddressToken, address indexed recipient, uint256 amount);
+  event RecoverNonOVMFunds(address indexed recoveryAddressToken, address indexed recipient, uint256 amount);
 
   /// Emitted after funds withdrawn using pull flow
   /// @param account Account withdrawing funds for
@@ -93,9 +93,12 @@ contract ObolValidatorManager is OwnableRoles {
   uint256 public constant WITHDRAWAL_ROLE = 0x01;
   uint256 public constant CONSOLIDATION_ROLE = 0x02;
   uint256 public constant SET_PRINCIPAL_ROLE = 0x04;
+  uint256 public constant RECOVER_TOKEN_ROLE = 0x08;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
+
+  uint256 internal constant PUBLIC_KEY_LENGTH = 48;
 
   /// -----------------------------------------------------------------------
   /// storage - immutable
@@ -203,14 +206,14 @@ contract ObolValidatorManager is OwnableRoles {
 
   /// Distributes target token inside the contract to recipients
   /// @dev pushes funds to recipients
-  function distributeFunds() external payable {
+  function distributeFunds() external {
     _distributeFunds(PUSH);
   }
 
   /// Distributes target token inside the contract to recipients
-  /// @dev backup recovery if any recipient tries to brick the OWRecipient for
+  /// @dev backup recovery if any recipient tries to brick the OVM for
   /// remaining recipients
-  function distributeFundsPull() external payable {
+  function distributeFundsPull() external {
     _distributeFunds(PULL);
   }
 
@@ -224,7 +227,7 @@ contract ObolValidatorManager is OwnableRoles {
     bytes[] calldata sourcePubKeys,
     bytes calldata targetPubKey
   ) external payable onlyOwnerOrRoles(CONSOLIDATION_ROLE) {
-    if (sourcePubKeys.length == 0 || sourcePubKeys.length > 63 || targetPubKey.length != 48)
+    if (sourcePubKeys.length == 0 || sourcePubKeys.length > 63 || targetPubKey.length != PUBLIC_KEY_LENGTH)
       revert InvalidRequest_Params();
 
     uint256 remainingFee = msg.value;
@@ -280,16 +283,16 @@ contract ObolValidatorManager is OwnableRoles {
     if (remainingFee > 0) payable(msg.sender).transfer(remainingFee);
   }
 
-  /// Recover non-OWR tokens to a recipient
-  /// @param nonOWRToken Token to recover (cannot be OWR token)
+  /// Recover non-OVM tokens to a recipient
+  /// @param nonOVMToken Token to recover (cannot be OVM token)
   /// @param recipient Address to receive recovered token
-  function recoverFunds(address nonOWRToken, address recipient) external payable {
+  function recoverFunds(address nonOVMToken, address recipient) external onlyOwnerOrRoles(RECOVER_TOKEN_ROLE) {
     /// checks
 
     // if recoveryAddress is set, recipient must match it
-    // else, recipient must be one of the OWR recipients
+    // else, recipient must be one of the OVM recipients
     if (recoveryAddress == address(0)) {
-      // ensure txn recipient is a valid OWR recipient
+      // ensure txn recipient is a valid OVM recipient
       if (recipient != principalRecipient && recipient != rewardRecipient) {
         revert InvalidTokenRecovery_InvalidRecipient();
       }
@@ -302,10 +305,10 @@ contract ObolValidatorManager is OwnableRoles {
     /// interactions
 
     // recover non-target token
-    uint256 amount = ERC20(nonOWRToken).balanceOf(address(this));
-    nonOWRToken.safeTransfer(recipient, amount);
+    uint256 amount = ERC20(nonOVMToken).balanceOf(address(this));
+    nonOVMToken.safeTransfer(recipient, amount);
 
-    emit RecoverNonOWRecipientFunds(nonOWRToken, recipient, amount);
+    emit RecoverNonOVMFunds(nonOVMToken, recipient, amount);
   }
 
   /// Withdraw token balance for an account
@@ -352,7 +355,7 @@ contract ObolValidatorManager is OwnableRoles {
   /// @param target Target validator public key
   /// @param fee Fee for the consolidation request
   function _requestConsolidation(bytes calldata source, bytes calldata target, uint256 fee) private {
-    if (source.length != 48 || target.length != 48) revert InvalidRequest_Params();
+    if (source.length != PUBLIC_KEY_LENGTH || target.length != PUBLIC_KEY_LENGTH) revert InvalidRequest_Params();
 
     // Input data has the following layout:
     //
@@ -369,7 +372,7 @@ contract ObolValidatorManager is OwnableRoles {
 
   /// Executes single withdrawal request
   function _requestWithdrawal(bytes memory pubkey, uint64 amount, uint256 fee) private {
-    if (pubkey.length != 48) revert InvalidRequest_Params();
+    if (pubkey.length != PUBLIC_KEY_LENGTH) revert InvalidRequest_Params();
 
     // Input data has the following layout:
     //
