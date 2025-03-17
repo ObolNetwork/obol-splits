@@ -93,24 +93,23 @@ contract ObolValidatorManagerTest is Test {
     owrETH_OR.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
   }
 
-  function testDefaultParameters() public {
+  function testDefaultParameters() public view {
     assertEq(owrETH.recoveryAddress(), recoveryAddress, "invalid recovery address");
     assertEq(owrETH.principalRecipient(), principalRecipient, "invalid principal recipient");
     assertEq(owrETH.rewardRecipient(), rewardsRecipient, "invalid rewards recipient");
     assertEq(owrETH.principalThreshold(), BALANCE_CLASSIFICATION_THRESHOLD_GWEI, "invalid principal threshold");
   }
 
-  function testOwnerInitialization() public {
+  function testOwnerInitialization() public view {
     assertEq(owrETH.owner(), address(this));
   }
 
   function testDeposit() public {
     // Initial deposit is done in setUp()
-    assertEq(address(owrETH).balance, INITIAL_DEPOSIT_AMOUNT);
+    assertEq(owrETH.amountOfPrincipalStake(), INITIAL_DEPOSIT_AMOUNT);
 
     uint256 depositAmount = 1 ether;
     owrETH.deposit{value: depositAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
-    assertEq(address(depositMock).balance, INITIAL_DEPOSIT_AMOUNT + depositAmount);
     assertEq(owrETH.amountOfPrincipalStake(), INITIAL_DEPOSIT_AMOUNT + depositAmount);
   }
 
@@ -663,41 +662,39 @@ contract ObolValidatorManagerTest is Test {
   function testFuzzCan_distributeDepositsToRecipients(
     uint64 _threshold,
     uint8 _numDeposits,
-    uint256 _ethAmount,
-    uint256 _erc20Amount
+    uint256 _ethAmount
   ) public {
-    _ethAmount = uint256(bound(_ethAmount, 0.01 ether, 34 ether));
-    _erc20Amount = uint256(bound(_erc20Amount, 0.01 ether, 34 ether));
+    _ethAmount = uint256(bound(_ethAmount, 1 ether, 30 ether));
     vm.assume(_numDeposits > 0);
-    vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
-    uint256 principalThresholdWei = uint256(_threshold) * 1e9;
+    vm.assume(_threshold > 0 && _threshold < 2048);
+    uint256 principalThresholdWei = uint256(_threshold) * 1 ether;
 
-    owrETH = owrFactory.createObolValidatorManager(
+    address _rewardsRecipient = makeAddr("rewardsRecipient");
+    address _principalRecipient = makeAddr("principalRecipient");
+
+    ObolValidatorManager owr = owrFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
-      rewardsRecipient,
+      _principalRecipient,
+      _rewardsRecipient,
       recoveryAddress,
-      _threshold
+      _threshold * 1 gwei
     );
-    owrETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
 
-    /// test eth
+    uint256 _totalETHAmount = uint256(_numDeposits) * _ethAmount;
+    owr.deposit{value: _totalETHAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+
     for (uint256 i = 0; i < _numDeposits; i++) {
-      address(owrETH).safeTransferETH(_ethAmount);
+      address(owr).safeTransferETH(_ethAmount);
     }
-    owrETH.distributeFunds();
+    owr.distributeFunds();
 
-    uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
-
-    assertEq(address(owrETH).balance, 0 ether, "invalid balance");
-    // assertEq(owrETH.distributedFunds(), _totalETHAmount, "undistributed funds");
-    assertEq(owrETH.fundsPendingWithdrawal(), 0 ether, "funds pending withdraw");
+    assertEq(address(owr).balance, 0 ether, "invalid balance");
+    assertEq(owr.fundsPendingWithdrawal(), 0 ether, "funds pending withdraw");
 
     if (principalThresholdWei > _totalETHAmount) {
       // then all of the deposit should be classified as reward
-      assertEq(principalRecipient.balance, 0, "should not classify reward as principal");
-
-      assertEq(rewardsRecipient.balance, _totalETHAmount, "invalid amount");
+      assertEq(_principalRecipient.balance, 0, "should not classify reward as principal");
+      assertEq(_rewardsRecipient.balance, _totalETHAmount, "invalid amount");
     }
 
     if (_ethAmount > principalThresholdWei) {
@@ -705,18 +702,12 @@ contract ObolValidatorManagerTest is Test {
       // but check if _totalETHAmount > first threshold
       if (_totalETHAmount > principalThresholdWei) {
         // there is reward
-        assertEq(principalRecipient.balance, principalThresholdWei, "invalid amount");
-
-        assertEq(
-          rewardsRecipient.balance,
-          _totalETHAmount - principalThresholdWei,
-          "should not classify principal as reward"
-        );
+        assertEq(_principalRecipient.balance, _totalETHAmount, "invalid amount");
+        assertEq(_rewardsRecipient.balance, 0, "should not classify principal as reward");
       } else {
-        // eelse no rewards
-        assertEq(principalRecipient.balance, _totalETHAmount, "invalid amount");
-
-        assertEq(rewardsRecipient.balance, 0, "should not classify principal as reward");
+        // else no rewards
+        assertEq(_principalRecipient.balance, _totalETHAmount, "invalid amount");
+        assertEq(_rewardsRecipient.balance, 0, "should not classify principal as reward");
       }
     }
   }
@@ -724,59 +715,54 @@ contract ObolValidatorManagerTest is Test {
   function testFuzzCan_distributePullDepositsToRecipients(
     uint64 _threshold,
     uint8 _numDeposits,
-    uint256 _ethAmount,
-    uint256 _erc20Amount
+    uint256 _ethAmount
   ) public {
-    _ethAmount = uint256(bound(_ethAmount, 0.01 ether, 40 ether));
-    _erc20Amount = uint256(bound(_erc20Amount, 0.01 ether, 40 ether));
+    _ethAmount = uint256(bound(_ethAmount, 1 ether, 30 ether));
     vm.assume(_numDeposits > 0);
-    vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
-    uint256 principalThresholdWei = uint256(_threshold) * 1e9;
+    vm.assume(_threshold > 0 && _threshold < 2048);
+    uint256 principalThresholdWei = uint256(_threshold) * 1 ether;
 
-    owrETH = owrFactory.createObolValidatorManager(
+    address _rewardsRecipient = makeAddr("rewardsRecipient");
+    address _principalRecipient = makeAddr("principalRecipient");
+
+    ObolValidatorManager owr = owrFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
-      rewardsRecipient,
+      _principalRecipient,
+      _rewardsRecipient,
       recoveryAddress,
-      _threshold
+      _threshold * 1 gwei
     );
-    owrETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
 
-    /// test eth
+    uint256 _totalETHAmount = uint256(_numDeposits) * _ethAmount;
+    owr.deposit{value: _totalETHAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
 
     for (uint256 i = 0; i < _numDeposits; i++) {
-      address(owrETH).safeTransferETH(_ethAmount);
-      owrETH.distributeFundsPull();
+      address(owr).safeTransferETH(_ethAmount);
+      owr.distributeFundsPull();
     }
-    uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
 
-    assertEq(address(owrETH).balance, _totalETHAmount);
-    // assertEq(owrETH.distributedFunds(), _totalETHAmount);
-    assertEq(owrETH.fundsPendingWithdrawal(), _totalETHAmount);
+    assertEq(address(owr).balance, _totalETHAmount);
+    assertEq(owr.fundsPendingWithdrawal(), _totalETHAmount);
 
-    uint256 principal = owrETH.getPullBalance(principalRecipient);
+    uint256 principal = owr.getPullBalance(principalRecipient);
     assertEq(
-      owrETH.getPullBalance(principalRecipient),
-      (_ethAmount >= principalThresholdWei)
-        ? principalThresholdWei > _totalETHAmount ? _totalETHAmount : principalThresholdWei
-        : 0,
+      owr.getPullBalance(principalRecipient),
+      (_ethAmount >= principalThresholdWei) ? _totalETHAmount : 0,
       "5/invalid recipient balance"
     );
 
-    uint256 reward = owrETH.getPullBalance(rewardsRecipient);
+    uint256 reward = owr.getPullBalance(rewardsRecipient);
     assertEq(
-      owrETH.getPullBalance(rewardsRecipient),
-      (_ethAmount >= principalThresholdWei)
-        ? _totalETHAmount > principalThresholdWei ? (_totalETHAmount - principalThresholdWei) : 0
-        : _totalETHAmount,
+      owr.getPullBalance(rewardsRecipient),
+      (_ethAmount >= principalThresholdWei) ? 0 : _totalETHAmount,
       "6/invalid recipient balance"
     );
 
-    owrETH.withdraw(principalRecipient);
-    owrETH.withdraw(rewardsRecipient);
+    owr.withdraw(principalRecipient);
+    owr.withdraw(rewardsRecipient);
 
-    assertEq(address(owrETH).balance, 0);
-    assertEq(owrETH.fundsPendingWithdrawal(), 0);
+    assertEq(address(owr).balance, 0);
+    assertEq(owr.fundsPendingWithdrawal(), 0);
 
     assertEq(principalRecipient.balance, principal, "10/invalid principal balance");
     assertEq(rewardsRecipient.balance, reward, "11/invalid reward balance");

@@ -70,7 +70,7 @@ contract DepositScript is Script {
       bytes32 deposit_data_root = vm.parseBytes32(depositData.deposit_data_root);
       uint256 deposit_amount = depositData.amount * 1 gwei;
       ovm.deposit{value: deposit_amount}(pubkey, withdrawal_credentials, signature, deposit_data_root);
-      
+
       console.log("Deposit successful for amount: %d ether", depositData.amount / 1 gwei);
     }
 
