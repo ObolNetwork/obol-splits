@@ -11,7 +11,7 @@ import {stdJson} from "forge-std/StdJson.sol";
 //
 // This script calls distribute() for deployed Splits.
 // To run this script, the following environment variables must be set:
-// - PRIVATE_KEY: the private key of the account that will deploy the contract
+// - PRIVATE_KEY: the private key of the account that will distribute the rewards in the splitter. 
 // Example usage:
 //   forge script script/splits/DistributeScript.s.sol --sig "run(string,string)" -vvv --broadcast \
 //     --rpc-url https://your-rpc-provider "<splits_deployment_file_path>" "<splits_config_file_path>"
