@@ -11,7 +11,7 @@ import {IENSReverseRegistrar} from "../../interfaces/IENSReverseRegistrar.sol";
 
 contract ObolValidatorManagerFactoryTest is Test {
   event CreateObolValidatorManager(
-    address indexed owr,
+    address indexed ovm,
     address indexed owner,
     address principalRecipient,
     address rewardRecipient,
@@ -25,7 +25,7 @@ contract ObolValidatorManagerFactoryTest is Test {
   SystemContractMock consolidationMock;
   SystemContractMock withdrawalMock;
   DepositContractMock depositMock;
-  ObolValidatorManagerFactory owrFactory;
+  ObolValidatorManagerFactory ovmFactory;
 
   address public principalRecipient;
   address public rewardsRecipient;
@@ -47,7 +47,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     withdrawalMock = new SystemContractMock(48 + 8);
     depositMock = new DepositContractMock();
 
-    owrFactory = new ObolValidatorManagerFactory(
+    ovmFactory = new ObolValidatorManagerFactory(
       address(consolidationMock),
       address(withdrawalMock),
       address(depositMock),
@@ -61,16 +61,16 @@ contract ObolValidatorManagerFactoryTest is Test {
     principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
   }
 
-  function testCan_createOWRecipient() public {
-    ObolValidatorManager owr = owrFactory.createObolValidatorManager(
+  function testCan_createOVM() public {
+    ObolValidatorManager ovm = ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
       principalThreshold
     );
-    assertEq(owr.owner(), address(this));
-    assertEq(address(owr.consolidationSystemContract()), address(consolidationMock));
-    assertEq(address(owr.withdrawalSystemContract()), address(withdrawalMock));
+    assertEq(ovm.owner(), address(this));
+    assertEq(address(ovm.consolidationSystemContract()), address(consolidationMock));
+    assertEq(address(ovm.withdrawalSystemContract()), address(withdrawalMock));
   }
 
   function testCan_emitOnCreate() public {
@@ -84,7 +84,7 @@ contract ObolValidatorManagerFactoryTest is Test {
       rewardsRecipient,
       principalThreshold
     );
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -100,7 +100,7 @@ contract ObolValidatorManagerFactoryTest is Test {
       rewardsRecipient,
       principalThreshold
     );
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -110,7 +110,7 @@ contract ObolValidatorManagerFactoryTest is Test {
 
   function testCannot_createWithInvalidOwner() public {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid_Owner.selector);
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(0),
       principalRecipient,
       rewardsRecipient,
@@ -120,7 +120,7 @@ contract ObolValidatorManagerFactoryTest is Test {
 
   function testCannot_createWithInvalidRecipients() public {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       address(0),
       rewardsRecipient,
@@ -128,10 +128,10 @@ contract ObolValidatorManagerFactoryTest is Test {
     );
 
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
-    owrFactory.createObolValidatorManager(address(this), address(0), address(0), principalThreshold);
+    ovmFactory.createObolValidatorManager(address(this), address(0), address(0), principalThreshold);
 
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       address(0),
@@ -143,7 +143,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     principalThreshold = 0;
 
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ZeroThreshold.selector);
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -151,7 +151,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     );
 
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ThresholdTooLarge.selector);
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -163,7 +163,7 @@ contract ObolValidatorManagerFactoryTest is Test {
   /// Fuzzing Tests
   /// ----------------------------------------------------------------------
 
-  function testFuzzCan_createOWRecipient(uint64 _threshold) public {
+  function testFuzzCan_createOVM(uint64 _threshold) public {
     vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
 
     vm.expectEmit(false, true, true, true);
@@ -174,7 +174,7 @@ contract ObolValidatorManagerFactoryTest is Test {
       rewardsRecipient,
       _threshold
     );
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
@@ -188,7 +188,7 @@ contract ObolValidatorManagerFactoryTest is Test {
 
     // eth
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ZeroThreshold.selector);
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       _rewardsRecipient,
@@ -201,7 +201,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     vm.assume(_rewardsRecipient != address(0));
 
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ThresholdTooLarge.selector);
-    owrFactory.createObolValidatorManager(
+    ovmFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       _rewardsRecipient,

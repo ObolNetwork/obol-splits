@@ -57,10 +57,10 @@ contract ObolValidatorManager is OwnableRoles {
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullOrPush);
 
   /// Emitted after tokens are recovered to a recipient
-  /// @param recoveryAddressToken Recovered token (cannot be ETH)
+  /// @param nonOVMToken Recovered token (cannot be ETH)
   /// @param recipient Address receiving recovered token
   /// @param amount Amount of recovered token
-  event RecoverNonOVMFunds(address indexed recoveryAddressToken, address indexed recipient, uint256 amount);
+  event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
 
   /// Emitted after funds withdrawn using pull flow
   /// @param account Account withdrawing funds for
