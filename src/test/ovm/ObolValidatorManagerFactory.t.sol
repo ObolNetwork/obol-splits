@@ -13,7 +13,6 @@ contract ObolValidatorManagerFactoryTest is Test {
   event CreateObolValidatorManager(
     address indexed owr,
     address indexed owner,
-    address recoveryAddress,
     address principalRecipient,
     address rewardRecipient,
     uint64 principalThreshold
@@ -28,7 +27,6 @@ contract ObolValidatorManagerFactoryTest is Test {
   DepositContractMock depositMock;
   ObolValidatorManagerFactory owrFactory;
 
-  address public recoveryAddress;
   address public principalRecipient;
   address public rewardsRecipient;
   uint64 public principalThreshold;
@@ -58,7 +56,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this)
     );
 
-    recoveryAddress = makeAddr("recoveryAddress");
     principalRecipient = makeAddr("principalRecipient");
     rewardsRecipient = makeAddr("rewardsRecipient");
     principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
@@ -69,22 +66,11 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
     assertEq(owr.owner(), address(this));
     assertEq(address(owr.consolidationSystemContract()), address(consolidationMock));
     assertEq(address(owr.withdrawalSystemContract()), address(withdrawalMock));
-
-    recoveryAddress = address(0);
-    owr = owrFactory.createObolValidatorManager(
-      address(this),
-      principalRecipient,
-      rewardsRecipient,
-      recoveryAddress,
-      principalThreshold
-    );
-    assertEq(owr.recoveryAddress(), address(0));
   }
 
   function testCan_emitOnCreate() public {
@@ -94,7 +80,6 @@ contract ObolValidatorManagerFactoryTest is Test {
     emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
-      recoveryAddress,
       principalRecipient,
       rewardsRecipient,
       principalThreshold
@@ -103,18 +88,14 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
-
-    recoveryAddress = address(0);
 
     // don't check deploy address
     vm.expectEmit(false, true, true, true);
     emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
-      recoveryAddress,
       principalRecipient,
       rewardsRecipient,
       principalThreshold
@@ -123,7 +104,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
   }
@@ -134,7 +114,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(0),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
   }
@@ -145,19 +124,17 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       address(0),
       rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
 
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
-    owrFactory.createObolValidatorManager(address(this), address(0), address(0), recoveryAddress, principalThreshold);
+    owrFactory.createObolValidatorManager(address(this), address(0), address(0), principalThreshold);
 
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
     owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       address(0),
-      recoveryAddress,
       principalThreshold
     );
   }
@@ -170,7 +147,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
 
@@ -179,7 +155,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       type(uint64).max
     );
   }
@@ -195,7 +170,6 @@ contract ObolValidatorManagerFactoryTest is Test {
     emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
-      recoveryAddress,
       principalRecipient,
       rewardsRecipient,
       _threshold
@@ -204,7 +178,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       _threshold
     );
   }
@@ -219,7 +192,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       _rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
   }
@@ -233,7 +205,6 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this),
       principalRecipient,
       _rewardsRecipient,
-      recoveryAddress,
       _threshold
     );
   }

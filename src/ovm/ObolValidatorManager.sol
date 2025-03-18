@@ -38,9 +38,6 @@ contract ObolValidatorManager is OwnableRoles {
   // Failed to call system contract add_withdrawal_request()
   error InvalidWithdrawal_Failed();
 
-  /// Invalid token recovery recipient
-  error InvalidTokenRecovery_InvalidRecipient();
-
   /// Invalid distribution
   error InvalidDistribution_TooLarge();
 
@@ -93,7 +90,7 @@ contract ObolValidatorManager is OwnableRoles {
   uint256 public constant WITHDRAWAL_ROLE = 0x01;
   uint256 public constant CONSOLIDATION_ROLE = 0x02;
   uint256 public constant SET_PRINCIPAL_ROLE = 0x04;
-  uint256 public constant RECOVER_TOKEN_ROLE = 0x08;
+  uint256 public constant RECOVER_FUNDS_ROLE = 0x08;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
@@ -107,7 +104,6 @@ contract ObolValidatorManager is OwnableRoles {
   address public immutable consolidationSystemContract;
   address public immutable withdrawalSystemContract;
   address public immutable depositSystemContract;
-  address public immutable recoveryAddress;
   address public immutable rewardRecipient;
   uint64 public immutable principalThreshold;
 
@@ -139,7 +135,6 @@ contract ObolValidatorManager is OwnableRoles {
     address _owner,
     address _principalRecipient,
     address _rewardRecipient,
-    address _recoveryAddress,
     uint64 _principalThreshold
   ) {
     consolidationSystemContract = _consolidationSystemContract;
@@ -147,7 +142,6 @@ contract ObolValidatorManager is OwnableRoles {
     depositSystemContract = _depositSystemContract;
     principalRecipient = _principalRecipient;
     rewardRecipient = _rewardRecipient;
-    recoveryAddress = _recoveryAddress;
     principalThreshold = _principalThreshold;
 
     _initializeOwner(_owner);
@@ -286,25 +280,7 @@ contract ObolValidatorManager is OwnableRoles {
   /// Recover non-OVM tokens to a recipient
   /// @param nonOVMToken Token to recover (cannot be OVM token)
   /// @param recipient Address to receive recovered token
-  function recoverFunds(address nonOVMToken, address recipient) external onlyOwnerOrRoles(RECOVER_TOKEN_ROLE) {
-    /// checks
-
-    // if recoveryAddress is set, recipient must match it
-    // else, recipient must be one of the OVM recipients
-    if (recoveryAddress == address(0)) {
-      // ensure txn recipient is a valid OVM recipient
-      if (recipient != principalRecipient && recipient != rewardRecipient) {
-        revert InvalidTokenRecovery_InvalidRecipient();
-      }
-    } else if (recipient != recoveryAddress) {
-      revert InvalidTokenRecovery_InvalidRecipient();
-    }
-
-    /// effects
-
-    /// interactions
-
-    // recover non-target token
+  function recoverFunds(address nonOVMToken, address recipient) external onlyOwnerOrRoles(RECOVER_FUNDS_ROLE) {
     uint256 amount = ERC20(nonOVMToken).balanceOf(address(this));
     nonOVMToken.safeTransfer(recipient, amount);
 

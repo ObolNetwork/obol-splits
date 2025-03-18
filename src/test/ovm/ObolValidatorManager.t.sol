@@ -36,7 +36,6 @@ contract ObolValidatorManagerTest is Test {
 
   MockERC20 mERC20;
 
-  address internal recoveryAddress;
   address internal principalRecipient;
   address internal rewardsRecipient;
   uint64 internal principalThreshold;
@@ -69,7 +68,6 @@ contract ObolValidatorManagerTest is Test {
     mERC20 = new MockERC20("demo", "DMT", 18);
     mERC20.mint(type(uint256).max);
 
-    recoveryAddress = makeAddr("recoveryAddress");
     principalRecipient = makeAddr("principalRecipient");
     rewardsRecipient = makeAddr("rewardsRecipient");
     principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
@@ -78,14 +76,12 @@ contract ObolValidatorManagerTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       principalThreshold
     );
     owrETH_OR = owrFactory.createObolValidatorManager(
       address(this),
       principalRecipient,
       rewardsRecipient,
-      address(0),
       principalThreshold
     );
 
@@ -94,7 +90,6 @@ contract ObolValidatorManagerTest is Test {
   }
 
   function testDefaultParameters() public {
-    assertEq(owrETH.recoveryAddress(), recoveryAddress, "invalid recovery address");
     assertEq(owrETH.principalRecipient(), principalRecipient, "invalid principal recipient");
     assertEq(owrETH.rewardRecipient(), rewardsRecipient, "invalid rewards recipient");
     assertEq(owrETH.principalThreshold(), BALANCE_CLASSIFICATION_THRESHOLD_GWEI, "invalid principal threshold");
@@ -377,12 +372,13 @@ contract ObolValidatorManagerTest is Test {
     address(mERC20).safeTransfer(address(owrETH_OR), 1 ether);
 
     address _user = vm.addr(0x7);
-    owrETH.grantRoles(_user, owrETH.RECOVER_TOKEN_ROLE());
-    owrETH_OR.grantRoles(_user, owrETH_OR.RECOVER_TOKEN_ROLE());
+    owrETH.grantRoles(_user, owrETH.RECOVER_FUNDS_ROLE());
+    owrETH_OR.grantRoles(_user, owrETH_OR.RECOVER_FUNDS_ROLE());
     vm.deal(_user, 1 ether);
     vm.startPrank(_user);
 
     vm.expectEmit(true, true, true, true);
+    address recoveryAddress = makeAddr("recoveryAddress");
     emit RecoverNonOVMFunds(address(mERC20), recoveryAddress, 1 ether);
     owrETH.recoverFunds(address(mERC20), recoveryAddress);
     assertEq(address(owrETH).balance, 1 ether);
@@ -409,12 +405,6 @@ contract ObolValidatorManagerTest is Test {
   }
 
   function testCannot_recoverFundsToNonRecipient() public {
-    vm.expectRevert(ObolValidatorManager.InvalidTokenRecovery_InvalidRecipient.selector);
-    owrETH.recoverFunds(address(mERC20), address(1));
-
-    vm.expectRevert(ObolValidatorManager.InvalidTokenRecovery_InvalidRecipient.selector);
-    owrETH_OR.recoverFunds(address(mERC20), address(2));
-
     address _user = vm.addr(0x7);
     owrETH.grantRoles(_user, owrETH.SET_PRINCIPAL_ROLE()); // unrelated role
     vm.startPrank(_user);
@@ -530,7 +520,7 @@ contract ObolValidatorManagerTest is Test {
   function testCannot_reenterOWR() public {
     ObolValidatorManagerReentrancy re = new ObolValidatorManagerReentrancy();
 
-    owrETH = owrFactory.createObolValidatorManager(address(this), address(re), rewardsRecipient, recoveryAddress, 1e9);
+    owrETH = owrFactory.createObolValidatorManager(address(this), address(re), rewardsRecipient, 1e9);
     owrETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     address(owrETH).safeTransferETH(33 ether);
 
@@ -685,7 +675,6 @@ contract ObolValidatorManagerTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       _threshold
     );
     owrETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
@@ -746,7 +735,6 @@ contract ObolValidatorManagerTest is Test {
       address(this),
       principalRecipient,
       rewardsRecipient,
-      recoveryAddress,
       _threshold
     );
     owrETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
