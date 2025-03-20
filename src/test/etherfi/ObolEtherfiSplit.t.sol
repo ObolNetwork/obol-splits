@@ -145,9 +145,9 @@ contract ObolEtherfiSplitTest is ObolEtherfiSplitTestHelper, Test {
 
   function testFuzz_etherfi_CanDistributeWithFee(
     address anotherSplit,
-    uint256 amountToDistribute,
+    uint96 amountToDistribute,
     address fuzzFeeRecipient,
-    uint256 fuzzFeeShare
+    uint96 fuzzFeeShare
   ) public {
     vm.assume(anotherSplit != address(0));
     vm.assume(fuzzFeeRecipient != anotherSplit);
