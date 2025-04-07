@@ -39,8 +39,6 @@ contract CreateObolValidatorManagerScript is Script {
       principalThreshold
     );
 
-    require(ovm.owner() == deployerAddress, "ObolValidatorManager got wrong owner!");
-
     console.log("ObolValidatorManager created at address: ", address(ovm));
 
     vm.stopBroadcast();
