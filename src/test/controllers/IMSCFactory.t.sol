@@ -153,20 +153,10 @@ contract IMSCFactory is Test {
     uint32[] memory localAllocations = _generatePercentAlloc(size);
 
     vm.expectRevert(
-      abi.encodeWithSelector(
-        ImmutableSplitControllerFactory.InvalidSplit__TooManyAccounts.selector,
-        size
-      )
+      abi.encodeWithSelector(ImmutableSplitControllerFactory.InvalidSplit__TooManyAccounts.selector, size)
     );
 
-    factory.createController(
-      address(1),
-      owner,
-      localAccounts,
-      localAllocations,
-      0,
-      deploymentSalt
-    );
+    factory.createController(address(1), owner, localAccounts, localAllocations, 0, deploymentSalt);
   }
 
   function test_CanCreateController() public {

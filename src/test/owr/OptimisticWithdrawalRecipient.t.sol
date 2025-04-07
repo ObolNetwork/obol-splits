@@ -33,18 +33,18 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
   function setUp() public {
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.setName.selector), bytes.concat(bytes32(0))
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      abi.encodeWithSelector(IENSReverseRegistrar.setName.selector),
+      bytes.concat(bytes32(0))
     );
     vm.mockCall(
-      ENS_REVERSE_REGISTRAR_GOERLI, abi.encodeWithSelector(IENSReverseRegistrar.claim.selector), bytes.concat(bytes32(0))
+      ENS_REVERSE_REGISTRAR_GOERLI,
+      abi.encodeWithSelector(IENSReverseRegistrar.claim.selector),
+      bytes.concat(bytes32(0))
     );
 
-    owrFactory = new OptimisticWithdrawalRecipientFactory(
-      "demo.obol.eth",
-      ENS_REVERSE_REGISTRAR_GOERLI,
-      address(this)
-    );
-    
+    owrFactory = new OptimisticWithdrawalRecipientFactory("demo.obol.eth", ENS_REVERSE_REGISTRAR_GOERLI, address(this));
+
     owrModule = owrFactory.owrImpl();
 
     mERC20 = new MockERC20("demo", "DMT", 18);
@@ -56,11 +56,9 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
 
     recoveryAddress = makeAddr("recoveryAddress");
 
-    owrETH =
-      owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, principalRecipient, rewardRecipient, trancheThreshold);
 
-    owrETH_OR =
-      owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
+    owrETH_OR = owrFactory.createOWRecipient(address(0), principalRecipient, rewardRecipient, trancheThreshold);
   }
 
   function testGetTranches() public {
@@ -380,9 +378,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     (address _principalRecipient, address _rewardRecipient, uint256 _trancheThreshold) =
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
-    owrETH = owrFactory.createOWRecipient(
-      recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
-    );
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold);
 
     /// test eth
     for (uint256 i = 0; i < _numDeposits; i++) {
@@ -436,9 +432,7 @@ contract OptimisticWithdrawalRecipientTest is OWRTestHelper, Test {
     (address _principalRecipient, address _rewardRecipient, uint256 _trancheThreshold) =
       generateTranches(_recipientsSeed, _thresholdsSeed);
 
-    owrETH = owrFactory.createOWRecipient(
-      recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold
-    );
+    owrETH = owrFactory.createOWRecipient(recoveryAddress, _principalRecipient, _rewardRecipient, _trancheThreshold);
 
     /// test eth
 

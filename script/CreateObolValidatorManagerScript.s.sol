@@ -26,7 +26,6 @@ contract CreateObolValidatorManagerScript is Script {
         ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(deployedFactory);
 
         address owner = deployerAddress;
-        address recoveryAddress = deployerAddress;
         address principalRecipient = deployerAddress;
         address rewardsRecipient = deployerAddress;
         uint64 principalThreshold = 16 ether / 1 gwei;
@@ -35,7 +34,6 @@ contract CreateObolValidatorManagerScript is Script {
             owner,
             principalRecipient,
             rewardsRecipient,
-            recoveryAddress,
             principalThreshold
         );
 
