@@ -12,35 +12,37 @@ import {ObolValidatorManager} from "../src/ovm/ObolValidatorManager.sol";
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
 //   forge script script/CreateObolValidatorManagerScript.s.sol --sig "run(address)" \
-//   --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast "<factory_address>"
+//   --rpc-url https://rpc.hoodi.ethpandaops.io --broadcast "<factory_address>"
 //
 contract CreateObolValidatorManagerScript is Script {
-    function run(address deployedFactory) external {
-        uint256 privKey = vm.envUint("PRIVATE_KEY");
-        address deployerAddress = vm.addr(privKey);
+  function run(address deployedFactory) external {
+    uint256 privKey = vm.envUint("PRIVATE_KEY");
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
 
-        console.log("Deployer address: ", deployerAddress);
+    address deployerAddress = vm.addr(privKey);
 
-        vm.startBroadcast(privKey);
+    console.log("Deployer address: ", deployerAddress);
 
-        ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(deployedFactory);
+    vm.startBroadcast(privKey);
 
-        address owner = deployerAddress;
-        address principalRecipient = deployerAddress;
-        address rewardsRecipient = deployerAddress;
-        uint64 principalThreshold = 16 ether / 1 gwei;
+    ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(deployedFactory);
 
-        ObolValidatorManager ovm = factory.createObolValidatorManager(
-            owner,
-            principalRecipient,
-            rewardsRecipient,
-            principalThreshold
-        );
+    address owner = deployerAddress;
+    address principalRecipient = deployerAddress;
+    address rewardsRecipient = deployerAddress;
+    uint64 principalThreshold = 16 ether / 1 gwei;
 
-        require(ovm.owner() == deployerAddress, "ObolValidatorManager got wrong owner!");
+    ObolValidatorManager ovm = factory.createObolValidatorManager(
+      owner,
+      principalRecipient,
+      rewardsRecipient,
+      principalThreshold
+    );
 
-        console.log("ObolValidatorManager created at address: ", address(ovm));
+    require(ovm.owner() == deployerAddress, "ObolValidatorManager got wrong owner!");
 
-        vm.stopBroadcast();
-    }
+    console.log("ObolValidatorManager created at address: ", address(ovm));
+
+    vm.stopBroadcast();
+  }
 }

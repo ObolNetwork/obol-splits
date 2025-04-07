@@ -55,6 +55,18 @@ This command generates compilation output into the `out` directory.
 
 This repo can be deployed with `forge create` or running the deployment scripts.
 
+#### Hoodi
+
+ObolValidatorManagerFactory: https://hoodi.etherscan.io/address/0xb1E1f5e90f4190F78182A8d5cbed774893Dd1558
+
+Note: the factory was deployed having ENS functionality disabled (there is no ENS deployment on hoodi yet).
+Use `CreateObolValidatorManagerScript` to create OVM instances using the factory:
+
+```sh
+# this will set the owner and recipients to the deployer address; edit the script to set them to your desired values
+forge script script/CreateObolValidatorManagerScript.s.sol --sig "run(address)" --rpc-url https://rpc.hoodi.ethpandaops.io --broadcast 0xb1E1f5e90f4190F78182A8d5cbed774893Dd1558
+```
+
 #### Sepolia
 
 OptimisticWithdrawalRecipientFactory: https://sepolia.etherscan.io/address/0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a

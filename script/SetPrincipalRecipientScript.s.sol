@@ -17,6 +17,7 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 contract SetPrincipalRecipientScript is Script {
   function run(address ovmAddress, address newPrincipalRecipient) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
 
     vm.startBroadcast(privKey);
 
