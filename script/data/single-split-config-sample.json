@@ -1,0 +1,19 @@
+[
+    {
+        "name": "simple",
+        "owner": "0x46aB8712c7A5423b717F648529B1c7A17099750A",
+        "totalAllocation": 1000,
+        "distributionIncentive": 0,
+        "splitType": "pull",
+        "allocations": [
+            {
+                "recipient": "0xE84E904936C595C55b9Ad08532d9aD0A5d76df72",
+                "allocation": 500
+            },
+            {
+                "recipient": "0xCaA54030A875F765aCaC38f8DB64b9227912be63",
+                "allocation": 500
+            }
+        ]
+    }
+]
