@@ -11,7 +11,7 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
 //   forge script script/DepositScript.s.sol --sig "run(address,string)" -vvv \
-//   --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast "<ovm_address>" "<deposit_file_path>"
+//   --rpc-url https://rpc.hoodi.ethpandaops.io --broadcast "<ovm_address>" "<deposit_file_path>"
 //
 contract DepositScript is Script {
   struct DepositData {

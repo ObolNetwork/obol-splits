@@ -10,11 +10,12 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 // Example usage:
 //   forge script script/DistributeFundsScript.s.sol --sig "run(address)" \
-//   --rpc-url https://rpc.pectra-devnet-5.ethpandaops.io/ --broadcast "<ovm_address>"
+//   --rpc-url https://rpc.hoodi.ethpandaops.io --broadcast "<ovm_address>"
 //
 contract DistributeFundsScript is Script {
     function run(address ovmAddress) external {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
+        if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
 
         vm.startBroadcast(privKey);
 
