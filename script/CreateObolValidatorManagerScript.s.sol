@@ -44,5 +44,3 @@ contract CreateObolValidatorManagerScript is Script {
     vm.stopBroadcast();
   }
 }
-
-// forge script script/CreateObolValidatorManagerScript.s.sol --sig "run(address)" --rpc-url https://eth-mainnet.g.alchemy.com/v2/i473a8Ir6JiM046ZLMMH7lxyNbuULJye --broadcast "0x06be6E130c7F84bDFCe80ed6Cd2041355A70d410"
