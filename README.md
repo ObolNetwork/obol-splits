@@ -57,10 +57,10 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 
 #### Hoodi
 
-ObolValidatorManagerFactory: https://hoodi.etherscan.io/address/0xb1E1f5e90f4190F78182A8d5cbed774893Dd1558
+ObolValidatorManagerFactory: https://hoodi.etherscan.io/address/0x6F13d929C783a420AE4DC71C1dcc27A02038Ed09
 
 Note: the factory was deployed having ENS functionality disabled (there is no ENS deployment on hoodi yet).
-Use `CreateObolValidatorManagerScript` to create OVM instances using the factory:
+Use etherscan interface or `CreateObolValidatorManagerScript` to create OVM instances using the factory:
 
 ```sh
 # this will set the owner and recipients to the deployer address; edit the script to set them to your desired values
@@ -82,6 +82,8 @@ ObolLidoSplit: https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff
 
 
 #### Mainnet
+
+ObolValidatorManagerFactory: https://etherscan.io/address/0xdfe2d8b26806583cf03b3cb623b0752f8670e93e
 
 OptimisticWithdrawalRecipientFactory: https://etherscan.io/address/0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522
 
