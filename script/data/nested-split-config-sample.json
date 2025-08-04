@@ -1,0 +1,44 @@
+[
+    {
+        "name": "obol",
+        "owner": "0x46aB8712c7A5423b717F648529B1c7A17099750A",
+        "totalAllocation": 1000,
+        "distributionIncentive": 0,
+        "splitType": "push",
+        "allocations": [
+            {
+                "recipient": "dv",
+                "allocation": 900
+            },
+            {
+                "recipient": "0x46aB8712c7A5423b717F648529B1c7A17099750A",
+                "allocation": 100
+            }
+        ]
+    },
+    {
+        "name": "dv",
+        "owner": "0x46aB8712c7A5423b717F648529B1c7A17099750A",
+        "totalAllocation": 1000,
+        "distributionIncentive": 0,
+        "splitType": "push",
+        "allocations": [
+            {
+                "recipient": "0xE84E904936C595C55b9Ad08532d9aD0A5d76df72",
+                "allocation": 250
+            },
+            {
+                "recipient": "0xCaA54030A875F765aCaC38f8DB64b9227912be63",
+                "allocation": 250
+            },
+            {
+                "recipient": "0x2f064dde4BE8854105e551F7407ffE31858559AF",
+                "allocation": 250
+            },
+            {
+                "recipient": "0xd2924E80327b74Dc67582909aB738e0697FA2c45",
+                "allocation": 250
+            }
+        ]
+    }
+]
