@@ -76,6 +76,8 @@ OptimisticWithdrawalRecipient: https://sepolia.etherscan.io/address/0x99585e71ab
 
 ### Holesky
 
+ObolValidatorManagerFactory: https://holesky.etherscan.io/address/0x466bD4917e5e1662db1A549Bd828637E2CEDFEA9
+
 ObolLidoSplitFactory: https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449
 
 ObolLidoSplit: https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd 
