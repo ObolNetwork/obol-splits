@@ -31,16 +31,20 @@ The base contract that provides shared functionality for all other scripts, incl
 Deploys Split contracts using the provided SplitFactories based on a configuration file.
 
 **Usage:**
+
 ```bash
+# Use appropriate RPC_URL for the target network, contract addresses remain the same
 forge script script/splits/DeployScript.s.sol --sig "run(address,address,string)" \
   --rpc-url <RPC_URL> --broadcast -vvv \
-  "<pull_split_factory>" "<push_split_factory>" "<splits_config_file_path>"
+  "0x6B9118074aB15142d7524E8c4ea8f62A3Bdb98f1" "0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4" "script/data/single-split-config-sample.json"
 ```
 
 **Parameters:**
 - `pull_split_factory`: Address of the PullSplitFactory contract
 - `push_split_factory`: Address of the PushSplitFactory contract  
 - `splits_config_file_path`: Path to the JSON configuration file
+
+See **Split Factory Addresses** section for the addresses.
 
 **Environment Variables:**
 - `PRIVATE_KEY`: Private key of the deploying account
@@ -53,7 +57,13 @@ forge script script/splits/DeployScript.s.sol --sig "run(address,address,string)
 - Validates all configuration parameters
 
 **Split Factory Addresses:**
-You can find the official SplitFactory addresses in the [0xSplits deployment documentation](https://github.com/0xSplits/splits-contracts-monorepo/tree/main/packages/splits-v2/deployments).
+You can find the official `SplitFactory` addresses in the [0xSplits deployment documentation](https://github.com/0xSplits/splits-contracts-monorepo/tree/main/packages/splits-v2/deployments):
+
+- `PullSplitFactoryV2.1`: `0x5cbA88D55Cec83caD5A105Ad40C8c9aF20bE21d1`
+- `PullSplitFactoryV2.2`: `0x6B9118074aB15142d7524E8c4ea8f62A3Bdb98f1`
+- `PushSplitFactoryV2.1`: `0xDc6259E13ec0621e6F19026b2e49D846525548Ed`
+- `PushSplitFactoryV2.2`: `0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4`
+- `SplitsWarehouse`: `0x8fb66F38cF86A3d5e8768f8F1754A24A6c661Fb8`
 
 ### DistributeScript.s.sol
 
