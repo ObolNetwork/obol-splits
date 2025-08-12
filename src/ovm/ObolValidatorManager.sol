@@ -119,8 +119,7 @@ contract ObolValidatorManager is OwnableRoles {
   /// Address to receive principal funds
   address public principalRecipient;
 
-  /// Amount of principal stake (wei) done via deposit() calls, or
-  /// via setAmountOfPrincipalStake() call.
+  /// Amount of principal stake (wei)
   uint256 public amountOfPrincipalStake;
 
   /// Amount of active balance set aside for pulls
@@ -420,7 +419,10 @@ contract ObolValidatorManager is OwnableRoles {
       // Write to storage
       // the principal value
       // it cannot overflow because _principalPayout < _fundsToBeDistributed
-      if (_principalPayout > 0) amountOfPrincipalStake -= uint128(_principalPayout);
+      if (_principalPayout > 0) {
+        amountOfPrincipalStake -= uint128(_principalPayout);
+        emit NewAmountOfPrincipalStake(amountOfPrincipalStake, amountOfPrincipalStake + _principalPayout);
+      }
     }
 
     /// interactions

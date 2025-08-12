@@ -491,6 +491,8 @@ contract ObolValidatorManagerTest is Test {
     address(ovmETH).safeTransferETH(INITIAL_DEPOSIT_AMOUNT + secondDeposit + rewardPayout);
 
     vm.expectEmit(true, true, true, true);
+    emit NewAmountOfPrincipalStake(0, INITIAL_DEPOSIT_AMOUNT + secondDeposit);
+    vm.expectEmit(true, true, true, true);
     emit DistributeFunds(INITIAL_DEPOSIT_AMOUNT + secondDeposit, rewardPayout, 0);
     ovmETH.distributeFunds();
     assertEq(address(ovmETH).balance, 0 ether);
