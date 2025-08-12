@@ -182,6 +182,7 @@ contract ObolValidatorManager is OwnableRoles {
     bytes calldata signature,
     bytes32 deposit_data_root
   ) external payable {
+    uint256 oldAmountOfPrincipalStake = amountOfPrincipalStake;
     amountOfPrincipalStake += msg.value;
     IDepositContract(depositSystemContract).deposit{value: msg.value}(
       pubkey,
@@ -189,6 +190,8 @@ contract ObolValidatorManager is OwnableRoles {
       signature,
       deposit_data_root
     );
+
+    emit NewAmountOfPrincipalStake(amountOfPrincipalStake, oldAmountOfPrincipalStake);
   }
 
   /// @notice Set the principal recipient address

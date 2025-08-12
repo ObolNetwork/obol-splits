@@ -104,6 +104,8 @@ contract ObolValidatorManagerTest is Test {
     uint256 depositMockBalance = address(depositMock).balance;
     uint256 amountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
     uint256 depositAmount = 1 ether;
+    vm.expectEmit(true, true, true, true);
+    emit NewAmountOfPrincipalStake(amountOfPrincipalStake+depositAmount, amountOfPrincipalStake);
     ovmETH.deposit{value: depositAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     assertEq(address(depositMock).balance, depositMockBalance + depositAmount);
     assertEq(ovmETH.amountOfPrincipalStake(), amountOfPrincipalStake + depositAmount);
