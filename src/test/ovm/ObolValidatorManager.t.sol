@@ -119,6 +119,22 @@ contract ObolValidatorManagerTest is Test {
     assertEq(ovmETH.principalRecipient(), newRecipient);
   }
 
+  function testSetAmountOfPrincipalStake() public {
+    uint256 newAmount = 1 ether;
+    ovmETH.setAmountOfPrincipalStake(newAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), newAmount);
+
+    // zero value must be allowed
+    newAmount = 0;
+    ovmETH.setAmountOfPrincipalStake(newAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), newAmount);
+
+    // no max cap
+    newAmount = type(uint256).max;
+    ovmETH.setAmountOfPrincipalStake(newAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), newAmount);
+  }
+
   function testCannot_setPrincipalRecipient() public {
     // zero address
     vm.expectRevert(ObolValidatorManager.InvalidRequest_Params.selector);

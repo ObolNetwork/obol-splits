@@ -114,7 +114,8 @@ contract ObolValidatorManager is OwnableRoles {
   /// Address to receive principal funds
   address public principalRecipient;
 
-  /// Amount of principal stake (wei) done via deposit() calls
+  /// Amount of principal stake (wei) done via deposit() calls, or
+  /// via setAmountOfPrincipalStake() call.
   uint256 public amountOfPrincipalStake;
 
   /// Amount of active balance set aside for pulls
@@ -196,6 +197,14 @@ contract ObolValidatorManager is OwnableRoles {
     principalRecipient = newPrincipalRecipient;
 
     emit NewPrincipalRecipient(newPrincipalRecipient, oldPrincipalRecipient);
+  }
+
+  /// @notice Overrides the amount of principal stake
+  /// @param newAmount New amount of principal stake (wei)
+  /// @dev The amount of principal stake is usually increased via deposit() calls,
+  ///      but in certain cases, it may need to be changed explicitly.
+  function setAmountOfPrincipalStake(uint256 newAmount) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
+    amountOfPrincipalStake = newAmount;
   }
 
   /// Distributes target token inside the contract to recipients
