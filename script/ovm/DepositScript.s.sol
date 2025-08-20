@@ -3,15 +3,13 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
+import "./Utils.s.sol";
 import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 
 //
 // This script calls deposit() on a ObolValidatorManager contract.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
-// Example usage:
-//   forge script script/DepositScript.s.sol --sig "run(address,string)" -vvv \
-//   --rpc-url https://rpc.hoodi.ethpandaops.io --broadcast "<ovm_address>" "<deposit_file_path>"
 //
 contract DepositScript is Script {
   struct DepositData {
@@ -29,6 +27,12 @@ contract DepositScript is Script {
 
   function run(address ovmAddress, string memory depositFilePath) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
+    if (privKey == 0) {
+      revert("set PRIVATE_KEY env var before using this script");
+    }
+    if (!Utils.isContract(ovmAddress)) {
+      revert("OVM address is not set or invalid");
+    }
 
     console.log("Reading deposit data from file: %s", depositFilePath);
 
@@ -70,7 +74,7 @@ contract DepositScript is Script {
       bytes32 deposit_data_root = vm.parseBytes32(depositData.deposit_data_root);
       uint256 deposit_amount = depositData.amount * 1 gwei;
       ovm.deposit{value: deposit_amount}(pubkey, withdrawal_credentials, signature, deposit_data_root);
-      
+
       console.log("Deposit successful for amount: %d ether", depositData.amount / 1 gwei);
     }
 
