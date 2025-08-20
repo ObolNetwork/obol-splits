@@ -6,7 +6,7 @@ import "./Utils.s.sol";
 import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 
 //
-// This script calls requestConsolidation() for a ObolValidatorManager contract.
+// This script calls requestConsolidation() for an ObolValidatorManager contract.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 //
@@ -18,6 +18,9 @@ contract RequestConsolidationScript is Script {
     }
     if (!Utils.isContract(ovmAddress)) {
       revert("Invalid OVM address");
+    }
+    if (src.length == 0 || dst.length == 0) {
+      revert("Invalid source or destination pubkey");
     }
 
     vm.startBroadcast(privKey);

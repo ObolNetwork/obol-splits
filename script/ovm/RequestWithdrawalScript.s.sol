@@ -6,7 +6,7 @@ import "./Utils.s.sol";
 import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 
 //
-// This script calls requestWithdrawal() for a ObolValidatorManager contract.
+// This script calls requestWithdrawal() for an ObolValidatorManager contract.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 //
