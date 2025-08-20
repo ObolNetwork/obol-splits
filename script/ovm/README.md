@@ -9,7 +9,7 @@ You can use any RPC endpoint, but here are some public ones suitable for running
 - Holesky: https://ethereum-holesky-rpc.publicnode.com
 - Hoodi:   https://ethereum-hoodi-rpc.publicnode.com
 
-Note: all the scripts and examples below are designed to run on the Holesky network.
+Note: all the scripts and examples below are designed to run on the Sepolia network.
 Use different RPC endpoints for other networks, as well as different OVM Factory addresses.
 
 If you are experiencing issues while running the scripts, add `-vvv` to the command to enable verbose logging.
@@ -26,12 +26,12 @@ This script deploys the `ObolValidatorManagerFactory` contract. To run this scri
 
 The script takes only one parameter: the deployment name, which is used by the deterministic deployer and for ENS lookup. Therefore, it must be unique per network.
 
-Example usage (Holesky):
+Example usage:
 
 ```bash
 # Make sure the last argument is a unique string identifying your own deployment
 forge script script/ovm/DeployFactoryScript.s.sol --sig "run(string)" \
-     --rpc-url https://ethereum-holesky-rpc.publicnode.com --broadcast "OVMFactory.Holesky"
+     --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast "OVMFactory.Sepolia"
 ```
 
 In the console, watch for the output:
@@ -39,7 +39,7 @@ In the console, watch for the output:
 ```
 == Logs ==
   ObolValidatorManagerFactory deployed at 0x1764d3013f401289F9dbE42E7C703217a9D9D5C2
-  Explorer URL for address https://holesky.etherscan.io/address//0x1764d3013f401289F9dbE42E7C703217a9D9D5C2
+  Explorer URL for address https://sepolia.etherscan.io/address//0x1764d3013f401289F9dbE42E7C703217a9D9D5C2
 ```
 
 ### Getting Contracts Verified with Etherscan
@@ -70,7 +70,7 @@ Example usage:
 
 ```bash
 forge script script/ovm/CreateOVMScript.s.sol --sig "run(address,address,address,address,uint64)" \
-    --rpc-url https://ethereum-holesky-rpc.publicnode.com --broadcast \
+    --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
     0x1764d3013f401289F9dbE42E7C703217a9D9D5C2 0x46aB8712c7A5423b717F648529B1c7A17099750A 0x46aB8712c7A5423b717F648529B1c7A17099750A 0x46aB8712c7A5423b717F648529B1c7A17099750A 16000000000
 ```
 
@@ -79,7 +79,7 @@ In the console, watch for the output:
 ```
 == Logs ==
   ObolValidatorManager created at address 0x197d3c66a06FfD98F7316D71190EbD74262103b5
-  Explorer URL for address https://holesky.etherscan.io/address/0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  Explorer URL for address https://sepolia.etherscan.io/address/0x197d3c66a06FfD98F7316D71190EbD74262103b5
 ```
 
 ## SystemContractFeesScript
@@ -89,7 +89,7 @@ The script simply prints the immediate fees for the two system contracts: consol
 Usage:
 
 ```bash
-forge script script/ovm/SystemContractFeesScript.s.sol --rpc-url https://ethereum-holesky-rpc.publicnode.com
+forge script script/ovm/SystemContractFeesScript.s.sol --rpc-url https://ethereum-sepolia-rpc.publicnode.com
 ```
 
 In the console, you should see the fees printed out in WEI:
@@ -112,7 +112,7 @@ Script parameters:
 
 ```bash
 forge script script/ovm/DistributeFundsScript.s.sol --sig "run(address)" \
-   --rpc-url https://ethereum-holesky-rpc.publicnode.com --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5
 ```
 
 After executing the script, verify your principal and reward recipient balances.
@@ -130,7 +130,7 @@ Script parameters:
 
 ```bash
 forge script script/ovm/SetPrincipalRecipientScript.s.sol --sig "run(address,address)" \
-   --rpc-url https://ethereum-holesky-rpc.publicnode.com --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
 ```
 
 Typical output:
@@ -156,7 +156,7 @@ Script parameters:
 
 ```bash
 forge script script/ovm/RequestConsolidationScript.s.sol --sig "run(address,bytes,bytes)" \
-   --rpc-url https://ethereum-holesky-rpc.publicnode.com --broadcast \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
    0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
    0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
    0xa035b995117ddd4d34d5b9cae477795183b6805563c301c3e8a323d68aeef614ee9b6509cc0781c53f5ab545f78be46c
@@ -177,7 +177,7 @@ Script parameters:
 
 ```bash
 forge script script/ovm/RequestWithdrawalScript.s.sol --sig "run(address,bytes,uint64)" \
-   --rpc-url https://ethereum-holesky-rpc.publicnode.com --broadcast \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
    0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
    0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
    10000000000
@@ -199,6 +199,6 @@ Usage:
 
 ```bash
 forge script script/ovm/DepositScript.s.sol --sig "run(address,string)" \
-   --rpc-url https://ethereum-holesky-rpc.publicnode.com \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com \
    --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5 my_deposit_data.json
 ```

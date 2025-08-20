@@ -24,7 +24,7 @@ contract DeployFactoryScript is Script {
   // Mainnet: 0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb
   // Sepolia: 0xA0a1AbcDAe1a2a4A2EF8e9113Ff0e02DD81DC0C6
   // Holesky: 0x132AC0B116a73add4225029D1951A9A707Ef673f
-  address ensReverseRegistrar = 0x132AC0B116a73add4225029D1951A9A707Ef673f;
+  address ensReverseRegistrar = 0xA0a1AbcDAe1a2a4A2EF8e9113Ff0e02DD81DC0C6;
 
   function run(string calldata name) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
