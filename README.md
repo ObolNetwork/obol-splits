@@ -57,7 +57,7 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 
 #### Hoodi
 
-ObolValidatorManagerFactory: https://hoodi.etherscan.io/address/0x6F13d929C783a420AE4DC71C1dcc27A02038Ed09
+ObolValidatorManagerFactory: https://hoodi.etherscan.io/address/0xb1E1f5e90f4190F78182A8d5cbed774893Dd1558
 
 Note: the factory was deployed having ENS functionality disabled (there is no ENS deployment on hoodi yet).
 Use etherscan interface or `CreateObolValidatorManagerScript` to create OVM instances using the factory:
@@ -68,6 +68,8 @@ forge script script/CreateObolValidatorManagerScript.s.sol --sig "run(address)" 
 ```
 
 #### Sepolia
+
+ObolValidatorManagerFactory: https://sepolia.etherscan.io/address/0x4Cdc690A9125Ec487aA625C54b64E162FE9b4E9C
 
 OptimisticWithdrawalRecipientFactory: https://sepolia.etherscan.io/address/0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a
 
