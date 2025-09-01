@@ -3,16 +3,18 @@ pragma solidity 0.8.19;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
+import {Ownable} from "solady/auth/Ownable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {IDepositContract} from "../interfaces/IDepositContract.sol";
+import {IObolValidatorManager} from "../interfaces/IObolValidatorManager.sol";
 
 /// @title ObolValidatorManager
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
-/// based on threshold to it's recipients.
+/// based on threshold to its recipients.
 /// @dev Only ETH can be distributed for a given deployment. There is a
 /// recovery method for tokens sent by accident.
-contract ObolValidatorManager is OwnableRoles {
+contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -205,18 +207,18 @@ contract ObolValidatorManager is OwnableRoles {
   }
 
   /// Distributes target token inside the contract to recipients
-  /// @dev backup recovery if any recipient tries to brick the OVM for
+  /// @dev Backup recovery if any recipient tries to brick the OVM for
   /// remaining recipients
   function distributeFundsPull() external {
     _distributeFunds(PULL);
   }
 
   /// Request validators consolidation with the EIP7251 system contract
-  /// @dev all source validators will be consolidated into the target validator
-  ///      the caller must compute the fee before calling and send a sufficient msg.value amount
-  ///      excess amount will be refunded
-  /// @param sourcePubKeys validator public keys to be consolidated
-  /// @param targetPubKey target validator public key
+  /// @dev All source validators will be consolidated into the target validator.
+  ///      The caller must compute the fee before calling and send a sufficient msg.value amount.
+  ///      Excess amount will be refunded.
+  /// @param sourcePubKeys Validator public keys to be consolidated
+  /// @param targetPubKey Target validator public key
   function requestConsolidation(
     bytes[] calldata sourcePubKeys,
     bytes calldata targetPubKey
@@ -244,14 +246,14 @@ contract ObolValidatorManager is OwnableRoles {
   }
 
   /// Request partial/full withdrawal from the EIP7002 system contract
-  /// @dev the caller must compute the fee before calling and send a sufficient msg.value amount
-  ///      excess amount will be refunded
-  ///      withdrawals that leave a validator with (0..32) ether,
-  //       will only withdraw an amount that leaves the validator at 32 ether
-  /// @param pubKeys validator public keys
-  /// @param amounts withdrawal amounts in gwei
-  ///                any amount below principalThreshold will be distributed as reward
-  ///                any amount >= principalThreshold will be distributed as principal
+  /// @dev The caller must compute the fee before calling and send a sufficient msg.value amount.
+  ///      Excess amount will be refunded.
+  ///      Withdrawals that leave a validator with (0..32) ether
+  ///      will only withdraw an amount that leaves the validator at 32 ether.
+  /// @param pubKeys Validator public keys
+  /// @param amounts Withdrawal amounts in gwei.
+  ///                Any amount below principalThreshold will be distributed as reward.
+  ///                Any amount >= principalThreshold will be distributed as principal.
   function requestWithdrawal(
     bytes[] calldata pubKeys,
     uint64[] calldata amounts
@@ -310,6 +312,80 @@ contract ObolValidatorManager is OwnableRoles {
   /// @return Account's withdrawable ether balance
   function getPullBalance(address account) external view returns (uint256) {
     return pullBalances[account];
+  }
+
+  /// -----------------------------------------------------------------------
+  /// OwnableRoles function overrides
+  /// -----------------------------------------------------------------------
+
+  /// @dev Allows the owner to grant `user` `roles`.
+  /// If the `user` already has a role, then it will be a no-op for the role.
+  function grantRoles(address user, uint256 roles) public payable override(IObolValidatorManager, OwnableRoles) {
+    super.grantRoles(user, roles);
+  }
+
+  /// @dev Allows the owner to remove `user` `roles`.
+  /// If the `user` does not have a role, then it will be a no-op for the role.
+  function revokeRoles(address user, uint256 roles) public payable override(IObolValidatorManager, OwnableRoles) {
+    super.revokeRoles(user, roles);
+  }
+
+  /// @dev Allow the caller to remove their own roles.
+  /// If the caller does not have a role, then it will be a no-op for the role.
+  function renounceRoles(uint256 roles) public payable override(IObolValidatorManager, OwnableRoles) {
+    super.renounceRoles(roles);
+  }
+
+  /// @dev Returns the roles of `user`.
+  function rolesOf(address user) public view override(IObolValidatorManager, OwnableRoles) returns (uint256 roles) {
+    return super.rolesOf(user);
+  }
+
+  /// @dev Returns whether `user` has any of `roles`.
+  function hasAnyRole(address user, uint256 roles) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+    return super.hasAnyRole(user, roles);
+  }
+
+  /// @dev Returns whether `user` has all of `roles`.
+  function hasAllRoles(address user, uint256 roles) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+    return super.hasAllRoles(user, roles);
+  }
+
+  /// @dev Allows the owner to transfer the ownership to `newOwner`.
+  function transferOwnership(address newOwner) public payable override(IObolValidatorManager, Ownable) {
+    super.transferOwnership(newOwner);
+  }
+
+  /// @dev Allows the owner to renounce their ownership.
+  function renounceOwnership() public payable override(IObolValidatorManager, Ownable) {
+    super.renounceOwnership();
+  }
+
+  /// @dev Request a two-step ownership handover to the caller.
+  /// The request will automatically expire in 48 hours (172800 seconds) by default.
+  function requestOwnershipHandover() public payable override(IObolValidatorManager, Ownable) {
+    super.requestOwnershipHandover();
+  }
+
+  /// @dev Cancels the two-step ownership handover to the caller, if any.
+  function cancelOwnershipHandover() public payable override(IObolValidatorManager, Ownable) {
+    super.cancelOwnershipHandover();
+  }
+
+  /// @dev Allows the owner to complete the two-step ownership handover to `pendingOwner`.
+  /// Reverts if there is no existing ownership handover requested by `pendingOwner`.
+  function completeOwnershipHandover(address pendingOwner) public payable override(IObolValidatorManager, Ownable) {
+    super.completeOwnershipHandover(pendingOwner);
+  }
+
+  /// @dev Returns the owner of the contract.
+  function owner() public view override(IObolValidatorManager, Ownable) returns (address result) {
+    return super.owner();
+  }
+
+  /// @dev Returns the expiry timestamp for the two-step ownership handover to `pendingOwner`.
+  function ownershipHandoverExpiresAt(address pendingOwner) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
+    return super.ownershipHandoverExpiresAt(pendingOwner);
   }
 
   /// -----------------------------------------------------------------------
