@@ -52,6 +52,11 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// @param oldPrincipalRecipient Old principal recipient address
   event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
 
+  /// Emitted after reward recipient is changed
+  /// @param newRewardRecipient New reward recipient address
+  /// @param oldRewardRecipient Old reward recipient address
+  event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
+
   /// Emitted after funds are distributed to recipients
   /// @param principalPayout Amount of principal paid out
   /// @param rewardPayout Amount of reward paid out
@@ -93,6 +98,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   uint256 public constant CONSOLIDATION_ROLE = 0x02;
   uint256 public constant SET_PRINCIPAL_ROLE = 0x04;
   uint256 public constant RECOVER_FUNDS_ROLE = 0x08;
+  uint256 public constant SET_REWARD_ROLE = 0x10;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
@@ -106,7 +112,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   address public immutable consolidationSystemContract;
   address public immutable withdrawalSystemContract;
   address public immutable depositSystemContract;
-  address public immutable rewardRecipient;
   uint64 public immutable principalThreshold;
 
   /// -----------------------------------------------------------------------
@@ -115,6 +120,9 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
 
   /// Address to receive principal funds
   address public principalRecipient;
+
+  /// Address to receive reward funds
+  address public rewardRecipient;
 
   /// Amount of principal stake (wei) done via deposit() calls
   uint256 public amountOfPrincipalStake;
@@ -198,6 +206,19 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     principalRecipient = newPrincipalRecipient;
 
     emit NewPrincipalRecipient(newPrincipalRecipient, oldPrincipalRecipient);
+  }
+
+  /// @notice Set the reward recipient address
+  /// @param newRewardRecipient New address to receive reward funds
+  function setRewardRecipient(address newRewardRecipient) external onlyOwnerOrRoles(SET_REWARD_ROLE) {
+    if (newRewardRecipient == address(0)) {
+      revert InvalidRequest_Params();
+    }
+
+    address oldRewardRecipient = rewardRecipient;
+    rewardRecipient = newRewardRecipient;
+
+    emit NewRewardRecipient(newRewardRecipient, oldRewardRecipient);
   }
 
   /// Distributes target token inside the contract to recipients
