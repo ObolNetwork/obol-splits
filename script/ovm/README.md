@@ -64,7 +64,7 @@ Script parameters:
 - `owner`: The address of the owner of the new `ObolValidatorManager` contract.
 - `principalRecipient`: The address of the principal recipient.
 - `rewardsRecipient`: The address of the rewards recipient.
-- `principalThreshold`: The principal threshold value (gwei), recommended value is `16000000000` (16 GWei).
+- `principalThreshold`: The principal threshold value (gwei), recommended value is `16000000000` (16 ether).
 
 Example usage:
 
