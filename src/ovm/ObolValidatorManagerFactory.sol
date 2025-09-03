@@ -60,14 +60,6 @@ contract ObolValidatorManagerFactory {
   /// @param _ensName ENS name to register
   /// @param _ensReverseRegistrar ENS reverse registrar address
   /// @param _ensOwner ENS owner address
-  /// @dev System contracts are expected to be deployed at:
-  ///      Consolidation: 0x00431F263cE400f4455c2dCf564e53007Ca4bbBb
-  ///      https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7251.md#constants
-  ///      Withdrawal: 0x0c15F14308530b7CDB8460094BbB9cC28b9AaaAA
-  ///      https://github.com/ethereum/EIPs/blob/d96625a4dcbbe2572fa006f062bd02b4582eefd5/EIPS/eip-7002.md#configuration
-  ///      Deposit Holesky/Devnet: 0x4242424242424242424242424242424242424242
-  ///      Deposit Sepolia: 0x7f02C3E3c98b133055B8B348B2Ac625669Ed295D
-  ///      Deposit Mainnet: 0x00000000219ab540356cBB839Cbe05303d7705Fa
   constructor(
     address _consolidationSystemContract,
     address _withdrawalSystemContract,
@@ -96,7 +88,8 @@ contract ObolValidatorManagerFactory {
   /// @param owner Owner of the new ObolValidatorManager instance
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
-  /// @param principalThreshold Principal vs rewards classification threshold (gwei)
+  /// @param principalThreshold Principal vs rewards classification threshold (gwei),
+  ///                           Recommended value is `16000000000` (16 GWei).
   /// @return ovm Address of the new ObolValidatorManager instance
   function createObolValidatorManager(
     address owner,
@@ -119,12 +112,6 @@ contract ObolValidatorManagerFactory {
       principalThreshold
     );
 
-    emit CreateObolValidatorManager(
-      address(ovm),
-      owner,
-      principalRecipient,
-      rewardRecipient,
-      principalThreshold
-    );
+    emit CreateObolValidatorManager(address(ovm), owner, principalRecipient, rewardRecipient, principalThreshold);
   }
 }
