@@ -89,7 +89,7 @@ contract ObolValidatorManagerFactory {
   /// @param principalRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei),
-  ///                           Recommended value is `16000000000` (16 GWei).
+  ///                           the recommended value is 16000000000 (16 gwei).
   /// @return ovm Address of the new ObolValidatorManager instance
   function createObolValidatorManager(
     address owner,
