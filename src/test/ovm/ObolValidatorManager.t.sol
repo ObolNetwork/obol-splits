@@ -16,6 +16,7 @@ contract ObolValidatorManagerTest is Test {
   using SafeTransferLib for address;
 
   event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
+  event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
   event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
   event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
@@ -104,6 +105,8 @@ contract ObolValidatorManagerTest is Test {
     uint256 depositMockBalance = address(depositMock).balance;
     uint256 amountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
     uint256 depositAmount = 1 ether;
+    vm.expectEmit(true, true, true, true);
+    emit NewAmountOfPrincipalStake(amountOfPrincipalStake+depositAmount, amountOfPrincipalStake);
     ovmETH.deposit{value: depositAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     assertEq(address(depositMock).balance, depositMockBalance + depositAmount);
     assertEq(ovmETH.amountOfPrincipalStake(), amountOfPrincipalStake + depositAmount);
@@ -118,6 +121,25 @@ contract ObolValidatorManagerTest is Test {
     emit NewPrincipalRecipient(newRecipient, principalRecipient);
     ovmETH.setPrincipalRecipient(newRecipient);
     assertEq(ovmETH.principalRecipient(), newRecipient);
+  }
+
+  function testSetAmountOfPrincipalStake() public {
+    uint256 newAmount = 1 ether;
+    uint256 amountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
+    vm.expectEmit(true, true, true, true);
+    emit NewAmountOfPrincipalStake(newAmount, amountOfPrincipalStake);
+    ovmETH.setAmountOfPrincipalStake(newAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), newAmount);
+
+    // zero value must be allowed
+    newAmount = 0;
+    ovmETH.setAmountOfPrincipalStake(newAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), newAmount);
+
+    // no max cap
+    newAmount = type(uint256).max;
+    ovmETH.setAmountOfPrincipalStake(newAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), newAmount);
   }
 
   function testCannot_setPrincipalRecipient() public {
@@ -499,6 +521,8 @@ contract ObolValidatorManagerTest is Test {
     uint256 rewardPayout = 4 ether;
     address(ovmETH).safeTransferETH(INITIAL_DEPOSIT_AMOUNT + secondDeposit + rewardPayout);
 
+    vm.expectEmit(true, true, true, true);
+    emit NewAmountOfPrincipalStake(0, INITIAL_DEPOSIT_AMOUNT + secondDeposit);
     vm.expectEmit(true, true, true, true);
     emit DistributeFunds(INITIAL_DEPOSIT_AMOUNT + secondDeposit, rewardPayout, 0);
     ovmETH.distributeFunds();

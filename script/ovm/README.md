@@ -64,7 +64,7 @@ Script parameters:
 - `owner`: The address of the owner of the new `ObolValidatorManager` contract.
 - `principalRecipient`: The address of the principal recipient.
 - `rewardsRecipient`: The address of the rewards recipient.
-- `principalThreshold`: The principal threshold value (gwei).
+- `principalThreshold`: The principal threshold value (gwei), recommended value is `16000000000` (16 ether).
 
 Example usage:
 
@@ -165,6 +165,31 @@ Typical output:
 == Logs ==
   Current principal recipient 0x46aB8712c7A5423b717F648529B1c7A17099750A
   New principal recipient set to 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
+```
+
+## SetAmountOfPrincipalStakeScript
+
+This script calls `setAmountOfPrincipalStake()` for an `ObolValidatorManager` contract.
+
+To run this script, the following environment variables must be set:
+- `PRIVATE_KEY`: the private key of the account that will call the function
+
+Script parameters:
+- `ovmAddress`: The address of the deployed `ObolValidatorManager` contract.
+- `newAmount`: New amount of principal stake (wei).
+
+```bash
+forge script script/ovm/SetAmountOfPrincipalStakeScript.s.sol --sig "run(address,uint256)" \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
+   0x197d3c66a06FfD98F7316D71190EbD74262103b5 2000000000000000000
+```
+
+Typical output:
+
+```
+== Logs ==
+  Current amount of principal stake 1000000000000000000
+  New amount of principal stake 2000000000000000000
 ```
 
 ## SetRewardRecipientScript

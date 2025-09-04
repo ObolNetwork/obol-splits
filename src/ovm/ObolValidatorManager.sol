@@ -52,6 +52,11 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// @param oldPrincipalRecipient Old principal recipient address
   event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
 
+  /// Emitted after amount of principal stake is changed
+  /// @param newPrincipalStakeAmount New amount of principal stake (wei)
+  /// @param oldPrincipalStakeAmount Old amount of principal stake (wei)
+  event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
+
   /// Emitted after reward recipient is changed
   /// @param newRewardRecipient New reward recipient address
   /// @param oldRewardRecipient Old reward recipient address
@@ -124,7 +129,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// Address to receive reward funds
   address public rewardRecipient;
 
-  /// Amount of principal stake (wei) done via deposit() calls
+  /// Amount of principal stake (wei)
   uint256 public amountOfPrincipalStake;
 
   /// Amount of active balance set aside for pulls
@@ -186,6 +191,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     bytes calldata signature,
     bytes32 deposit_data_root
   ) external payable {
+    uint256 oldAmountOfPrincipalStake = amountOfPrincipalStake;
     amountOfPrincipalStake += msg.value;
     IDepositContract(depositSystemContract).deposit{value: msg.value}(
       pubkey,
@@ -193,6 +199,8 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
       signature,
       deposit_data_root
     );
+
+    emit NewAmountOfPrincipalStake(amountOfPrincipalStake, oldAmountOfPrincipalStake);
   }
 
   /// @notice Set the principal recipient address
@@ -206,6 +214,21 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     principalRecipient = newPrincipalRecipient;
 
     emit NewPrincipalRecipient(newPrincipalRecipient, oldPrincipalRecipient);
+  }
+
+  /// @notice Overrides the current amount of principal stake
+  /// @param newAmount New amount of principal stake (wei)
+  /// @dev The amount of principal stake is usually increased via deposit() call,
+  ///      but in certain cases, it may need to be changed explicitly.
+  function setAmountOfPrincipalStake(uint256 newAmount) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
+    if (newAmount == amountOfPrincipalStake) {
+      return;
+    }
+
+    uint256 oldAmount = amountOfPrincipalStake;
+    amountOfPrincipalStake = newAmount;
+
+    emit NewAmountOfPrincipalStake(newAmount, oldAmount);
   }
 
   /// @notice Set the reward recipient address
@@ -363,12 +386,18 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   }
 
   /// @dev Returns whether `user` has any of `roles`.
-  function hasAnyRole(address user, uint256 roles) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+  function hasAnyRole(
+    address user,
+    uint256 roles
+  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
     return super.hasAnyRole(user, roles);
   }
 
   /// @dev Returns whether `user` has all of `roles`.
-  function hasAllRoles(address user, uint256 roles) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+  function hasAllRoles(
+    address user,
+    uint256 roles
+  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
     return super.hasAllRoles(user, roles);
   }
 
@@ -405,7 +434,9 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   }
 
   /// @dev Returns the expiry timestamp for the two-step ownership handover to `pendingOwner`.
-  function ownershipHandoverExpiresAt(address pendingOwner) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
+  function ownershipHandoverExpiresAt(
+    address pendingOwner
+  ) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
     return super.ownershipHandoverExpiresAt(pendingOwner);
   }
 
@@ -497,7 +528,10 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
       // Write to storage
       // the principal value
       // it cannot overflow because _principalPayout < _fundsToBeDistributed
-      if (_principalPayout > 0) amountOfPrincipalStake -= uint128(_principalPayout);
+      if (_principalPayout > 0) {
+        amountOfPrincipalStake -= uint128(_principalPayout);
+        emit NewAmountOfPrincipalStake(amountOfPrincipalStake, amountOfPrincipalStake + _principalPayout);
+      }
     }
 
     /// interactions

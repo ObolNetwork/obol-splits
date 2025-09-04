@@ -26,6 +26,12 @@ interface IObolValidatorManager {
   /// @param newPrincipalRecipient New address to receive principal funds
   function setPrincipalRecipient(address newPrincipalRecipient) external;
 
+  /// @notice Overrides the current amount of principal stake
+  /// @param newAmount New amount of principal stake (wei)
+  /// @dev The amount of principal stake is usually increased via deposit() call,
+  ///      but in certain cases, it may need to be changed explicitly.
+  function setAmountOfPrincipalStake(uint256 newAmount) external;
+
   /// @notice Set the reward recipient address
   /// @param newRewardRecipient New address to receive reward funds
   function setRewardRecipient(address newRewardRecipient) external;
