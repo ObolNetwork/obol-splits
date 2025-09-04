@@ -26,6 +26,10 @@ interface IObolValidatorManager {
   /// @param newPrincipalRecipient New address to receive principal funds
   function setPrincipalRecipient(address newPrincipalRecipient) external;
 
+  /// @notice Set the reward recipient address
+  /// @param newRewardRecipient New address to receive reward funds
+  function setRewardRecipient(address newRewardRecipient) external;
+
   /// Distributes target token inside the contract to recipients
   /// @dev pushes funds to recipients
   function distributeFunds() external;
