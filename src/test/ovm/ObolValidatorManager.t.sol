@@ -16,7 +16,7 @@ contract ObolValidatorManagerTest is Test {
   using SafeTransferLib for address;
 
   event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
-  event NewAmountOfPrincipalStake(uint256 indexed newPrincipalStakeAmount, uint256 indexed oldPrincipalStakeAmount);
+  event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
   event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
   event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);

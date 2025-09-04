@@ -52,10 +52,10 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// @param oldPrincipalRecipient Old principal recipient address
   event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
 
-  /// Emitted after principal staked amount is changed
+  /// Emitted after amount of principal stake is changed
   /// @param newPrincipalStakeAmount New amount of principal stake (wei)
   /// @param oldPrincipalStakeAmount Old amount of principal stake (wei)
-  event NewAmountOfPrincipalStake(uint256 indexed newPrincipalStakeAmount, uint256 indexed oldPrincipalStakeAmount);
+  event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
 
   /// Emitted after funds are distributed to recipients
   /// @param principalPayout Amount of principal paid out
@@ -208,11 +208,15 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     emit NewPrincipalRecipient(newPrincipalRecipient, oldPrincipalRecipient);
   }
 
-  /// @notice Overrides the amount of principal stake
+  /// @notice Overrides the current amount of principal stake
   /// @param newAmount New amount of principal stake (wei)
-  /// @dev The amount of principal stake is usually increased via deposit() calls,
+  /// @dev The amount of principal stake is usually increased via deposit() call,
   ///      but in certain cases, it may need to be changed explicitly.
   function setAmountOfPrincipalStake(uint256 newAmount) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
+    if (newAmount == amountOfPrincipalStake) {
+      return;
+    }
+
     uint256 oldAmount = amountOfPrincipalStake;
     amountOfPrincipalStake = newAmount;
 
