@@ -57,6 +57,11 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// @param oldPrincipalStakeAmount Old amount of principal stake (wei)
   event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
 
+  /// Emitted after reward recipient is changed
+  /// @param newRewardRecipient New reward recipient address
+  /// @param oldRewardRecipient Old reward recipient address
+  event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
+
   /// Emitted after funds are distributed to recipients
   /// @param principalPayout Amount of principal paid out
   /// @param rewardPayout Amount of reward paid out
@@ -98,6 +103,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   uint256 public constant CONSOLIDATION_ROLE = 0x02;
   uint256 public constant SET_PRINCIPAL_ROLE = 0x04;
   uint256 public constant RECOVER_FUNDS_ROLE = 0x08;
+  uint256 public constant SET_REWARD_ROLE = 0x10;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
@@ -111,7 +117,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   address public immutable consolidationSystemContract;
   address public immutable withdrawalSystemContract;
   address public immutable depositSystemContract;
-  address public immutable rewardRecipient;
   uint64 public immutable principalThreshold;
 
   /// -----------------------------------------------------------------------
@@ -120,6 +125,9 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
 
   /// Address to receive principal funds
   address public principalRecipient;
+
+  /// Address to receive reward funds
+  address public rewardRecipient;
 
   /// Amount of principal stake (wei)
   uint256 public amountOfPrincipalStake;
@@ -221,6 +229,19 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     amountOfPrincipalStake = newAmount;
 
     emit NewAmountOfPrincipalStake(newAmount, oldAmount);
+  }
+
+  /// @notice Set the reward recipient address
+  /// @param newRewardRecipient New address to receive reward funds
+  function setRewardRecipient(address newRewardRecipient) external onlyOwnerOrRoles(SET_REWARD_ROLE) {
+    if (newRewardRecipient == address(0)) {
+      revert InvalidRequest_Params();
+    }
+
+    address oldRewardRecipient = rewardRecipient;
+    rewardRecipient = newRewardRecipient;
+
+    emit NewRewardRecipient(newRewardRecipient, oldRewardRecipient);
   }
 
   /// Distributes target token inside the contract to recipients
@@ -365,12 +386,18 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   }
 
   /// @dev Returns whether `user` has any of `roles`.
-  function hasAnyRole(address user, uint256 roles) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+  function hasAnyRole(
+    address user,
+    uint256 roles
+  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
     return super.hasAnyRole(user, roles);
   }
 
   /// @dev Returns whether `user` has all of `roles`.
-  function hasAllRoles(address user, uint256 roles) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+  function hasAllRoles(
+    address user,
+    uint256 roles
+  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
     return super.hasAllRoles(user, roles);
   }
 
@@ -407,7 +434,9 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   }
 
   /// @dev Returns the expiry timestamp for the two-step ownership handover to `pendingOwner`.
-  function ownershipHandoverExpiresAt(address pendingOwner) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
+  function ownershipHandoverExpiresAt(
+    address pendingOwner
+  ) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
     return super.ownershipHandoverExpiresAt(pendingOwner);
   }
 

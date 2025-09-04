@@ -100,6 +100,32 @@ In the console, you should see the fees printed out in WEI:
   Withdrawal Fee 1 WEI
 ```
 
+## GrantRoleScript
+
+This script calls `grantRole()` for an ObolValidatorManager contract.
+
+To run this script, the following environment variables must be set:
+- `PRIVATE_KEY`: the private key of the account that will call the function
+
+Script parameters:
+- `ovmAddress`: The address of the deployed `ObolValidatorManager` contract.
+- `account`: The address to grant the role to.
+- `roles`: The roles to grant (bitwise OR).
+
+```bash
+#   SET_PRINCIPAL_ROLE = 0x04 | RECOVER_FUNDS_ROLE = 0x0C
+forge script script/ovm/GrantRoleScript.s.sol --sig "run(address,address,uint256)" \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
+   0x197d3c66a06FfD98F7316D71190EbD74262103b5 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72 0x0C
+```
+
+Typical output:
+
+```
+== Logs ==
+   New roles for account 0x0C
+```
+
 ## DistributeFundsScript
 
 This script calls `distributeFunds()` for an ObolValidatorManager contract.
@@ -164,6 +190,30 @@ Typical output:
 == Logs ==
   Current amount of principal stake 1000000000000000000
   New amount of principal stake 2000000000000000000
+```
+
+## SetRewardRecipientScript
+
+This script calls `setRewardRecipient()` for an ObolValidatorManager contract.
+
+To run this script, the following environment variables must be set:
+- `PRIVATE_KEY`: the private key of the account that will call the function
+
+Script parameters:
+- `ovmAddress`: The address of the deployed `ObolValidatorManager` contract.
+- `newRewardRecipient`: The address of the new reward recipient.
+
+```bash
+forge script script/ovm/SetRewardRecipientScript.s.sol --sig "run(address,address)" \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
+```
+
+Typical output:
+
+```
+== Logs ==
+  Current reward recipient 0x46aB8712c7A5423b717F648529B1c7A17099750A
+  New reward recipient set to 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
 ```
 
 ## RequestConsolidationScript

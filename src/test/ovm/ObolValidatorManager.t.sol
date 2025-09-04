@@ -17,6 +17,7 @@ contract ObolValidatorManagerTest is Test {
 
   event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
   event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
+  event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullFlowFlag);
   event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
   event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
@@ -158,6 +159,36 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.renounceOwnership();
     vm.expectRevert(bytes4(0x82b42900));
     ovmETH.setPrincipalRecipient(makeAddr("noaccess"));
+  }
+
+  function testSetRewardRecipient() public {
+    // initial recipient
+    assertEq(ovmETH.rewardRecipient(), rewardsRecipient, "invalid rewards recipient");
+
+    address newRecipient = makeAddr("newRecipient");
+    vm.expectEmit(true, true, true, true);
+    emit NewRewardRecipient(newRecipient, rewardsRecipient);
+    ovmETH.setRewardRecipient(newRecipient);
+    assertEq(ovmETH.rewardRecipient(), newRecipient);
+  }
+
+  function testCannot_setRewardRecipient() public {
+    // zero address
+    vm.expectRevert(ObolValidatorManager.InvalidRequest_Params.selector);
+    ovmETH.setRewardRecipient(address(0));
+
+    // unauthorized
+    address _user = vm.addr(0x2);
+    ovmETH.grantRoles(_user, ovmETH.WITHDRAWAL_ROLE()); // unrelated role
+    vm.startPrank(_user);
+    vm.expectRevert(bytes4(0x82b42900));
+    ovmETH.setRewardRecipient(makeAddr("noaccess"));
+    vm.stopPrank();
+
+    // unauthorized for owner after renounce
+    ovmETH.renounceOwnership();
+    vm.expectRevert(bytes4(0x82b42900));
+    ovmETH.setRewardRecipient(makeAddr("noaccess"));
   }
 
   function testCannot_requestConsolidation() public {

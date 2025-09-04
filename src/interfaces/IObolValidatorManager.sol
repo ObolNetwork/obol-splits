@@ -32,6 +32,10 @@ interface IObolValidatorManager {
   ///      but in certain cases, it may need to be changed explicitly.
   function setAmountOfPrincipalStake(uint256 newAmount) external;
 
+  /// @notice Set the reward recipient address
+  /// @param newRewardRecipient New address to receive reward funds
+  function setRewardRecipient(address newRewardRecipient) external;
+
   /// Distributes target token inside the contract to recipients
   /// @dev pushes funds to recipients
   function distributeFunds() external;
