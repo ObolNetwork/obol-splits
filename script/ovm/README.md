@@ -262,6 +262,7 @@ forge script script/ovm/RequestWithdrawalScript.s.sol --sig "run(address,bytes,u
 
 This script calls the `deposit()` function on an `ObolValidatorManager` contract.
 Your account must have enough ETH to cover the deposit amounts; otherwise, the script will stop.
+The depositing account must be the owner or an address with the `DEPOSIT_ROLE`.
 
 To run this script, the following environment variables must be set:
 - `PRIVATE_KEY`: the private key of the account that will call the function
