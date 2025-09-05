@@ -104,6 +104,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   uint256 public constant SET_PRINCIPAL_ROLE = 0x04;
   uint256 public constant RECOVER_FUNDS_ROLE = 0x08;
   uint256 public constant SET_REWARD_ROLE = 0x10;
+  uint256 public constant DEPOSIT_ROLE = 0x20;
 
   uint256 internal constant PUSH = 0;
   uint256 internal constant PULL = 1;
@@ -190,7 +191,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     bytes calldata withdrawal_credentials,
     bytes calldata signature,
     bytes32 deposit_data_root
-  ) external payable {
+  ) external payable onlyOwnerOrRoles(DEPOSIT_ROLE) {
     uint256 oldAmountOfPrincipalStake = amountOfPrincipalStake;
     amountOfPrincipalStake += msg.value;
     IDepositContract(depositSystemContract).deposit{value: msg.value}(
@@ -337,6 +338,10 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// @param account Address to withdraw on behalf of
   function withdraw(address account) external {
     uint256 amount = pullBalances[account];
+    if (amount == 0) {
+      return;
+    }
+
     unchecked {
       // shouldn't underflow; fundsPendingWithdrawal = sum(pullBalances)
       fundsPendingWithdrawal -= uint128(amount);
@@ -541,17 +546,17 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     // revert
     // when later external calls fail (bc balance is emptied early)
 
-    // pay out principal
-    _payout(principalRecipient, _principalPayout, pullOrPush);
-    // pay out reward
-    _payout(rewardRecipient, _rewardPayout, pullOrPush);
-
     if (pullOrPush == PULL) {
       if (_principalPayout > 0 || _rewardPayout > 0) {
         // Write to storage
         fundsPendingWithdrawal = uint128(_memoryFundsPendingWithdrawal + _principalPayout + _rewardPayout);
       }
     }
+
+    // pay out principal
+    _payout(principalRecipient, _principalPayout, pullOrPush);
+    // pay out reward
+    _payout(rewardRecipient, _rewardPayout, pullOrPush);
 
     emit DistributeFunds(_principalPayout, _rewardPayout, pullOrPush);
   }

@@ -112,6 +112,22 @@ contract ObolValidatorManagerTest is Test {
     assertEq(ovmETH.amountOfPrincipalStake(), amountOfPrincipalStake + depositAmount);
   }
 
+  function testCannotDeposit() public {
+    // unauthorized
+    address _user = vm.addr(0x5);
+    vm.deal(_user, 1 ether);
+    ovmETH.grantRoles(_user, ovmETH.WITHDRAWAL_ROLE()); // unrelated role
+    vm.startPrank(_user);
+    vm.expectRevert(bytes4(0x82b42900));
+    ovmETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    vm.stopPrank();
+
+    // unauthorized for owner after renounce
+    ovmETH.renounceOwnership();
+    vm.expectRevert(bytes4(0x82b42900));
+    ovmETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+  }
+
   function testSetPrincipalRecipient() public {
     // initial recipient
     assertEq(ovmETH.principalRecipient(), principalRecipient, "invalid principal recipient");
@@ -465,6 +481,20 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.recoverFunds(address(mERC20), address(1));
 
     vm.stopPrank();
+  }
+
+  function test_WithdrawZeroBalance() public {
+    address account = vm.addr(0x100);
+    
+    // Record logs to check no Withdrawal event is emitted
+    vm.recordLogs();
+    ovmETH.withdraw(account);
+    
+    // Get all emitted events
+    Vm.Log[] memory logs = vm.getRecordedLogs();
+    
+    // Assert no events were emitted (or verify no Withdrawal events specifically)
+    assertEq(logs.length, 0, "No events should be emitted for zero balance withdrawal");
   }
 
   function testCan_distributeToNoRecipients() public {
