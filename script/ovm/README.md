@@ -31,7 +31,8 @@ Example usage:
 ```bash
 # Make sure the last argument is a unique string identifying your own deployment
 forge script script/ovm/DeployFactoryScript.s.sol --sig "run(string)" \
-     --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast "OVMFactory.Sepolia"
+     --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast "OVMFactory.Sepolia" \
+     --verify --etherscan-api-key $ETHERSCAN_API_KEY
 ```
 
 In the console, watch for the output:
@@ -42,18 +43,17 @@ In the console, watch for the output:
   Explorer URL for address https://sepolia.etherscan.io/address//0x1764d3013f401289F9dbE42E7C703217a9D9D5C2
 ```
 
+Note that if Etherscan is not fast enough to process the verification request, you may see an error about failed verification. In that case, please see the section below about manual verification.
+
 ### Getting Contracts Verified with Etherscan
 
-If you deploy a contract for the first time, or if you deploy a patched version, then you may want to verify your code with the Etherscan UI.
-
-1. Flatten the target contract code:
-
 ```bash
-forge flatten src/ovm/ObolValidatorManagerFactory.sol --output ObolValidatorManagerFactory_flattened.sol
-```
+# Verification request example for ObolValidatorManagerFactory deployed at 0x1764d3013f401289F9dbE42E7C703217a9D9D5C2 on Sepolia
+forge verify-contract --chain-id 11155111 --etherscan-api-key $ETHERSCAN_API_KEY 0x1764d3013f401289F9dbE42E7C703217a9D9D5C2 src/ovm/ObolValidatorManagerFactory.sol:ObolValidatorManagerFactory
 
-2. Go to Etherscan, open the "Contract" tab for a deployed contract instance, and click "Verify & Publish" using "Single solidity file" mode.
-3. Use the flattened contract code as the input for verification.
+# Verification request example for ObolValidatorManager created at 0x197d3c66a06FfD98F7316D71190EbD74262103b5 on Sepolia
+forge verify-contract --chain-id 11155111 --etherscan-api-key $ETHERSCAN_API_KEY 0x197d3c66a06FfD98F7316D71190EbD74262103b5 src/ovm/ObolValidatorManager.sol:ObolValidatorManager
+```
 
 ## CreateOVMScript
 

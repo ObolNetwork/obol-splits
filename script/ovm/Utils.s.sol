@@ -8,12 +8,8 @@ library Utils {
   // This function prints the explorer URL for a given address based on the current chain ID.
   function printExplorerUrl(address addr) internal view {
     string memory baseUrl;
-    if (block.chainid == 1) {
-      baseUrl = "https://etherscan.io/address/";
-    } else if (block.chainid == 5) {
+    if (block.chainid == 11155111) {
       baseUrl = "https://sepolia.etherscan.io/address/";
-    } else if (block.chainid == 11155111) {
-      baseUrl = "https://goerli.etherscan.io/address/";
     } else if (block.chainid == 17000) {
       baseUrl = "https://holesky.etherscan.io/address/";
     } else if (block.chainid == 560048) {
