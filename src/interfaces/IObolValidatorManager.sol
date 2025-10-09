@@ -17,10 +17,10 @@ interface IObolValidatorManager {
   /// Events
   /// -----------------------------------------------------------------------
 
-  /// Emitted after principal recipient is changed
-  /// @param newPrincipalRecipient New principal recipient address
-  /// @param oldPrincipalRecipient Old principal recipient address
-  event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
+  /// Emitted after beneficiary recipient is changed
+  /// @param newBeneficiaryRecipient New beneficiary recipient address
+  /// @param oldBeneficiaryRecipient Old beneficiary recipient address
+  event NewBeneficiaryRecipient(address indexed newBeneficiaryRecipient, address indexed oldBeneficiaryRecipient);
 
   /// Emitted after amount of principal stake is changed
   /// @param newPrincipalStakeAmount New amount of principal stake (wei)
@@ -63,8 +63,8 @@ interface IObolValidatorManager {
   /// @param fee Withdrawal fee
   event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount, uint256 fee);
 
-  /// Emitted when the excess fee sent as part of a {consolidation}, or {withdrawal} - (partial or full)
-  /// request could not be refunded to the {excessFeeRecipient} recipient.
+  /// Emitted when the excess fee sent as part of a consolidation or withdrawal (partial or full)
+  /// request could not be refunded to the excessFeeRecipient.
   /// @param excessFeeRecipient The address to which the excess fee should have been sent.
   /// @param excessFee The amount of excess fee sent.
   event UnsentExcessFee(address indexed excessFeeRecipient, uint256 indexed excessFee);
@@ -108,13 +108,13 @@ interface IObolValidatorManager {
     bytes32 deposit_data_root
   ) external payable;
 
-  /// @notice Set the principal recipient address
-  /// @param newPrincipalRecipient New address to receive principal funds
-  function setPrincipalRecipient(address newPrincipalRecipient) external;
+  /// @notice Change the beneficiary recipient address
+  /// @param newBeneficiaryRecipient New beneficiary recipient address to set
+  function setBeneficiaryRecipient(address newBeneficiaryRecipient) external;
 
   /// @notice Overrides the current amount of principal stake
   /// @param newAmount New amount of principal stake (wei)
-  /// @dev The amount of principal stake is usually increased via deposit() call,
+  /// @dev The amount of principal stake is usually increased via the deposit() call,
   ///      but in certain cases, it may need to be changed explicitly.
   function setAmountOfPrincipalStake(uint256 newAmount) external;
 
@@ -123,7 +123,7 @@ interface IObolValidatorManager {
   function setRewardRecipient(address newRewardRecipient) external;
 
   /// Distributes target token inside the contract to recipients
-  /// @dev pushes funds to recipients
+  /// @dev Pushes funds to recipients
   function distributeFunds() external;
 
   /// Distributes target token inside the contract to recipients
@@ -131,7 +131,7 @@ interface IObolValidatorManager {
   /// remaining recipients
   function distributeFundsPull() external;
 
-  /// Request validators consolidation with the EIP7251 system contract
+  /// Requests validator consolidation with the EIP7251 system contract
   /// @dev The excess fee is the difference between the maximum fee and the actual fee paid.
   /// @dev Emits a {UnsentExcessFee} event if the excess fee is not sent.
   /// @param requests An array of consolidation requests.
@@ -143,7 +143,7 @@ interface IObolValidatorManager {
     address excessFeeRecipient
   ) external payable;
 
-  /// Request partial/full withdrawal from the EIP7002 system contract
+  /// Requests partial/full withdrawal from the EIP7002 system contract
   /// @dev The caller must compute the fee before calling and send a sufficient msg.value amount.
   ///      Excess amount will be refunded.
   ///      Withdrawals that leave a validator with (0..32) ether
@@ -152,6 +152,7 @@ interface IObolValidatorManager {
   /// @param amounts Withdrawal amounts in gwei.
   ///                Any amount below principalThreshold will be distributed as reward.
   ///                Any amount >= principalThreshold will be distributed as principal.
+  ///                Zero amount will trigger a full withdrawal of the validator.
   /// @param maxFeePerWithdrawal The maximum fee allowed per withdrawal.
   /// @param excessFeeRecipient The address to which excess fees will be sent.
   function requestWithdrawal(
@@ -161,12 +162,12 @@ interface IObolValidatorManager {
     address excessFeeRecipient
   ) external payable;
 
-  /// Recover non-OVM tokens to a recipient
+  /// Recovers non-OVM tokens to a recipient
   /// @param nonOVMToken Token to recover (cannot be OVM token)
   /// @param recipient Address to receive recovered token
   function recoverFunds(address nonOVMToken, address recipient) external;
 
-  /// Withdraw token balance for an account
+  /// Withdraws token balance for an account
   /// @param account Address to withdraw on behalf of
   function withdraw(address account) external;
 
@@ -193,7 +194,7 @@ interface IObolValidatorManager {
 
   /// @notice Returns the current principal recipient address
   /// @return Address that receives principal stake distributions
-  function principalRecipient() external view returns (address);
+  function beneficiaryRecipient() external view returns (address);
 
   /// @notice Returns the reward recipient address
   /// @return Address that receives reward distributions

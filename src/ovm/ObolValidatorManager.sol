@@ -30,7 +30,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   uint256 public constant WITHDRAWAL_ROLE = 0x01;
   uint256 public constant CONSOLIDATION_ROLE = 0x02;
-  uint256 public constant SET_PRINCIPAL_ROLE = 0x04;
+  uint256 public constant SET_BENEFICIARY_ROLE = 0x04;
   uint256 public constant RECOVER_FUNDS_ROLE = 0x08;
   uint256 public constant SET_REWARD_ROLE = 0x10;
   uint256 public constant DEPOSIT_ROLE = 0x20;
@@ -54,7 +54,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// -----------------------------------------------------------------------
 
   /// Address to receive principal funds
-  address public principalRecipient;
+  address public beneficiaryRecipient;
 
   /// Address to receive reward funds
   address public rewardRecipient;
@@ -78,14 +78,14 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     address _withdrawalSystemContract,
     address _depositSystemContract,
     address _owner,
-    address _principalRecipient,
+    address _beneficiaryRecipient,
     address _rewardRecipient,
     uint64 _principalThreshold
   ) {
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
     depositSystemContract = _depositSystemContract;
-    principalRecipient = _principalRecipient;
+    beneficiaryRecipient = _beneficiaryRecipient;
     rewardRecipient = _rewardRecipient;
     principalThreshold = _principalThreshold;
 
@@ -124,19 +124,19 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function setPrincipalRecipient(address newPrincipalRecipient) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
-    if (newPrincipalRecipient == address(0)) {
+  function setBeneficiaryRecipient(address newBeneficiaryRecipient) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
+    if (newBeneficiaryRecipient == address(0)) {
       revert InvalidRequest_Params();
     }
 
-    address oldPrincipalRecipient = principalRecipient;
-    principalRecipient = newPrincipalRecipient;
+    address oldBeneficiaryRecipient = beneficiaryRecipient;
+    beneficiaryRecipient = newBeneficiaryRecipient;
 
-    emit NewPrincipalRecipient(newPrincipalRecipient, oldPrincipalRecipient);
+    emit NewBeneficiaryRecipient(newBeneficiaryRecipient, oldBeneficiaryRecipient);
   }
 
   /// @inheritdoc IObolValidatorManager
-  function setAmountOfPrincipalStake(uint256 newAmount) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
+  function setAmountOfPrincipalStake(uint256 newAmount) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
     if (newAmount == amountOfPrincipalStake) {
       return;
     }
@@ -481,7 +481,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     }
 
     // pay out principal
-    _payout(principalRecipient, _principalPayout, pullOrPush);
+    _payout(beneficiaryRecipient, _principalPayout, pullOrPush);
     // pay out reward
     _payout(rewardRecipient, _rewardPayout, pullOrPush);
 

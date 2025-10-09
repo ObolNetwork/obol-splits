@@ -19,7 +19,7 @@ contract CreateOVMScript is Script {
   function run(
     address ovmFactory,
     address owner,
-    address principalRecipient,
+    address beneficiaryRecipient,
     address rewardsRecipient,
     uint64 principalThreshold
   ) external {
@@ -33,8 +33,8 @@ contract CreateOVMScript is Script {
     if (owner == address(0)) {
       revert("Owner address cannot be zero");
     }
-    if (principalRecipient == address(0)) {
-      revert("Principal recipient address cannot be zero");
+    if (beneficiaryRecipient == address(0)) {
+      revert("Beneficiary recipient address cannot be zero");
     }
     if (rewardsRecipient == address(0)) {
       revert("Rewards recipient address cannot be zero");
@@ -48,7 +48,7 @@ contract CreateOVMScript is Script {
     ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(ovmFactory);
     ObolValidatorManager ovm = factory.createObolValidatorManager(
       owner,
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );

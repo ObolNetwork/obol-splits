@@ -31,13 +31,13 @@ contract ObolValidatorManagerFactory {
   /// Emitted after a new ObolValidatorManager instance is deployed
   /// @param ovm Address of newly created ObolValidatorManager instance
   /// @param owner Owner of newly created ObolValidatorManager instance
-  /// @param principalRecipient Address to distribute principal payment to
+  /// @param beneficiaryRecipient Address to distribute principal payment to
   /// @param rewardRecipient Address to distribute reward payment to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei)
   event CreateObolValidatorManager(
     address indexed ovm,
     address indexed owner,
-    address principalRecipient,
+    address beneficiaryRecipient,
     address rewardRecipient,
     uint64 principalThreshold
   );
@@ -86,19 +86,19 @@ contract ObolValidatorManagerFactory {
 
   /// Create a new ObolValidatorManager instance
   /// @param owner Owner of the new ObolValidatorManager instance
-  /// @param principalRecipient Address to distribute principal payments to
+  /// @param beneficiaryRecipient Address to distribute principal payments to
   /// @param rewardRecipient Address to distribute reward payments to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei),
   ///                           the recommended value is 16000000000 (16 ether).
   /// @return ovm Address of the new ObolValidatorManager instance
   function createObolValidatorManager(
     address owner,
-    address principalRecipient,
+    address beneficiaryRecipient,
     address rewardRecipient,
     uint64 principalThreshold
   ) external returns (ObolValidatorManager ovm) {
     if (owner == address(0)) revert Invalid_Owner();
-    if (principalRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
+    if (beneficiaryRecipient == address(0) || rewardRecipient == address(0)) revert Invalid__Recipients();
     if (principalThreshold == 0) revert Invalid__ZeroThreshold();
     if (principalThreshold > 2048 * 1e9) revert Invalid__ThresholdTooLarge();
 
@@ -107,11 +107,11 @@ contract ObolValidatorManagerFactory {
       withdrawalSystemContract,
       depositSystemContract,
       owner,
-      principalRecipient,
+      beneficiaryRecipient,
       rewardRecipient,
       principalThreshold
     );
 
-    emit CreateObolValidatorManager(address(ovm), owner, principalRecipient, rewardRecipient, principalThreshold);
+    emit CreateObolValidatorManager(address(ovm), owner, beneficiaryRecipient, rewardRecipient, principalThreshold);
   }
 }

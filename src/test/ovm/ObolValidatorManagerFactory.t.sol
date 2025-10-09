@@ -13,7 +13,7 @@ contract ObolValidatorManagerFactoryTest is Test {
   event CreateObolValidatorManager(
     address indexed ovm,
     address indexed owner,
-    address principalRecipient,
+    address beneficiaryRecipient,
     address rewardRecipient,
     uint64 principalThreshold
   );
@@ -27,7 +27,7 @@ contract ObolValidatorManagerFactoryTest is Test {
   DepositContractMock depositMock;
   ObolValidatorManagerFactory ovmFactory;
 
-  address public principalRecipient;
+  address public beneficiaryRecipient;
   address public rewardsRecipient;
   uint64 public principalThreshold;
 
@@ -56,7 +56,7 @@ contract ObolValidatorManagerFactoryTest is Test {
       address(this)
     );
 
-    principalRecipient = makeAddr("principalRecipient");
+    beneficiaryRecipient = makeAddr("beneficiaryRecipient");
     rewardsRecipient = makeAddr("rewardsRecipient");
     principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
   }
@@ -64,7 +64,7 @@ contract ObolValidatorManagerFactoryTest is Test {
   function testCan_createOVM() public {
     ObolValidatorManager ovm = ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );
@@ -80,13 +80,13 @@ contract ObolValidatorManagerFactoryTest is Test {
     emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );
@@ -96,13 +96,13 @@ contract ObolValidatorManagerFactoryTest is Test {
     emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );
@@ -112,7 +112,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid_Owner.selector);
     ovmFactory.createObolValidatorManager(
       address(0),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );
@@ -133,7 +133,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__Recipients.selector);
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       address(0),
       principalThreshold
     );
@@ -145,7 +145,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ZeroThreshold.selector);
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       principalThreshold
     );
@@ -153,7 +153,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ThresholdTooLarge.selector);
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       type(uint64).max
     );
@@ -170,13 +170,13 @@ contract ObolValidatorManagerFactoryTest is Test {
     emit CreateObolValidatorManager(
       address(0xdead),
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       _threshold
     );
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       rewardsRecipient,
       _threshold
     );
@@ -190,7 +190,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ZeroThreshold.selector);
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       _rewardsRecipient,
       principalThreshold
     );
@@ -203,7 +203,7 @@ contract ObolValidatorManagerFactoryTest is Test {
     vm.expectRevert(ObolValidatorManagerFactory.Invalid__ThresholdTooLarge.selector);
     ovmFactory.createObolValidatorManager(
       address(this),
-      principalRecipient,
+      beneficiaryRecipient,
       _rewardsRecipient,
       _threshold
     );

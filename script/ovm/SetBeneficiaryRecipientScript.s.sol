@@ -11,7 +11,7 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 //
-contract SetPrincipalRecipientScript is Script {
+contract SetBeneficiaryRecipientScript is Script {
   function run(address ovmAddress, address newBeneficiaryRecipient) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
     if (privKey == 0) {

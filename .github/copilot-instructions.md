@@ -14,7 +14,7 @@ OVM uses Solady's `OwnableRoles` with specific role constants (defined as bit fl
 ```solidity
 WITHDRAWAL_ROLE = 0x01        // EIP-7002 withdrawal requests
 CONSOLIDATION_ROLE = 0x02     // EIP-7251 validator consolidation
-SET_PRINCIPAL_ROLE = 0x04     // Change principal recipient
+SET_BENEFICIARY_ROLE = 0x04   // Change beneficiary recipient
 RECOVER_FUNDS_ROLE = 0x08     // Recover accidentally sent tokens
 SET_REWARD_ROLE = 0x10        // Change reward recipient  
 DEPOSIT_ROLE = 0x20           // Make validator deposits
@@ -26,7 +26,7 @@ The **dual-flow architecture** is central to understanding OVM:
 
 - **PUSH flow** (`distributeFunds()`): Immediately transfers ETH to recipients
 - **PULL flow** (`distributeFundsPull()`): Sets aside funds for later withdrawal via `withdraw(account)`
-- **Principal vs Reward classification**: Based on `principalThreshold` (gwei) - amounts >= threshold are principal
+- **Principal vs Reward classification**: Based on `principalThreshold` (gwei) - amounts >= threshold are principal (distributed to beneficiaryRecipient)
 
 ## Security & Fee Management
 
