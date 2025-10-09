@@ -28,6 +28,24 @@ The **dual-flow architecture** is central to understanding OVM:
 - **PULL flow** (`distributeFundsPull()`): Sets aside funds for later withdrawal via `withdraw(account)`
 - **Principal vs Reward classification**: Based on `principalThreshold` (gwei) - amounts >= threshold are principal
 
+## Security & Fee Management
+
+**Reentrancy Protection**: All critical functions use `nonReentrant` modifier:
+- `requestWithdrawal()`: Batch withdrawals with fee limits and excess refunding
+- `requestConsolidation()`: Batch consolidations with `ConsolidationRequest[]` structure  
+- `distributeFunds()` & `distributeFundsPull()`: Fund distribution with reentrancy protection
+
+**Pectra Upgrade Compatibility**: 
+- User-controlled fee limits (`maxFeePerWithdrawal`, `maxFeePerConsolidation`)
+- Automatic excess fee refunding to specified recipients
+- `UnsentExcessFee` event for failed refund attempts
+- Enhanced validation with `_validateAndReturnFee()` helper
+
+**Batch Processing**:
+- `requestWithdrawal(bytes[] pubKeys, uint64[] amounts, uint256 maxFeePerWithdrawal, address excessFeeRecipient)`
+- `requestConsolidation(ConsolidationRequest[] requests, uint256 maxFeePerConsolidation, address excessFeeRecipient)`
+- `ConsolidationRequest{bytes[] srcPubKeys; bytes targetPubKey}` structure supports multiple source validators
+
 ## Testing Patterns
 
 Tests in `src/test/ovm/` follow specific conventions:
@@ -69,6 +87,22 @@ When implementing `IObolValidatorManager`, remember:
 ## Key Integration Points
 
 - **EIP-7002**: Withdrawal system contract for validator exits
-- **EIP-7251**: Consolidation system contract for merging validators  
+- **EIP-7251**: Consolidation system contract for merging validators (max 63 source validators per consolidation)
 - **Ethereum Deposit Contract**: For new validator deposits (32 ETH)
 - **Solady Libraries**: OwnableRoles for access control, SafeTransferLib for ETH transfers
+- **Solmate ReentrancyGuard**: Reentrancy protection for critical functions
+
+## Function Signatures
+
+**Current Function Signatures**:
+```solidity
+function requestWithdrawal(bytes[] calldata pubKeys, uint64[] calldata amounts, uint256 maxFeePerWithdrawal, address excessFeeRecipient) external payable;
+function requestConsolidation(ConsolidationRequest[] calldata requests, uint256 maxFeePerConsolidation, address excessFeeRecipient) external payable;
+```
+
+**Events**:
+```solidity
+event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount, uint256 fee);
+event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target, uint256 fee);
+event UnsentExcessFee(address indexed excessFeeRecipient, uint256 indexed excessFee);
+```

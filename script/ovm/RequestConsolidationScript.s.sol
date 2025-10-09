@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "forge-std/Script.sol";
 import "./Utils.s.sol";
 import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
+import {IObolValidatorManager} from "src/interfaces/IObolValidatorManager.sol";
 
 //
 // This script calls requestConsolidation() for an ObolValidatorManager contract.
@@ -30,7 +31,10 @@ contract RequestConsolidationScript is Script {
     bytes[] memory sourcePubKeys = new bytes[](1);
     sourcePubKeys[0] = src;
 
-    ovm.requestConsolidation{value: 100 wei}(sourcePubKeys, dst);
+    IObolValidatorManager.ConsolidationRequest[] memory requests = new IObolValidatorManager.ConsolidationRequest[](1);
+    requests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: sourcePubKeys, targetPubKey: dst});
+    
+    ovm.requestConsolidation{value: 100 wei}(requests, 100 wei, msg.sender);
 
     vm.stopBroadcast();
   }

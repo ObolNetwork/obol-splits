@@ -33,7 +33,7 @@ contract RequestWithdrawalScript is Script {
     uint64[] memory amounts = new uint64[](1);
     amounts[0] = amount;
 
-    ovm.requestWithdrawal{value: 100 wei}(pubKeys, amounts);
+    ovm.requestWithdrawal{value: 100 wei}(pubKeys, amounts, 100 wei, msg.sender);
 
     vm.stopBroadcast();
   }

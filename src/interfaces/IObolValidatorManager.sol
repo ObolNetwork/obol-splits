@@ -5,6 +5,14 @@ pragma solidity 0.8.19;
 /// @author Obol
 /// @dev The interface for ObolValidatorManager contract.
 interface IObolValidatorManager {
+  /// @notice Struct to represent a consolidation request.
+  /// @param srcPubKeys The public keys of the validators to consolidate from.
+  /// @param targetPubKey The public key of the validator to consolidate to.
+  struct ConsolidationRequest {
+    bytes[] srcPubKeys;
+    bytes targetPubKey;
+  }
+
   /// -----------------------------------------------------------------------
   /// Events
   /// -----------------------------------------------------------------------
@@ -45,13 +53,21 @@ interface IObolValidatorManager {
   /// @param requester Address of the requester
   /// @param source Source validator public key
   /// @param target Target validator public key
-  event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
+  /// @param fee Fee paid for the consolidation request
+  event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target, uint256 fee);
 
   /// Emitted when a Pectra withdrawal request is done
   /// @param requester Address of the requester
   /// @param pubKey Validator public key
   /// @param amount Withdrawal amount
-  event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount);
+  /// @param fee Withdrawal fee
+  event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount, uint256 fee);
+
+  /// Emitted when the excess fee sent as part of a {consolidation}, or {withdrawal} - (partial or full)
+  /// request could not be refunded to the {excessFeeRecipient} recipient.
+  /// @param excessFeeRecipient The address to which the excess fee should have been sent.
+  /// @param excessFee The amount of excess fee sent.
+  event UnsentExcessFee(address indexed excessFeeRecipient, uint256 indexed excessFee);
 
   /// -----------------------------------------------------------------------
   /// Errors
@@ -116,12 +132,16 @@ interface IObolValidatorManager {
   function distributeFundsPull() external;
 
   /// Request validators consolidation with the EIP7251 system contract
-  /// @dev All source validators will be consolidated into the target validator.
-  ///      The caller must compute the fee before calling and send a sufficient msg.value amount.
-  ///      Excess amount will be refunded.
-  /// @param sourcePubKeys Validator public keys to be consolidated
-  /// @param targetPubKey Target validator public key
-  function requestConsolidation(bytes[] calldata sourcePubKeys, bytes calldata targetPubKey) external payable;
+  /// @dev The excess fee is the difference between the maximum fee and the actual fee paid.
+  /// @dev Emits a {UnsentExcessFee} event if the excess fee is not sent.
+  /// @param requests An array of consolidation requests.
+  /// @param maxFeePerConsolidation The maximum fee allowed per consolidation request.
+  /// @param excessFeeRecipient The address to which excess fees will be sent.
+  function requestConsolidation(
+    ConsolidationRequest[] calldata requests,
+    uint256 maxFeePerConsolidation,
+    address excessFeeRecipient
+  ) external payable;
 
   /// Request partial/full withdrawal from the EIP7002 system contract
   /// @dev The caller must compute the fee before calling and send a sufficient msg.value amount.
@@ -132,7 +152,14 @@ interface IObolValidatorManager {
   /// @param amounts Withdrawal amounts in gwei.
   ///                Any amount below principalThreshold will be distributed as reward.
   ///                Any amount >= principalThreshold will be distributed as principal.
-  function requestWithdrawal(bytes[] calldata pubKeys, uint64[] calldata amounts) external payable;
+  /// @param maxFeePerWithdrawal The maximum fee allowed per withdrawal.
+  /// @param excessFeeRecipient The address to which excess fees will be sent.
+  function requestWithdrawal(
+    bytes[] calldata pubKeys,
+    uint64[] calldata amounts,
+    uint256 maxFeePerWithdrawal,
+    address excessFeeRecipient
+  ) external payable;
 
   /// Recover non-OVM tokens to a recipient
   /// @param nonOVMToken Token to recover (cannot be OVM token)

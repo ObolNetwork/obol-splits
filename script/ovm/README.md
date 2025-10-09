@@ -218,7 +218,14 @@ Typical output:
 ## RequestConsolidationScript
 
 This script calls `requestConsolidation()` for an `ObolValidatorManager` contract.
-*By default, the script uses at most 100 wei for the fee, but the change is returned.*
+
+The `requestConsolidation()` function signature uses a `ConsolidationRequest[]` structure and includes:
+- `maxFeePerConsolidation`: Maximum fee willing to pay per consolidation operation
+- `excessFeeRecipient`: Address to receive any excess ETH beyond actual fees
+- Support for batching multiple consolidation operations in a single transaction
+- Enhanced validation (max 63 source validators per consolidation, EIP-7251 compliance)
+
+*By default, the script uses at most 100 wei for the fee, with excess returned to the sender.*
 
 To run this script, the following environment variables must be set:
 - `PRIVATE_KEY`: the private key of the account that will call the function
@@ -236,10 +243,20 @@ forge script script/ovm/RequestConsolidationScript.s.sol --sig "run(address,byte
    0xa035b995117ddd4d34d5b9cae477795183b6805563c301c3e8a323d68aeef614ee9b6509cc0781c53f5ab545f78be46c
 ```
 
+**Note**: The script internally converts the single source/destination pair into a `ConsolidationRequest[]` structure as required by the function signature.
+
 ## RequestWithdrawalScript
 
 This script calls `requestWithdrawal()` for an `ObolValidatorManager` contract.
-*By default, the script uses at most 100 wei for the fee, but the change is returned.*
+
+The `requestWithdrawal()` function signature includes:
+- `maxFeePerWithdrawal`: Maximum fee willing to pay per withdrawal request
+- `excessFeeRecipient`: Address to receive any excess ETH beyond actual fees  
+- Support for batching multiple withdrawal requests in a single transaction
+- Enhanced validation and reentrancy protection
+- Automatic excess fee refunding with fallback event emission
+
+*By default, the script uses at most 100 wei for the fee, with excess returned to the sender.*
 
 To run this script, the following environment variables must be set:
 - `PRIVATE_KEY`: the private key of the account that will call the function
@@ -256,6 +273,8 @@ forge script script/ovm/RequestWithdrawalScript.s.sol --sig "run(address,bytes,u
    0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
    10000000000
 ```
+
+**Note**: The script internally converts the single validator/amount pair into arrays as required by the batch-supporting function signature.
 
 ## DepositScript
 

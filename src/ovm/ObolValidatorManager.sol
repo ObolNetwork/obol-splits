@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
@@ -12,9 +13,7 @@ import {IObolValidatorManager} from "../interfaces/IObolValidatorManager.sol";
 /// @author Obol
 /// @notice A maximally-composable contract that distributes payments
 /// based on threshold to its recipients.
-/// @dev Only ETH can be distributed for a given deployment. There is a
-/// recovery method for tokens sent by accident.
-contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
+contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, ReentrancyGuard {
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
@@ -105,17 +104,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   ///      Because we do not use Clone, we must implement this explicitly
   receive() external payable {}
 
-  /// @notice Submit a Phase 0 DepositData object.
-  /// @param pubkey A BLS12-381 public key.
-  /// @param withdrawal_credentials Commitment to a public key for withdrawals.
-  /// @param signature A BLS12-381 signature.
-  /// @param deposit_data_root The SHA-256 hash of the SSZ-encoded DepositData object.
-  /// Used as a protection against malformed input.
-  /// @dev This function is a proxy to the deposit() function on the depositSystemContract.
-  ///      The deposited amount is accounted for in the amountOfPrincipalStake, which is used
-  ///      to determine the principalRecipient's share of the funds to be distributed.
-  ///      Any deposits made directly to the depositSystemContract will not be accounted for
-  ///      and will be sent to the rewardRecipient address.
+  /// @inheritdoc IObolValidatorManager
   function deposit(
     bytes calldata pubkey,
     bytes calldata withdrawal_credentials,
@@ -134,8 +123,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     emit NewAmountOfPrincipalStake(amountOfPrincipalStake, oldAmountOfPrincipalStake);
   }
 
-  /// @notice Set the principal recipient address
-  /// @param newPrincipalRecipient New address to receive principal funds
+  /// @inheritdoc IObolValidatorManager
   function setPrincipalRecipient(address newPrincipalRecipient) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
     if (newPrincipalRecipient == address(0)) {
       revert InvalidRequest_Params();
@@ -147,10 +135,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     emit NewPrincipalRecipient(newPrincipalRecipient, oldPrincipalRecipient);
   }
 
-  /// @notice Overrides the current amount of principal stake
-  /// @param newAmount New amount of principal stake (wei)
-  /// @dev The amount of principal stake is usually increased via deposit() call,
-  ///      but in certain cases, it may need to be changed explicitly.
+  /// @inheritdoc IObolValidatorManager
   function setAmountOfPrincipalStake(uint256 newAmount) external onlyOwnerOrRoles(SET_PRINCIPAL_ROLE) {
     if (newAmount == amountOfPrincipalStake) {
       return;
@@ -162,8 +147,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     emit NewAmountOfPrincipalStake(newAmount, oldAmount);
   }
 
-  /// @notice Set the reward recipient address
-  /// @param newRewardRecipient New address to receive reward funds
+  /// @inheritdoc IObolValidatorManager
   function setRewardRecipient(address newRewardRecipient) external onlyOwnerOrRoles(SET_REWARD_ROLE) {
     if (newRewardRecipient == address(0)) {
       revert InvalidRequest_Params();
@@ -175,88 +159,97 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     emit NewRewardRecipient(newRewardRecipient, oldRewardRecipient);
   }
 
-  /// Distributes target token inside the contract to recipients
-  /// @dev pushes funds to recipients
-  function distributeFunds() external {
+  /// @inheritdoc IObolValidatorManager
+  function distributeFunds() external nonReentrant {
     _distributeFunds(PUSH);
   }
 
-  /// Distributes target token inside the contract to recipients
-  /// @dev Backup recovery if any recipient tries to brick the OVM for
-  /// remaining recipients
-  function distributeFundsPull() external {
+  /// @inheritdoc IObolValidatorManager
+  function distributeFundsPull() external nonReentrant {
     _distributeFunds(PULL);
   }
 
-  /// Request validators consolidation with the EIP7251 system contract
-  /// @dev All source validators will be consolidated into the target validator.
-  ///      The caller must compute the fee before calling and send a sufficient msg.value amount.
-  ///      Excess amount will be refunded.
-  /// @param sourcePubKeys Validator public keys to be consolidated
-  /// @param targetPubKey Target validator public key
+  /// @inheritdoc IObolValidatorManager
   function requestConsolidation(
-    bytes[] calldata sourcePubKeys,
-    bytes calldata targetPubKey
-  ) external payable onlyOwnerOrRoles(CONSOLIDATION_ROLE) {
-    if (sourcePubKeys.length == 0 || sourcePubKeys.length > 63 || targetPubKey.length != PUBLIC_KEY_LENGTH)
-      revert InvalidRequest_Params();
+    ConsolidationRequest[] calldata requests,
+    uint256 maxFeePerConsolidation,
+    address excessFeeRecipient
+  ) external payable onlyOwnerOrRoles(CONSOLIDATION_ROLE) nonReentrant {
+    // Check if fee exceeds maximum allowed, otherwise get fee
+    uint256 fee = _validateAndReturnFee(consolidationSystemContract, maxFeePerConsolidation);
 
-    uint256 remainingFee = msg.value;
-    uint256 len = sourcePubKeys.length;
+    // Calculate total number of consolidation operations
+    uint256 totalNumOfConsolidationOperations = 0;
+    for (uint256 i = 0; i < requests.length; i++) {
+      if (requests[i].srcPubKeys.length == 0 || requests[i].srcPubKeys.length > 63) {
+        revert InvalidRequest_Params();
+      }
+      totalNumOfConsolidationOperations += requests[i].srcPubKeys.length;
+    }
+    // Check if the msg.value is enough to cover the fees
+    uint256 totalFeeRequired = fee * totalNumOfConsolidationOperations;
+    _validateSufficientValueForFee(msg.value, totalFeeRequired);
 
-    for (uint256 i; i < len; ) {
-      uint256 _currentFee = _computeSystemContractFee(consolidationSystemContract);
-      if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
+    // Perform the consolidation requests
+    for (uint256 i = 0; i < requests.length; i++) {
+      _validatePubkeyLength(requests[i].targetPubKey);
 
-      remainingFee -= _currentFee;
-      _requestConsolidation(sourcePubKeys[i], targetPubKey, _currentFee);
+      for (uint256 j = 0; j < requests[i].srcPubKeys.length; j++) {
+        _validatePubkeyLength(requests[i].srcPubKeys[j]);
 
-      unchecked {
-        ++i;
+        // Add the consolidation request
+        bytes memory callData = bytes.concat(requests[i].srcPubKeys[j], requests[i].targetPubKey);
+        (bool writeOK, ) = consolidationSystemContract.call{value: fee}(callData);
+        if (!writeOK) {
+          revert InvalidConsolidation_Failed();
+        }
+        // Emit consolidation event for each operation
+        emit ConsolidationRequested(msg.sender, requests[i].srcPubKeys[j], requests[i].targetPubKey, fee);
       }
     }
-
-    // Future optimization idea: do not send if gas cost exceeds the value.
-    if (remainingFee > 0) payable(msg.sender).transfer(remainingFee);
+    // Refund any excess value back to the excessFeeRecipient
+    _refundExcessFee(msg.value, totalFeeRequired, excessFeeRecipient);
   }
 
-  /// Request partial/full withdrawal from the EIP7002 system contract
-  /// @dev The caller must compute the fee before calling and send a sufficient msg.value amount.
-  ///      Excess amount will be refunded.
-  ///      Withdrawals that leave a validator with (0..32) ether
-  ///      will only withdraw an amount that leaves the validator at 32 ether.
-  /// @param pubKeys Validator public keys
-  /// @param amounts Withdrawal amounts in gwei.
-  ///                Any amount below principalThreshold will be distributed as reward.
-  ///                Any amount >= principalThreshold will be distributed as principal.
+  /// @inheritdoc IObolValidatorManager
   function requestWithdrawal(
     bytes[] calldata pubKeys,
-    uint64[] calldata amounts
-  ) external payable onlyOwnerOrRoles(WITHDRAWAL_ROLE) {
+    uint64[] calldata amounts,
+    uint256 maxFeePerWithdrawal,
+    address excessFeeRecipient
+  ) external payable onlyOwnerOrRoles(WITHDRAWAL_ROLE) nonReentrant {
     if (pubKeys.length != amounts.length) revert InvalidRequest_Params();
 
-    uint256 remainingFee = msg.value;
+    // check if the value sent is enough to cover the fees
+    uint256 maxFeePayable = maxFeePerWithdrawal * pubKeys.length;
+    _validateSufficientValueForFee(msg.value, maxFeePayable);
+
+    // Check if fee exceeds maximum allowed, otherwise get fee
+    uint256 fee = _validateAndReturnFee(withdrawalSystemContract, maxFeePerWithdrawal);
+
+    uint256 totalFeePaid = 0;
     uint256 len = pubKeys.length;
 
-    for (uint256 i; i < len; ) {
-      uint256 _currentFee = _computeSystemContractFee(withdrawalSystemContract);
-      if (_currentFee > remainingFee) revert InvalidRequest_NotEnoughFee();
+    for (uint256 i; i < len; i++) {
+      _validatePubkeyLength(pubKeys[i]);
 
-      remainingFee -= _currentFee;
-      _requestWithdrawal(pubKeys[i], amounts[i], _currentFee);
-
-      unchecked {
-        ++i;
+      // Add the withdrawal request
+      bytes memory callData = abi.encodePacked(pubKeys[i], amounts[i]);
+      (bool writeOK, ) = withdrawalSystemContract.call{value: fee}(callData);
+      if (!writeOK) {
+        revert InvalidWithdrawal_Failed();
       }
+      totalFeePaid += fee;
+
+      // Emit withdrawal event for each validator
+      emit WithdrawalRequested(msg.sender, pubKeys[i], amounts[i], fee);
     }
 
-    // Future optimization idea: do not send if gas cost exceeds the value.
-    if (remainingFee > 0) payable(msg.sender).transfer(remainingFee);
+    // Refund any excess value back to the excessFeeRecipient
+    _refundExcessFee(msg.value, totalFeePaid, excessFeeRecipient);
   }
 
-  /// Recover non-OVM tokens to a recipient
-  /// @param nonOVMToken Token to recover (cannot be OVM token)
-  /// @param recipient Address to receive recovered token
+  /// @inheritdoc IObolValidatorManager
   function recoverFunds(address nonOVMToken, address recipient) external onlyOwnerOrRoles(RECOVER_FUNDS_ROLE) {
     uint256 amount = ERC20(nonOVMToken).balanceOf(address(this));
     nonOVMToken.safeTransfer(recipient, amount);
@@ -264,8 +257,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     emit RecoverNonOVMFunds(nonOVMToken, recipient, amount);
   }
 
-  /// Withdraw token balance for an account
-  /// @param account Address to withdraw on behalf of
+  /// @inheritdoc IObolValidatorManager
   function withdraw(address account) external {
     uint256 amount = pullBalances[account];
     if (amount == 0) {
@@ -286,9 +278,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// functions - view & pure
   /// -----------------------------------------------------------------------
 
-  /// Returns the balance for the account `account`
-  /// @param account Account to return balance for
-  /// @return Account's withdrawable ether balance
+  /// @inheritdoc IObolValidatorManager
   function getPullBalance(address account) external view returns (uint256) {
     return pullBalances[account];
   }
@@ -297,30 +287,27 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// OwnableRoles function overrides
   /// -----------------------------------------------------------------------
 
-  /// @dev Allows the owner to grant `user` `roles`.
-  /// If the `user` already has a role, then it will be a no-op for the role.
+  /// @inheritdoc IObolValidatorManager
   function grantRoles(address user, uint256 roles) public payable override(IObolValidatorManager, OwnableRoles) {
     super.grantRoles(user, roles);
   }
 
-  /// @dev Allows the owner to remove `user` `roles`.
-  /// If the `user` does not have a role, then it will be a no-op for the role.
+  /// @inheritdoc IObolValidatorManager
   function revokeRoles(address user, uint256 roles) public payable override(IObolValidatorManager, OwnableRoles) {
     super.revokeRoles(user, roles);
   }
 
-  /// @dev Allow the caller to remove their own roles.
-  /// If the caller does not have a role, then it will be a no-op for the role.
+  /// @inheritdoc IObolValidatorManager
   function renounceRoles(uint256 roles) public payable override(IObolValidatorManager, OwnableRoles) {
     super.renounceRoles(roles);
   }
 
-  /// @dev Returns the roles of `user`.
+  /// @inheritdoc IObolValidatorManager
   function rolesOf(address user) public view override(IObolValidatorManager, OwnableRoles) returns (uint256 roles) {
     return super.rolesOf(user);
   }
 
-  /// @dev Returns whether `user` has any of `roles`.
+  /// @inheritdoc IObolValidatorManager
   function hasAnyRole(
     address user,
     uint256 roles
@@ -328,7 +315,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     return super.hasAnyRole(user, roles);
   }
 
-  /// @dev Returns whether `user` has all of `roles`.
+  /// @inheritdoc IObolValidatorManager
   function hasAllRoles(
     address user,
     uint256 roles
@@ -336,39 +323,37 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     return super.hasAllRoles(user, roles);
   }
 
-  /// @dev Allows the owner to transfer the ownership to `newOwner`.
+  /// @inheritdoc IObolValidatorManager
   function transferOwnership(address newOwner) public payable override(IObolValidatorManager, Ownable) {
     super.transferOwnership(newOwner);
   }
 
-  /// @dev Allows the owner to renounce their ownership.
+  /// @inheritdoc IObolValidatorManager
   function renounceOwnership() public payable override(IObolValidatorManager, Ownable) {
     super.renounceOwnership();
   }
 
-  /// @dev Request a two-step ownership handover to the caller.
-  /// The request will automatically expire in 48 hours (172800 seconds) by default.
+  /// @inheritdoc IObolValidatorManager
   function requestOwnershipHandover() public payable override(IObolValidatorManager, Ownable) {
     super.requestOwnershipHandover();
   }
 
-  /// @dev Cancels the two-step ownership handover to the caller, if any.
+  /// @inheritdoc IObolValidatorManager
   function cancelOwnershipHandover() public payable override(IObolValidatorManager, Ownable) {
     super.cancelOwnershipHandover();
   }
 
-  /// @dev Allows the owner to complete the two-step ownership handover to `pendingOwner`.
-  /// Reverts if there is no existing ownership handover requested by `pendingOwner`.
+  /// @inheritdoc IObolValidatorManager
   function completeOwnershipHandover(address pendingOwner) public payable override(IObolValidatorManager, Ownable) {
     super.completeOwnershipHandover(pendingOwner);
   }
 
-  /// @dev Returns the owner of the contract.
+  /// @inheritdoc IObolValidatorManager
   function owner() public view override(IObolValidatorManager, Ownable) returns (address result) {
     return super.owner();
   }
 
-  /// @dev Returns the expiry timestamp for the two-step ownership handover to `pendingOwner`.
+  /// @inheritdoc IObolValidatorManager
   function ownershipHandoverExpiresAt(
     address pendingOwner
   ) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
@@ -378,6 +363,55 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// -----------------------------------------------------------------------
   /// functions - private & internal
   /// -----------------------------------------------------------------------
+
+  /// Internal function to validate the caller sent sufficient value for fee. Used for pectra related operations.
+  /// @param value The value.
+  /// @param totalFee The total fee.
+  function _validateSufficientValueForFee(uint256 value, uint256 totalFee) internal pure {
+    if (value < totalFee) {
+      revert InvalidRequest_NotEnoughFee();
+    }
+  }
+
+  /// Internal function to validate the fee. Used for pectra related operations.
+  /// @param feeContract The address of the fee contract.
+  /// @param maxAllowedFee The maximum allowed fee.
+  /// @return fee The fee.
+  /// @dev Reverts if the fee is higher than the maximum allowed fee, or if the fee read fails.
+  function _validateAndReturnFee(address feeContract, uint256 maxAllowedFee) internal view returns (uint256 fee) {
+    // Read current fee from the contract
+    (bool readOK, bytes memory feeData) = feeContract.staticcall("");
+    if (!readOK) {
+      revert InvalidRequest_SystemGetFee();
+    }
+    fee = uint256(bytes32(feeData));
+
+    if (fee > maxAllowedFee) {
+      revert InvalidRequest_NotEnoughFee();
+    }
+  }
+
+  /// Internal function to validate that a public key is exactly 48 bytes in length
+  /// @param pubkey The public key to validate
+  function _validatePubkeyLength(bytes memory pubkey) internal pure {
+    if (pubkey.length != 48) {
+      revert InvalidRequest_Params();
+    }
+  }
+
+  /// Internal function to refund the excess fee for pectra related operations.
+  /// @param _totalValueReceived The total value received.
+  /// @param _totalFeePaid The total fee paid.
+  /// @param _excessFeeRecipient The address of the excess fee recipient.
+  function _refundExcessFee(uint256 _totalValueReceived, uint256 _totalFeePaid, address _excessFeeRecipient) internal {
+    // send excess value back to _excessFeeRecipient
+    if (_totalValueReceived > _totalFeePaid) {
+      (bool success, ) = payable(_excessFeeRecipient).call{value: _totalValueReceived - _totalFeePaid}("");
+      if (!success) {
+        emit UnsentExcessFee(_excessFeeRecipient, _totalValueReceived - _totalFeePaid);
+      }
+    }
+  }
 
   /// Compute system contract's fee
   /// @param systemContractAddress Address of the consolidation system contract
@@ -389,44 +423,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
     return uint256(bytes32(result));
   }
 
-  /// Execute a single consolidation request
-  /// @param source Source validator public key
-  /// @param target Target validator public key
-  /// @param fee Fee for the consolidation request
-  function _requestConsolidation(bytes calldata source, bytes calldata target, uint256 fee) private {
-    if (source.length != PUBLIC_KEY_LENGTH || target.length != PUBLIC_KEY_LENGTH) revert InvalidRequest_Params();
-
-    // Input data has the following layout:
-    //
-    //  +--------+--------+
-    //  | source | target |
-    //  +--------+--------+
-    //      48       48
-
-    (bool ok, ) = consolidationSystemContract.call{value: fee}(bytes.concat(source, target));
-    if (!ok) revert InvalidConsolidation_Failed();
-
-    emit ConsolidationRequested(msg.sender, source, target);
-  }
-
-  /// Executes single withdrawal request
-  function _requestWithdrawal(bytes memory pubkey, uint64 amount, uint256 fee) private {
-    if (pubkey.length != PUBLIC_KEY_LENGTH) revert InvalidRequest_Params();
-
-    // Input data has the following layout:
-    //
-    //  +--------+--------+
-    //  | pubkey | amount |
-    //  +--------+--------+
-    //      48       8
-    (bool ret, ) = withdrawalSystemContract.call{value: fee}(abi.encodePacked(pubkey, amount));
-    if (!ret) revert InvalidWithdrawal_Failed();
-
-    emit WithdrawalRequested(msg.sender, pubkey, amount);
-  }
-
   /// Distributes target token inside the contract to next-in-line recipients
-  /// @dev can PUSH or PULL funds to recipients
   function _distributeFunds(uint256 pullOrPush) internal {
     /// checks
 
