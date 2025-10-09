@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Proprietary
 pragma solidity 0.8.19;
 
 import {ObolValidatorManager} from "./ObolValidatorManager.sol";

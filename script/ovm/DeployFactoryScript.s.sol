@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Proprietary
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
@@ -23,7 +23,7 @@ contract DeployFactoryScript is Script {
   // ENS deployments: https://docs.ens.domains/learn/deployments/
   // Mainnet: 0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb
   // Sepolia: 0xA0a1AbcDAe1a2a4A2EF8e9113Ff0e02DD81DC0C6
-  // Holesky: 0x132AC0B116a73add4225029D1951A9A707Ef673f
+  // Hoodi:   no deployment yet, patch the code manually to remove ENS params
   address ensReverseRegistrar = 0xA0a1AbcDAe1a2a4A2EF8e9113Ff0e02DD81DC0C6;
 
   function run(string calldata name) external {

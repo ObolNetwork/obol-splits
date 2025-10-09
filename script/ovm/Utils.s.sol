@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Proprietary
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
@@ -10,12 +10,8 @@ library Utils {
     string memory baseUrl;
     if (block.chainid == 1) {
       baseUrl = "https://etherscan.io/address/";
-    } else if (block.chainid == 5) {
-      baseUrl = "https://sepolia.etherscan.io/address/";
     } else if (block.chainid == 11155111) {
-      baseUrl = "https://goerli.etherscan.io/address/";
-    } else if (block.chainid == 17000) {
-      baseUrl = "https://holesky.etherscan.io/address/";
+      baseUrl = "https://sepolia.etherscan.io/address/";
     } else if (block.chainid == 560048) {
       baseUrl = "https://hoodi.etherscan.io/address/";
     } else {

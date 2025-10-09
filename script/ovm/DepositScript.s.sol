@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Proprietary
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";

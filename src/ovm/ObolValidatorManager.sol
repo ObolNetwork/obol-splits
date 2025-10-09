@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Proprietary
 pragma solidity 0.8.19;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
@@ -20,76 +20,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles {
   /// -----------------------------------------------------------------------
 
   using SafeTransferLib for address;
-
-  /// -----------------------------------------------------------------------
-  /// errors
-  /// -----------------------------------------------------------------------
-
-  // Invalid request params, e.g. empty input
-  error InvalidRequest_Params();
-
-  // Failed to call system contract get_fee()
-  error InvalidRequest_SystemGetFee();
-
-  // Insufficient fee provided in the call's value to conclude the request
-  error InvalidRequest_NotEnoughFee();
-
-  // Failed to call system contract add_consolidation_request()
-  error InvalidConsolidation_Failed();
-
-  // Failed to call system contract add_withdrawal_request()
-  error InvalidWithdrawal_Failed();
-
-  /// Invalid distribution
-  error InvalidDistribution_TooLarge();
-
-  /// -----------------------------------------------------------------------
-  /// events
-  /// -----------------------------------------------------------------------
-
-  /// Emitted after principal recipient is changed
-  /// @param newPrincipalRecipient New principal recipient address
-  /// @param oldPrincipalRecipient Old principal recipient address
-  event NewPrincipalRecipient(address indexed newPrincipalRecipient, address indexed oldPrincipalRecipient);
-
-  /// Emitted after amount of principal stake is changed
-  /// @param newPrincipalStakeAmount New amount of principal stake (wei)
-  /// @param oldPrincipalStakeAmount Old amount of principal stake (wei)
-  event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
-
-  /// Emitted after reward recipient is changed
-  /// @param newRewardRecipient New reward recipient address
-  /// @param oldRewardRecipient Old reward recipient address
-  event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
-
-  /// Emitted after funds are distributed to recipients
-  /// @param principalPayout Amount of principal paid out
-  /// @param rewardPayout Amount of reward paid out
-  /// @param pullOrPush Flag indicating PULL or PUSH flow
-  event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullOrPush);
-
-  /// Emitted after tokens are recovered to a recipient
-  /// @param nonOVMToken Recovered token (cannot be ETH)
-  /// @param recipient Address receiving recovered token
-  /// @param amount Amount of recovered token
-  event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
-
-  /// Emitted after funds withdrawn using pull flow
-  /// @param account Account withdrawing funds for
-  /// @param amount Amount withdrawn
-  event Withdrawal(address indexed account, uint256 amount);
-
-  /// Emitted when a Pectra consolidation request is done
-  /// @param requester Address of the requester
-  /// @param source Source validator public key
-  /// @param target Target validator public key
-  event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target);
-
-  /// Emitted when a Pectra withdrawal request is done
-  /// @param requester Address of the requester
-  /// @param pubKey Validator public key
-  /// @param amount Withdrawal amount
-  event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount);
 
   /// -----------------------------------------------------------------------
   /// storage

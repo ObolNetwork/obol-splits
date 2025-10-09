@@ -6,7 +6,6 @@ You can use any RPC endpoint, but here are some public ones suitable for running
 
 - Mainnet: https://ethereum-rpc.publicnode.com
 - Sepolia: https://ethereum-sepolia-rpc.publicnode.com
-- Holesky: https://ethereum-holesky-rpc.publicnode.com
 - Hoodi:   https://ethereum-hoodi-rpc.publicnode.com
 
 Note: all the scripts and examples below are designed to run on the Sepolia network.
