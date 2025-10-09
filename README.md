@@ -8,17 +8,6 @@ This repo contains Obol Splits smart contracts. This suite of smart contracts an
 
 The following smart contracts are provided as is, without warranty. Details of their audit can be consulted [here](https://docs.obol.tech/docs/sec/smart_contract_audit). 
 
-## Key Features
-
-**ObolValidatorManager** includes:
-
-- **Enhanced Security**: Reentrancy protection on critical functions (`requestWithdrawal`, `requestConsolidation`, `distributeFunds`, `distributeFundsPull`)
-- **Fee Management**: User-controlled fee limits and automatic excess refunding for Pectra upgrade compatibility
-- **Batch Operations**: Support for batch withdrawal and consolidation requests in single transactions
-- **Interface Architecture**: Centralized events, errors, and function definitions in `IObolValidatorManager` interface
-- **EIP Compliance**: Full EIP-7002 (withdrawal) and EIP-7251 (consolidation) system contract integration
-- **Robust Validation**: Comprehensive parameter validation and error handling
-
 ## Quickstart
 
 This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.org/learn/intro/obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
@@ -105,4 +94,4 @@ ImmutableSplitController: https://etherscan.io/address/0xaF129979b773374dD3025d3
 
 ### Versioning
 
-Versioning of releases to this repo has not been implemented.
+Releases of this repo constitute post-fix review, audited commits. Consult the release notes and audits as not all contracts are in scope each audit.
