@@ -6,7 +6,7 @@ This repo contains Obol Splits smart contracts. This suite of smart contracts an
 
 ### Disclaimer
 
-The following smart contracts are provided as is, without warranty. Details of their audits can be consulted [here](https://docs.obol.tech/docs/sec/overview). 
+The following smart contracts are provided as is, without warranty. Details of their audit can be consulted [here](https://docs.obol.tech/docs/sec/smart_contract_audit). 
 
 ## Quickstart
 
@@ -69,6 +69,8 @@ forge script script/CreateObolValidatorManagerScript.s.sol --sig "run(address)" 
 
 #### Sepolia
 
+ObolValidatorManagerFactory: https://sepolia.etherscan.io/address/0x4Cdc690A9125Ec487aA625C54b64E162FE9b4E9C
+
 OptimisticWithdrawalRecipientFactory: https://sepolia.etherscan.io/address/0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a
 
 OptimisticWithdrawalRecipient: https://sepolia.etherscan.io/address/0x99585e71ab1118682d51efefca0a170c70eef0d6
@@ -76,12 +78,16 @@ OptimisticWithdrawalRecipient: https://sepolia.etherscan.io/address/0x99585e71ab
 
 ### Holesky
 
+ObolValidatorManagerFactory: https://holesky.etherscan.io/address/0x466bD4917e5e1662db1A549Bd828637E2CEDFEA9
+
 ObolLidoSplitFactory: https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449
 
 ObolLidoSplit: https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd 
 
 
 #### Mainnet
+
+ObolValidatorManagerFactory: https://etherscan.io/address/0xdfe2d8b26806583cf03b3cb623b0752f8670e93e
 
 OptimisticWithdrawalRecipientFactory: https://etherscan.io/address/0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522
 
@@ -97,4 +103,4 @@ ImmutableSplitController: https://etherscan.io/address/0xaF129979b773374dD3025d3
 
 ### Versioning
 
-Releases of this repo constitute post-fix review, audited commits. Consult the release notes and audits as not all contracts are in scope each audit.
+Versioning of releases to this repo has not been implemented.
