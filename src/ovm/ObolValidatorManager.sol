@@ -170,7 +170,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function requestConsolidation(
+  function consolidate(
     ConsolidationRequest[] calldata requests,
     uint256 maxFeePerConsolidation,
     address excessFeeRecipient
@@ -212,7 +212,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function requestWithdrawal(
+  function withdraw(
     bytes[] calldata pubKeys,
     uint64[] calldata amounts,
     uint256 maxFeePerWithdrawal,
@@ -258,7 +258,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function withdraw(address account) external {
+  function withdrawPullBalance(address account) external {
     uint256 amount = pullBalances[account];
     if (amount == 0) {
       return;
@@ -271,7 +271,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     pullBalances[account] = 0;
     account.safeTransferETH(amount);
 
-    emit Withdrawal(account, amount);
+    emit PullBalanceWithdrawn(account, amount);
   }
 
   /// -----------------------------------------------------------------------
@@ -411,16 +411,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
         emit UnsentExcessFee(_excessFeeRecipient, _totalValueReceived - _totalFeePaid);
       }
     }
-  }
-
-  /// Compute system contract's fee
-  /// @param systemContractAddress Address of the consolidation system contract
-  /// @return The computed fee
-  function _computeSystemContractFee(address systemContractAddress) internal view returns (uint256) {
-    (bool ok, bytes memory result) = systemContractAddress.staticcall("");
-    if (!ok) revert InvalidRequest_SystemGetFee();
-
-    return uint256(bytes32(result));
   }
 
   /// Distributes target token inside the contract to next-in-line recipients

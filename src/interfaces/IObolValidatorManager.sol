@@ -47,7 +47,7 @@ interface IObolValidatorManager {
   /// Emitted after funds withdrawn using pull flow
   /// @param account Account withdrawing funds for
   /// @param amount Amount withdrawn
-  event Withdrawal(address indexed account, uint256 amount);
+  event PullBalanceWithdrawn(address indexed account, uint256 amount);
 
   /// Emitted when a Pectra consolidation request is done
   /// @param requester Address of the requester
@@ -131,19 +131,19 @@ interface IObolValidatorManager {
   /// remaining recipients
   function distributeFundsPull() external;
 
-  /// Requests validator consolidation with the EIP7251 system contract
+  /// Consolidates validators using the EIP7251 system contract
   /// @dev The excess fee is the difference between the maximum fee and the actual fee paid.
   /// @dev Emits a {UnsentExcessFee} event if the excess fee is not sent.
   /// @param requests An array of consolidation requests.
   /// @param maxFeePerConsolidation The maximum fee allowed per consolidation request.
   /// @param excessFeeRecipient The address to which excess fees will be sent.
-  function requestConsolidation(
+  function consolidate(
     ConsolidationRequest[] calldata requests,
     uint256 maxFeePerConsolidation,
     address excessFeeRecipient
   ) external payable;
 
-  /// Requests partial/full withdrawal from the EIP7002 system contract
+  /// Withdraws from validators using the EIP7002 system contract
   /// @dev The caller must compute the fee before calling and send a sufficient msg.value amount.
   ///      Excess amount will be refunded.
   ///      Withdrawals that leave a validator with (0..32) ether
@@ -155,7 +155,7 @@ interface IObolValidatorManager {
   ///                Zero amount will trigger a full withdrawal of the validator.
   /// @param maxFeePerWithdrawal The maximum fee allowed per withdrawal.
   /// @param excessFeeRecipient The address to which excess fees will be sent.
-  function requestWithdrawal(
+  function withdraw(
     bytes[] calldata pubKeys,
     uint64[] calldata amounts,
     uint256 maxFeePerWithdrawal,
@@ -167,9 +167,9 @@ interface IObolValidatorManager {
   /// @param recipient Address to receive recovered token
   function recoverFunds(address nonOVMToken, address recipient) external;
 
-  /// Withdraws token balance for an account
-  /// @param account Address to withdraw on behalf of
-  function withdraw(address account) external;
+  /// Withdraws pull balance for an account
+  /// @param account Address to withdraw pull balance for
+  function withdrawPullBalance(address account) external;
 
   /// Returns the balance for the account `account`
   /// @param account Account to return balance for

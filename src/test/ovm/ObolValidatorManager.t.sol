@@ -22,7 +22,7 @@ contract ObolValidatorManagerTest is Test {
   event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullOrPush);
   event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
-  event Withdrawal(address indexed account, uint256 amount);
+  event PullBalanceWithdrawn(address indexed account, uint256 amount);
   event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target, uint256 fee);
   event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount, uint256 fee);
   event UnsentExcessFee(address indexed excessFeeRecipient, uint256 indexed excessFee);
@@ -211,7 +211,7 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.setRewardRecipient(makeAddr("noaccess"));
   }
 
-  function testCannot_requestConsolidation() public {
+  function testCannot_consolidate() public {
     // Unauthorized
     address _user = vm.addr(0x2);
     ovmETH.grantRoles(_user, ovmETH.WITHDRAWAL_ROLE());
@@ -220,7 +220,7 @@ contract ObolValidatorManagerTest is Test {
     vm.expectRevert(bytes4(0x82b42900));
     IObolValidatorManager.ConsolidationRequest[] memory requests = new IObolValidatorManager.ConsolidationRequest[](1);
     requests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: new bytes[](1), targetPubKey: new bytes(48)});
-    ovmETH.requestConsolidation{value: 1 ether}(requests, 1 ether, _user);
+    ovmETH.consolidate{value: 1 ether}(requests, 1 ether, _user);
     vm.stopPrank();
 
     // Empty source array
@@ -228,7 +228,7 @@ contract ObolValidatorManagerTest is Test {
     bytes[] memory empty = new bytes[](0);
     IObolValidatorManager.ConsolidationRequest[] memory emptyRequests = new IObolValidatorManager.ConsolidationRequest[](1);
     emptyRequests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: empty, targetPubKey: new bytes(48)});
-    ovmETH.requestConsolidation{value: 1 ether}(emptyRequests, 1 ether, address(this));
+    ovmETH.consolidate{value: 1 ether}(emptyRequests, 1 ether, address(this));
 
     // Not enough fee (1 wei is the minimum fee)
     vm.expectRevert(IObolValidatorManager.InvalidRequest_NotEnoughFee.selector);
@@ -236,19 +236,19 @@ contract ObolValidatorManagerTest is Test {
     single[0] = new bytes(48);
     IObolValidatorManager.ConsolidationRequest[] memory singleRequests = new IObolValidatorManager.ConsolidationRequest[](1);
     singleRequests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: single, targetPubKey: new bytes(48)});
-    ovmETH.requestConsolidation{value: 0}(singleRequests, 100 wei, address(this));
+    ovmETH.consolidate{value: 0}(singleRequests, 100 wei, address(this));
 
     // Failed get_fee() request
     uint256 realFee = consolidationMock.fakeExponential(0);
     consolidationMock.setFailNextFeeRequest(true);
     vm.expectRevert(IObolValidatorManager.InvalidRequest_SystemGetFee.selector);
-    ovmETH.requestConsolidation{value: realFee}(singleRequests, realFee, address(this));
+    ovmETH.consolidate{value: realFee}(singleRequests, realFee, address(this));
     consolidationMock.setFailNextFeeRequest(false);
 
     // Failed add_request() request
     consolidationMock.setFailNextAddRequest(true);
     vm.expectRevert(IObolValidatorManager.InvalidConsolidation_Failed.selector);
-    ovmETH.requestConsolidation{value: realFee}(singleRequests, realFee, address(this));
+    ovmETH.consolidate{value: realFee}(singleRequests, realFee, address(this));
     consolidationMock.setFailNextAddRequest(false);
 
     // Maximum number of source pubkeys is 63
@@ -256,10 +256,10 @@ contract ObolValidatorManagerTest is Test {
     bytes[] memory batch64 = new bytes[](64);
     IObolValidatorManager.ConsolidationRequest[] memory batch64Requests = new IObolValidatorManager.ConsolidationRequest[](1);
     batch64Requests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: batch64, targetPubKey: new bytes(48)});
-    ovmETH.requestConsolidation{value: realFee}(batch64Requests, realFee, address(this));
+    ovmETH.consolidate{value: realFee}(batch64Requests, realFee, address(this));
   }
 
-  function testRequestSingleConsolidation() public {
+  function testSingleConsolidation() public {
     bytes[] memory srcPubkeys = new bytes[](1);
     bytes memory srcPubkey = new bytes(48);
     bytes memory dstPubkey = new bytes(48);
@@ -279,7 +279,7 @@ contract ObolValidatorManagerTest is Test {
     emit ConsolidationRequested(_user, srcPubkey, dstPubkey, realFee);
     IObolValidatorManager.ConsolidationRequest[] memory consolidationRequests = new IObolValidatorManager.ConsolidationRequest[](1);
     consolidationRequests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: srcPubkeys, targetPubKey: dstPubkey});
-    ovmETH.requestConsolidation{value: 100 wei}(consolidationRequests, 100 wei, _user);
+    ovmETH.consolidate{value: 100 wei}(consolidationRequests, 100 wei, _user);
     vm.stopPrank();
 
     bytes memory requestData = bytes.concat(srcPubkey, dstPubkey);
@@ -290,7 +290,7 @@ contract ObolValidatorManagerTest is Test {
     assertEq(_user.balance, 1 ether - realFee);
   }
 
-  function testRequestBatchConsolidation() public {
+  function testBatchConsolidation() public {
     uint256 numRequests = 10;
     uint256 expectedTotalFee;
     uint256 excessFee = 100 wei;
@@ -315,7 +315,7 @@ contract ObolValidatorManagerTest is Test {
     vm.startPrank(_user);
     IObolValidatorManager.ConsolidationRequest[] memory batchRequests = new IObolValidatorManager.ConsolidationRequest[](1);
     batchRequests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: srcPubkeys, targetPubKey: dstPubkey});
-    ovmETH.requestConsolidation{value: expectedTotalFee}(batchRequests, type(uint256).max, _user);
+    ovmETH.consolidate{value: expectedTotalFee}(batchRequests, type(uint256).max, _user);
     vm.stopPrank();
 
     bytes[] memory requestsMade = consolidationMock.getRequests();
@@ -328,14 +328,14 @@ contract ObolValidatorManagerTest is Test {
     }
   }
 
-  function testCannot_requestWithdrawal() public {
+  function testCannot_withdraw() public {
     // Unauthorized
     address _user = vm.addr(0x2);
     ovmETH.grantRoles(_user, ovmETH.CONSOLIDATION_ROLE());
     vm.deal(_user, type(uint256).max);
     vm.startPrank(_user);
     vm.expectRevert(bytes4(0x82b42900));
-    ovmETH.requestWithdrawal{value: 1 ether}(new bytes[](1), new uint64[](1), 1 ether, _user);
+    ovmETH.withdraw{value: 1 ether}(new bytes[](1), new uint64[](1), 1 ether, _user);
     vm.stopPrank();
 
     uint64[] memory amounts = new uint64[](1);
@@ -345,30 +345,30 @@ contract ObolValidatorManagerTest is Test {
     // Inequal array lengths
     vm.expectRevert(IObolValidatorManager.InvalidRequest_Params.selector);
     bytes[] memory empty = new bytes[](0);
-    ovmETH.requestWithdrawal{value: 1 ether}(empty, amounts, 1 ether, address(this));
+    ovmETH.withdraw{value: 1 ether}(empty, amounts, 1 ether, address(this));
 
     // Not enough fee (1 wei is the minimum fee)
     uint256 validAmount = principalThreshold;
     amounts[0] = uint64(validAmount);
     vm.expectRevert(IObolValidatorManager.InvalidRequest_NotEnoughFee.selector);
-    ovmETH.requestWithdrawal{value: 0}(single, amounts, 100 wei, address(this));
+    ovmETH.withdraw{value: 0}(single, amounts, 100 wei, address(this));
 
     // Failed get_fee() request
     uint256 realFee = withdrawalMock.fakeExponential(0);
     amounts[0] = uint64(validAmount);
     withdrawalMock.setFailNextFeeRequest(true);
     vm.expectRevert(IObolValidatorManager.InvalidRequest_SystemGetFee.selector);
-    ovmETH.requestWithdrawal{value: realFee}(single, amounts, realFee, address(this));
+    ovmETH.withdraw{value: realFee}(single, amounts, realFee, address(this));
     withdrawalMock.setFailNextFeeRequest(false);
 
     // Failed add_request() request
     withdrawalMock.setFailNextAddRequest(true);
     vm.expectRevert(IObolValidatorManager.InvalidWithdrawal_Failed.selector);
-    ovmETH.requestWithdrawal{value: realFee}(single, amounts, realFee, address(this));
+    ovmETH.withdraw{value: realFee}(single, amounts, realFee, address(this));
     withdrawalMock.setFailNextAddRequest(false);
   }
 
-  function testRequestSingleWithdrawal() public {
+  function testSingleWithdrawal() public {
     bytes[] memory pubkeys = new bytes[](1);
     uint64[] memory amounts = new uint64[](1);
     bytes memory pubkey = new bytes(48);
@@ -387,7 +387,7 @@ contract ObolValidatorManagerTest is Test {
     vm.startPrank(_user);
     vm.expectEmit(true, true, true, true);
     emit WithdrawalRequested(_user, pubkey, amount, realFee);
-    ovmETH.requestWithdrawal{value: 100 wei}(pubkeys, amounts, 100 wei, _user);
+    ovmETH.withdraw{value: 100 wei}(pubkeys, amounts, 100 wei, _user);
     vm.stopPrank();
 
     bytes memory requestData = abi.encodePacked(pubkey, amount);
@@ -398,7 +398,7 @@ contract ObolValidatorManagerTest is Test {
     assertEq(_user.balance, 1 ether - realFee);
   }
 
-  function testRequestBatchWithdrawal() public {
+  function testBatchWithdrawal() public {
     uint256 excessFee = 100 wei;
     uint256 numRequests = 10;
     bytes[] memory pubkeys = new bytes[](numRequests);
@@ -422,7 +422,7 @@ contract ObolValidatorManagerTest is Test {
 
     vm.deal(_user, expectedTotalFee + excessFee);
     vm.startPrank(_user);
-    ovmETH.requestWithdrawal{value: expectedTotalFee}(pubkeys, amounts, feePerRequest, _user);
+    ovmETH.withdraw{value: expectedTotalFee}(pubkeys, amounts, feePerRequest, _user);
     vm.stopPrank();
 
     bytes[] memory requestsMade = withdrawalMock.getRequests();
@@ -505,7 +505,7 @@ contract ObolValidatorManagerTest is Test {
     
     // Record logs to check no Withdrawal event is emitted
     vm.recordLogs();
-    ovmETH.withdraw(account);
+    ovmETH.withdrawPullBalance(account);
     
     // Get all emitted events
     Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -647,7 +647,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 36 ether);
 
-    ovmETH.withdraw(rewardsRecipient);
+    ovmETH.withdrawPullBalance(rewardsRecipient);
 
     assertEq(address(ovmETH).balance, 32 ether);
     assertEq(beneficiaryRecipient.balance, 0);
@@ -658,7 +658,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 32 ether);
 
-    ovmETH.withdraw(beneficiaryRecipient);
+    ovmETH.withdrawPullBalance(beneficiaryRecipient);
 
     assertEq(address(ovmETH).balance, 0 ether);
     assertEq(beneficiaryRecipient.balance, 32 ether);
@@ -736,7 +736,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 1 ether);
 
-    ovmETH.withdraw(rewardsRecipient);
+    ovmETH.withdrawPullBalance(rewardsRecipient);
 
     assertEq(address(ovmETH).balance, 0 ether);
     assertEq(beneficiaryRecipient.balance, 0);
@@ -748,7 +748,7 @@ contract ObolValidatorManagerTest is Test {
     assertEq(ovmETH.fundsPendingWithdrawal(), 0);
 
     address(ovmETH).safeTransferETH(1 ether);
-    ovmETH.withdraw(rewardsRecipient);
+    ovmETH.withdrawPullBalance(rewardsRecipient);
 
     assertEq(address(ovmETH).balance, 1 ether);
     assertEq(beneficiaryRecipient.balance, 0 ether);
@@ -856,8 +856,8 @@ contract ObolValidatorManagerTest is Test {
       "6/invalid recipient balance"
     );
 
-    ovm.withdraw(_beneficiaryRecipient);
-    ovm.withdraw(_rewardsRecipient);
+    ovm.withdrawPullBalance(_beneficiaryRecipient);
+    ovm.withdrawPullBalance(_rewardsRecipient);
 
     assertEq(address(ovm).balance, 0);
     assertEq(ovm.fundsPendingWithdrawal(), 0);

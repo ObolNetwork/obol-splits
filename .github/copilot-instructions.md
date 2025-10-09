@@ -31,8 +31,8 @@ The **dual-flow architecture** is central to understanding OVM:
 ## Security & Fee Management
 
 **Reentrancy Protection**: All critical functions use `nonReentrant` modifier:
-- `requestWithdrawal()`: Batch withdrawals with fee limits and excess refunding
-- `requestConsolidation()`: Batch consolidations with `ConsolidationRequest[]` structure  
+- `withdraw()`: Batch withdrawals with fee limits and excess refunding
+- `consolidate()`: Batch consolidations with `ConsolidationRequest[]` structure  
 - `distributeFunds()` & `distributeFundsPull()`: Fund distribution with reentrancy protection
 
 **Pectra Upgrade Compatibility**: 
@@ -42,8 +42,8 @@ The **dual-flow architecture** is central to understanding OVM:
 - Enhanced validation with `_validateAndReturnFee()` helper
 
 **Batch Processing**:
-- `requestWithdrawal(bytes[] pubKeys, uint64[] amounts, uint256 maxFeePerWithdrawal, address excessFeeRecipient)`
-- `requestConsolidation(ConsolidationRequest[] requests, uint256 maxFeePerConsolidation, address excessFeeRecipient)`
+- `withdraw(bytes[] pubKeys, uint64[] amounts, uint256 maxFeePerWithdrawal, address excessFeeRecipient)`
+- `consolidate(ConsolidationRequest[] requests, uint256 maxFeePerConsolidation, address excessFeeRecipient)`
 - `ConsolidationRequest{bytes[] srcPubKeys; bytes targetPubKey}` structure supports multiple source validators
 
 ## Testing Patterns
@@ -96,8 +96,8 @@ When implementing `IObolValidatorManager`, remember:
 
 **Current Function Signatures**:
 ```solidity
-function requestWithdrawal(bytes[] calldata pubKeys, uint64[] calldata amounts, uint256 maxFeePerWithdrawal, address excessFeeRecipient) external payable;
-function requestConsolidation(ConsolidationRequest[] calldata requests, uint256 maxFeePerConsolidation, address excessFeeRecipient) external payable;
+function withdraw(bytes[] calldata pubKeys, uint64[] calldata amounts, uint256 maxFeePerWithdrawal, address excessFeeRecipient) external payable;
+function consolidate(ConsolidationRequest[] calldata requests, uint256 maxFeePerConsolidation, address excessFeeRecipient) external payable;
 ```
 
 **Events**:

@@ -7,11 +7,11 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 import {IObolValidatorManager} from "src/interfaces/IObolValidatorManager.sol";
 
 //
-// This script calls requestConsolidation() for an ObolValidatorManager contract.
+// This script calls consolidate() for an ObolValidatorManager contract.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 //
-contract RequestConsolidationScript is Script {
+contract ConsolidateScript is Script {
   function run(address ovmAddress, bytes calldata src, bytes calldata dst) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
     if (privKey == 0) {
@@ -34,7 +34,7 @@ contract RequestConsolidationScript is Script {
     IObolValidatorManager.ConsolidationRequest[] memory requests = new IObolValidatorManager.ConsolidationRequest[](1);
     requests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: sourcePubKeys, targetPubKey: dst});
     
-    ovm.requestConsolidation{value: 100 wei}(requests, 100 wei, msg.sender);
+    ovm.consolidate{value: 100 wei}(requests, 100 wei, msg.sender);
 
     vm.stopBroadcast();
   }

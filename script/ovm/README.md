@@ -216,11 +216,11 @@ Typical output:
   New reward recipient set to 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
 ```
 
-## RequestConsolidationScript
+## ConsolidateScript
 
-This script calls `requestConsolidation()` for an `ObolValidatorManager` contract.
+This script calls `consolidate()` for an `ObolValidatorManager` contract.
 
-The `requestConsolidation()` function signature uses a `ConsolidationRequest[]` structure and includes:
+The `consolidate()` function signature uses a `ConsolidationRequest[]` structure and includes:
 - `maxFeePerConsolidation`: Maximum fee willing to pay per consolidation operation
 - `excessFeeRecipient`: Address to receive any excess ETH beyond actual fees
 - Support for batching multiple consolidation operations in a single transaction
@@ -237,7 +237,7 @@ Script parameters:
 - `dst`: The destination validator public key (hex).
 
 ```bash
-forge script script/ovm/RequestConsolidationScript.s.sol --sig "run(address,bytes,bytes)" \
+forge script script/ovm/ConsolidateScript.s.sol --sig "run(address,bytes,bytes)" \
    --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
    0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
    0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
@@ -246,11 +246,11 @@ forge script script/ovm/RequestConsolidationScript.s.sol --sig "run(address,byte
 
 **Note**: The script internally converts the single source/destination pair into a `ConsolidationRequest[]` structure as required by the function signature.
 
-## RequestWithdrawalScript
+## WithdrawScript
 
-This script calls `requestWithdrawal()` for an `ObolValidatorManager` contract.
+This script calls `withdraw()` for an `ObolValidatorManager` contract.
 
-The `requestWithdrawal()` function signature includes:
+The `withdraw()` function signature includes:
 - `maxFeePerWithdrawal`: Maximum fee willing to pay per withdrawal request
 - `excessFeeRecipient`: Address to receive any excess ETH beyond actual fees  
 - Support for batching multiple withdrawal requests in a single transaction
@@ -268,7 +268,7 @@ Script parameters:
 - `amount`: The amount to withdraw (gwei).
 
 ```bash
-forge script script/ovm/RequestWithdrawalScript.s.sol --sig "run(address,bytes,uint64)" \
+forge script script/ovm/WithdrawScript.s.sol --sig "run(address,bytes,uint64)" \
    --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
    0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
    0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
