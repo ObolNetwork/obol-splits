@@ -394,7 +394,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// Internal function to validate that a public key is exactly 48 bytes in length
   /// @param pubkey The public key to validate
   function _validatePubkeyLength(bytes memory pubkey) internal pure {
-    if (pubkey.length != 48) {
+    if (pubkey.length != PUBLIC_KEY_LENGTH) {
       revert InvalidRequest_Params();
     }
   }
