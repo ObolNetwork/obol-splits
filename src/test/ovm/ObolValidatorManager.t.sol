@@ -23,8 +23,8 @@ contract ObolValidatorManagerTest is Test {
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullOrPush);
   event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
   event PullBalanceWithdrawn(address indexed account, uint256 amount);
-  event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target, uint256 fee);
-  event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount, uint256 fee);
+  event ConsolidationRequested(bytes srcPubKey, bytes targetPubKey, uint256 indexed fee);
+  event WithdrawalRequested(bytes pubkey, uint64 indexed amount, uint256 indexed fee);
   event UnsentExcessFee(address indexed excessFeeRecipient, uint256 indexed excessFee);
 
   address public ENS_REVERSE_REGISTRAR = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
@@ -276,7 +276,7 @@ contract ObolValidatorManagerTest is Test {
     vm.deal(_user, 1 ether);
     vm.startPrank(_user);
     vm.expectEmit(true, true, true, true);
-    emit ConsolidationRequested(_user, srcPubkey, dstPubkey, realFee);
+    emit ConsolidationRequested(srcPubkey, dstPubkey, realFee);
     IObolValidatorManager.ConsolidationRequest[] memory consolidationRequests = new IObolValidatorManager.ConsolidationRequest[](1);
     consolidationRequests[0] = IObolValidatorManager.ConsolidationRequest({srcPubKeys: srcPubkeys, targetPubKey: dstPubkey});
     ovmETH.consolidate{value: 100 wei}(consolidationRequests, 100 wei, _user);
@@ -386,7 +386,7 @@ contract ObolValidatorManagerTest is Test {
     vm.deal(_user, 1 ether);
     vm.startPrank(_user);
     vm.expectEmit(true, true, true, true);
-    emit WithdrawalRequested(_user, pubkey, amount, realFee);
+    emit WithdrawalRequested(pubkey, amount, realFee);
     ovmETH.withdraw{value: 100 wei}(pubkeys, amounts, 100 wei, _user);
     vm.stopPrank();
 

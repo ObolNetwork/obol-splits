@@ -199,12 +199,13 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
         // Add the consolidation request
         bytes memory callData = bytes.concat(requests[i].srcPubKeys[j], requests[i].targetPubKey);
-        (bool writeOK, ) = consolidationSystemContract.call{value: fee}(callData);
-        if (!writeOK) {
+        (bool success, ) = consolidationSystemContract.call{value: fee}(callData);
+        if (!success) {
           revert InvalidConsolidation_Failed();
         }
+        
         // Emit consolidation event for each operation
-        emit ConsolidationRequested(msg.sender, requests[i].srcPubKeys[j], requests[i].targetPubKey, fee);
+        emit ConsolidationRequested(requests[i].srcPubKeys[j], requests[i].targetPubKey, fee);
       }
     }
     // Refund any excess value back to the excessFeeRecipient
@@ -221,28 +222,25 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     if (pubKeys.length != amounts.length) revert InvalidRequest_Params();
 
     // check if the value sent is enough to cover the fees
-    uint256 maxFeePayable = maxFeePerWithdrawal * pubKeys.length;
-    _validateSufficientValueForFee(msg.value, maxFeePayable);
+    _validateSufficientValueForFee(msg.value, maxFeePerWithdrawal * pubKeys.length);
 
     // Check if fee exceeds maximum allowed, otherwise get fee
     uint256 fee = _validateAndReturnFee(withdrawalSystemContract, maxFeePerWithdrawal);
-
     uint256 totalFeePaid = 0;
-    uint256 len = pubKeys.length;
-
-    for (uint256 i; i < len; i++) {
+    
+    for (uint256 i; i < pubKeys.length; i++) {
       _validatePubkeyLength(pubKeys[i]);
 
       // Add the withdrawal request
       bytes memory callData = abi.encodePacked(pubKeys[i], amounts[i]);
-      (bool writeOK, ) = withdrawalSystemContract.call{value: fee}(callData);
-      if (!writeOK) {
+      (bool success, ) = withdrawalSystemContract.call{value: fee}(callData);
+      if (!success) {
         revert InvalidWithdrawal_Failed();
       }
       totalFeePaid += fee;
 
       // Emit withdrawal event for each validator
-      emit WithdrawalRequested(msg.sender, pubKeys[i], amounts[i], fee);
+      emit WithdrawalRequested(pubKeys[i], amounts[i], fee);
     }
 
     // Refund any excess value back to the excessFeeRecipient

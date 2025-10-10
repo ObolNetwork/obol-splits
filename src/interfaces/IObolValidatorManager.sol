@@ -49,19 +49,17 @@ interface IObolValidatorManager {
   /// @param amount Amount withdrawn
   event PullBalanceWithdrawn(address indexed account, uint256 amount);
 
-  /// Emitted when a Pectra consolidation request is done
-  /// @param requester Address of the requester
-  /// @param source Source validator public key
-  /// @param target Target validator public key
-  /// @param fee Fee paid for the consolidation request
-  event ConsolidationRequested(address indexed requester, bytes indexed source, bytes indexed target, uint256 fee);
+  /// @notice Emitted when a consolidation request is submitted.
+  /// @param srcPubKey The public key of the source validator.
+  /// @param targetPubKey The public key of the target validator.
+  /// @param fee The fee paid for the consolidation.
+  event ConsolidationRequested(bytes srcPubKey, bytes targetPubKey, uint256 indexed fee);
 
-  /// Emitted when a Pectra withdrawal request is done
-  /// @param requester Address of the requester
-  /// @param pubKey Validator public key
-  /// @param amount Withdrawal amount
-  /// @param fee Withdrawal fee
-  event WithdrawalRequested(address indexed requester, bytes indexed pubKey, uint256 amount, uint256 fee);
+  /// @notice Emitted when a withdrawal request is submitted for a validator.
+  /// @param pubKey The public key of the validator.
+  /// @param amount The amount to withdraw from the validator.
+  /// @param fee The fee paid for the withdrawal.
+  event WithdrawalRequested(bytes pubKey, uint64 indexed amount, uint256 indexed fee);
 
   /// Emitted when the excess fee sent as part of a consolidation or withdrawal (partial or full)
   /// request could not be refunded to the excessFeeRecipient.
