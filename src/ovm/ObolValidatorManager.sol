@@ -120,19 +120,18 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
       deposit_data_root
     );
 
-    emit NewAmountOfPrincipalStake(amountOfPrincipalStake, oldAmountOfPrincipalStake);
+    emit PrincipalStakeAmountUpdated(amountOfPrincipalStake, oldAmountOfPrincipalStake);
   }
 
   /// @inheritdoc IObolValidatorManager
-  function setBeneficiaryRecipient(address newBeneficiaryRecipient) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
+  function setBeneficiary(address newBeneficiaryRecipient) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
     if (newBeneficiaryRecipient == address(0)) {
       revert InvalidRequest_Params();
     }
 
-    address oldBeneficiaryRecipient = beneficiaryRecipient;
     beneficiaryRecipient = newBeneficiaryRecipient;
 
-    emit NewBeneficiaryRecipient(newBeneficiaryRecipient, oldBeneficiaryRecipient);
+    emit BeneficiaryUpdated(newBeneficiaryRecipient);
   }
 
   /// @inheritdoc IObolValidatorManager
@@ -144,7 +143,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     uint256 oldAmount = amountOfPrincipalStake;
     amountOfPrincipalStake = newAmount;
 
-    emit NewAmountOfPrincipalStake(newAmount, oldAmount);
+    emit PrincipalStakeAmountUpdated(newAmount, oldAmount);
   }
 
   /// @inheritdoc IObolValidatorManager
@@ -153,10 +152,29 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
       revert InvalidRequest_Params();
     }
 
-    address oldRewardRecipient = rewardRecipient;
     rewardRecipient = newRewardRecipient;
 
-    emit NewRewardRecipient(newRewardRecipient, oldRewardRecipient);
+    emit RewardRecipientUpdated(newRewardRecipient);
+  }
+
+  /// @inheritdoc IObolValidatorManager
+  function sweep(address beneficiary, uint256 amount) external nonReentrant {
+    address recipient = beneficiaryRecipient;
+    if (beneficiary != address(0)) {
+      _checkOwner();
+      recipient = beneficiary;
+    }
+
+    // If amount is zero, sweep all funds on the contract
+    uint256 sweepAmount = amount == 0 ? address(this).balance : amount;
+    if (sweepAmount > address(this).balance || sweepAmount > amountOfPrincipalStake) {
+      revert InvalidRequest_Params();
+    }
+
+    amountOfPrincipalStake -= uint128(sweepAmount);
+    recipient.safeTransferETH(sweepAmount);
+
+    emit Swept(recipient, sweepAmount);
   }
 
   /// @inheritdoc IObolValidatorManager
@@ -450,7 +468,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
       // it cannot overflow because _principalPayout < _fundsToBeDistributed
       if (_principalPayout > 0) {
         amountOfPrincipalStake -= uint128(_principalPayout);
-        emit NewAmountOfPrincipalStake(amountOfPrincipalStake, amountOfPrincipalStake + _principalPayout);
+        emit PrincipalStakeAmountUpdated(amountOfPrincipalStake, amountOfPrincipalStake + _principalPayout);
       }
     }
 

@@ -17,9 +17,10 @@ contract ObolValidatorManagerTest is Test {
   using SafeTransferLib for address;
 
   // Events from IObolValidatorManager interface - redeclared for testing
-  event NewBeneficiaryRecipient(address indexed newBeneficiaryRecipient, address indexed oldBeneficiaryRecipient);
-  event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
-  event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
+  event BeneficiaryUpdated(address indexed newBeneficiary);
+  event RewardRecipientUpdated(address indexed newRewardRecipient);
+  event PrincipalStakeAmountUpdated(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
+  event Swept(address indexed beneficiary, uint256 indexed amount);
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullOrPush);
   event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
   event PullBalanceWithdrawn(address indexed account, uint256 amount);
@@ -110,7 +111,7 @@ contract ObolValidatorManagerTest is Test {
     uint256 amountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
     uint256 depositAmount = 1 ether;
     vm.expectEmit(true, true, true, true);
-    emit NewAmountOfPrincipalStake(amountOfPrincipalStake+depositAmount, amountOfPrincipalStake);
+    emit PrincipalStakeAmountUpdated(amountOfPrincipalStake + depositAmount, amountOfPrincipalStake);
     ovmETH.deposit{value: depositAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
     assertEq(address(depositMock).balance, depositMockBalance + depositAmount);
     assertEq(ovmETH.amountOfPrincipalStake(), amountOfPrincipalStake + depositAmount);
@@ -138,8 +139,8 @@ contract ObolValidatorManagerTest is Test {
 
     address newRecipient = makeAddr("newRecipient");
     vm.expectEmit(true, true, true, true);
-    emit NewBeneficiaryRecipient(newRecipient, beneficiaryRecipient);
-    ovmETH.setBeneficiaryRecipient(newRecipient);
+    emit BeneficiaryUpdated(newRecipient);
+    ovmETH.setBeneficiary(newRecipient);
     assertEq(ovmETH.beneficiaryRecipient(), newRecipient);
   }
 
@@ -147,7 +148,7 @@ contract ObolValidatorManagerTest is Test {
     uint256 newAmount = 1 ether;
     uint256 amountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
     vm.expectEmit(true, true, true, true);
-    emit NewAmountOfPrincipalStake(newAmount, amountOfPrincipalStake);
+    emit PrincipalStakeAmountUpdated(newAmount, amountOfPrincipalStake);
     ovmETH.setAmountOfPrincipalStake(newAmount);
     assertEq(ovmETH.amountOfPrincipalStake(), newAmount);
 
@@ -165,20 +166,20 @@ contract ObolValidatorManagerTest is Test {
   function testCannot_setBeneficiaryRecipient() public {
     // zero address
     vm.expectRevert(IObolValidatorManager.InvalidRequest_Params.selector);
-    ovmETH.setBeneficiaryRecipient(address(0));
+    ovmETH.setBeneficiary(address(0));
 
     // unauthorized
     address _user = vm.addr(0x2);
     ovmETH.grantRoles(_user, ovmETH.WITHDRAWAL_ROLE()); // unrelated role
     vm.startPrank(_user);
     vm.expectRevert(bytes4(0x82b42900));
-    ovmETH.setBeneficiaryRecipient(makeAddr("noaccess"));
+    ovmETH.setBeneficiary(makeAddr("noaccess"));
     vm.stopPrank();
 
     // unauthorized for owner after renounce
     ovmETH.renounceOwnership();
     vm.expectRevert(bytes4(0x82b42900));
-    ovmETH.setBeneficiaryRecipient(makeAddr("noaccess"));
+    ovmETH.setBeneficiary(makeAddr("noaccess"));
   }
 
   function testSetRewardRecipient() public {
@@ -187,7 +188,7 @@ contract ObolValidatorManagerTest is Test {
 
     address newRecipient = makeAddr("newRecipient");
     vm.expectEmit(true, true, true, true);
-    emit NewRewardRecipient(newRecipient, rewardsRecipient);
+    emit RewardRecipientUpdated(newRecipient);
     ovmETH.setRewardRecipient(newRecipient);
     assertEq(ovmETH.rewardRecipient(), newRecipient);
   }
@@ -209,6 +210,148 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.renounceOwnership();
     vm.expectRevert(bytes4(0x82b42900));
     ovmETH.setRewardRecipient(makeAddr("noaccess"));
+  }
+
+  function testSweep_toDefaultBeneficiary() public {
+    // Send some ETH to the contract
+    uint256 sweepAmount = 10 ether;
+    address(ovmETH).safeTransferETH(sweepAmount);
+
+    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
+
+    // Sweep to default beneficiary (address(0) means use beneficiaryRecipient)
+    vm.expectEmit(true, true, true, true);
+    emit Swept(beneficiaryRecipient, sweepAmount);
+    ovmETH.sweep(address(0), sweepAmount);
+
+    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + sweepAmount);
+    assertEq(address(ovmETH).balance, 0);
+    assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - sweepAmount);
+  }
+
+  function testSweep_toSpecificAddress() public {
+    // Send some ETH to the contract
+    uint256 sweepAmount = 5 ether;
+    address(ovmETH).safeTransferETH(sweepAmount);
+
+    address customRecipient = makeAddr("customRecipient");
+    uint256 initialRecipientBalance = customRecipient.balance;
+    uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
+
+    // Sweep to custom address (requires owner)
+    vm.expectEmit(true, true, true, true);
+    emit Swept(customRecipient, sweepAmount);
+    ovmETH.sweep(customRecipient, sweepAmount);
+
+    assertEq(customRecipient.balance, initialRecipientBalance + sweepAmount);
+    assertEq(address(ovmETH).balance, 0);
+    assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - sweepAmount);
+  }
+
+  function testSweep_allFunds() public {
+    // Send some ETH to the contract
+    address(ovmETH).safeTransferETH(15 ether);
+
+    uint256 contractBalance = address(ovmETH).balance;
+    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
+
+    // Sweep all funds (amount = 0 means sweep all)
+    vm.expectEmit(true, true, true, true);
+    emit Swept(beneficiaryRecipient, contractBalance);
+    ovmETH.sweep(address(0), 0);
+
+    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + contractBalance);
+    assertEq(address(ovmETH).balance, 0);
+    assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - contractBalance);
+  }
+
+  function testSweep_partialAmount() public {
+    // Send some ETH to the contract
+    address(ovmETH).safeTransferETH(20 ether);
+
+    uint256 sweepAmount = 8 ether;
+    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialContractBalance = address(ovmETH).balance;
+    uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
+
+    // Sweep partial amount
+    vm.expectEmit(true, true, true, true);
+    emit Swept(beneficiaryRecipient, sweepAmount);
+    ovmETH.sweep(address(0), sweepAmount);
+
+    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + sweepAmount);
+    assertEq(address(ovmETH).balance, initialContractBalance - sweepAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - sweepAmount);
+  }
+
+  function testCannot_sweepMoreThanBalance() public {
+    // Send some ETH to the contract
+    address(ovmETH).safeTransferETH(5 ether);
+
+    // Try to sweep more than available
+    vm.expectRevert(IObolValidatorManager.InvalidRequest_Params.selector);
+    ovmETH.sweep(address(0), 10 ether);
+  }
+
+  function testCannot_sweepMoreThanPrincipalStake() public {
+    // Send some ETH to the contract
+    address(ovmETH).safeTransferETH(50 ether);
+
+    // Try to sweep more than amountOfPrincipalStake (which is INITIAL_DEPOSIT_AMOUNT = 32 ether)
+    vm.expectRevert(IObolValidatorManager.InvalidRequest_Params.selector);
+    ovmETH.sweep(address(0), 40 ether);
+  }
+
+  function testCannot_sweepAfterRenounceOwnership() public {
+    // Renounce ownership
+    ovmETH.renounceOwnership();
+
+    // Send some ETH to the contract
+    address(ovmETH).safeTransferETH(10 ether);
+
+    address customRecipient = makeAddr("customRecipient");
+
+    // Try to sweep to custom address after renouncing ownership (should fail)
+    vm.expectRevert(bytes4(0x82b42900)); // Unauthorized
+    ovmETH.sweep(customRecipient, 5 ether);
+  }
+
+  function testCannot_sweepToCustomAddressAsNonOwner() public {
+    // Send some ETH to the contract
+    address(ovmETH).safeTransferETH(10 ether);
+
+    address customRecipient = makeAddr("customRecipient");
+
+    // Try to sweep to custom address as non-owner (should fail on _checkOwner)
+    address _user = vm.addr(0x9);
+    vm.startPrank(_user);
+    vm.expectRevert(bytes4(0x82b42900)); // Unauthorized
+    ovmETH.sweep(customRecipient, 5 ether);
+    vm.stopPrank();
+  }
+
+  function testSweep_asNonOwnerToDefaultBeneficiary() public {
+    // Send some ETH to the contract
+    uint256 sweepAmount = 8 ether;
+    address(ovmETH).safeTransferETH(sweepAmount);
+
+    // Non-owner CAN sweep to default beneficiary (address(0)) without being owner
+    address _user = vm.addr(0x9);
+    vm.startPrank(_user);
+
+    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
+
+    vm.expectEmit(true, true, true, true);
+    emit Swept(beneficiaryRecipient, sweepAmount);
+    ovmETH.sweep(address(0), sweepAmount);
+
+    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + sweepAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - sweepAmount);
+
+    vm.stopPrank();
   }
 
   function testCannot_consolidate() public {
@@ -569,7 +712,7 @@ contract ObolValidatorManagerTest is Test {
     address(ovmETH).safeTransferETH(INITIAL_DEPOSIT_AMOUNT + secondDeposit + rewardPayout);
 
     vm.expectEmit(true, true, true, true);
-    emit NewAmountOfPrincipalStake(0, INITIAL_DEPOSIT_AMOUNT + secondDeposit);
+    emit PrincipalStakeAmountUpdated(0, INITIAL_DEPOSIT_AMOUNT + secondDeposit);
     vm.expectEmit(true, true, true, true);
     emit DistributeFunds(INITIAL_DEPOSIT_AMOUNT + secondDeposit, rewardPayout, 0);
     ovmETH.distributeFunds();

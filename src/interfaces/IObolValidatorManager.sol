@@ -17,34 +17,37 @@ interface IObolValidatorManager {
   /// Events
   /// -----------------------------------------------------------------------
 
-  /// Emitted after beneficiary recipient is changed
-  /// @param newBeneficiaryRecipient New beneficiary recipient address
-  /// @param oldBeneficiaryRecipient Old beneficiary recipient address
-  event NewBeneficiaryRecipient(address indexed newBeneficiaryRecipient, address indexed oldBeneficiaryRecipient);
+  /// @notice Emitted when the beneficiary address is updated.
+  /// @param newBeneficiary The new beneficiary address.
+  event BeneficiaryUpdated(address indexed newBeneficiary);
 
-  /// Emitted after amount of principal stake is changed
+  /// @notice Emitted when the reward recipient is updated.
+  /// @param newRewardRecipient New reward recipient address
+  event RewardRecipientUpdated(address indexed newRewardRecipient);
+
+  /// @notice Emitted when the amount of principal stake is updated.
   /// @param newPrincipalStakeAmount New amount of principal stake (wei)
   /// @param oldPrincipalStakeAmount Old amount of principal stake (wei)
-  event NewAmountOfPrincipalStake(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
+  event PrincipalStakeAmountUpdated(uint256 newPrincipalStakeAmount, uint256 oldPrincipalStakeAmount);
 
-  /// Emitted after reward recipient is changed
-  /// @param newRewardRecipient New reward recipient address
-  /// @param oldRewardRecipient Old reward recipient address
-  event NewRewardRecipient(address indexed newRewardRecipient, address indexed oldRewardRecipient);
+  /// @notice Emitted when funds are swept to the beneficiary.
+  /// @param beneficiary The address to which funds were swept.
+  /// @param amount The amount of funds swept.
+  event Swept(address indexed beneficiary, uint256 indexed amount);
 
-  /// Emitted after funds are distributed to recipients
+  /// @notice Emitted after funds are distributed to recipients
   /// @param principalPayout Amount of principal paid out
   /// @param rewardPayout Amount of reward paid out
   /// @param pullOrPush Flag indicating PULL or PUSH flow
   event DistributeFunds(uint256 principalPayout, uint256 rewardPayout, uint256 pullOrPush);
 
-  /// Emitted after tokens are recovered to a recipient
+  /// @notice Emitted after tokens are recovered to a recipient
   /// @param nonOVMToken Recovered token (cannot be ETH)
   /// @param recipient Address receiving recovered token
   /// @param amount Amount of recovered token
   event RecoverNonOVMFunds(address indexed nonOVMToken, address indexed recipient, uint256 amount);
 
-  /// Emitted after funds withdrawn using pull flow
+  /// @notice Emitted after funds withdrawn using pull flow
   /// @param account Account withdrawing funds for
   /// @param amount Amount withdrawn
   event PullBalanceWithdrawn(address indexed account, uint256 amount);
@@ -61,7 +64,7 @@ interface IObolValidatorManager {
   /// @param fee The fee paid for the withdrawal.
   event WithdrawalRequested(bytes pubKey, uint64 indexed amount, uint256 indexed fee);
 
-  /// Emitted when the excess fee sent as part of a consolidation or withdrawal (partial or full)
+  /// @notice Emitted when the excess fee sent as part of a consolidation or withdrawal (partial or full)
   /// request could not be refunded to the excessFeeRecipient.
   /// @param excessFeeRecipient The address to which the excess fee should have been sent.
   /// @param excessFee The amount of excess fee sent.
@@ -71,22 +74,22 @@ interface IObolValidatorManager {
   /// Errors
   /// -----------------------------------------------------------------------
 
-  /// Invalid request params, e.g. empty input
+  /// @notice Invalid request params, e.g. empty input
   error InvalidRequest_Params();
 
-  /// Failed to call system contract get_fee()
+  /// @notice Failed to call system contract get_fee()
   error InvalidRequest_SystemGetFee();
 
-  /// Insufficient fee provided in the call's value to conclude the request
+  /// @notice Insufficient fee provided in the call's value to conclude the request
   error InvalidRequest_NotEnoughFee();
 
-  /// Failed to call system contract add_consolidation_request()
+  /// @notice Failed to call system contract add_consolidation_request()
   error InvalidConsolidation_Failed();
 
-  /// Failed to call system contract add_withdrawal_request()
+  /// @notice Failed to call system contract add_withdrawal_request()
   error InvalidWithdrawal_Failed();
 
-  /// Invalid distribution
+  /// @notice Invalid distribution
   error InvalidDistribution_TooLarge();
 
   /// -----------------------------------------------------------------------
@@ -108,7 +111,7 @@ interface IObolValidatorManager {
 
   /// @notice Change the beneficiary recipient address
   /// @param newBeneficiaryRecipient New beneficiary recipient address to set
-  function setBeneficiaryRecipient(address newBeneficiaryRecipient) external;
+  function setBeneficiary(address newBeneficiaryRecipient) external;
 
   /// @notice Overrides the current amount of principal stake
   /// @param newAmount New amount of principal stake (wei)
@@ -120,16 +123,23 @@ interface IObolValidatorManager {
   /// @param newRewardRecipient New address to receive reward funds
   function setRewardRecipient(address newRewardRecipient) external;
 
-  /// Distributes target token inside the contract to recipients
+  /// @notice Sweeps a specific amount, or all ETH on the OVM to the beneficiary or a specified address.
+  /// @dev Emits {Swept} event.
+  /// @param beneficiary Address to which funds will be swept, if zero address, sweeps to the beneficiary address set
+  /// on the contract
+  /// @param amount Amount of funds to sweep, if zero, sweeps all funds on contract
+  function sweep(address beneficiary, uint256 amount) external;
+
+  /// @notice Distributes target token inside the contract to recipients
   /// @dev Pushes funds to recipients
   function distributeFunds() external;
 
-  /// Distributes target token inside the contract to recipients
+  /// @notice Distributes target token inside the contract to recipients
   /// @dev Backup recovery if any recipient tries to brick the OVM for
   /// remaining recipients
   function distributeFundsPull() external;
 
-  /// Consolidates validators using the EIP7251 system contract
+  /// @notice Consolidates validators using the EIP7251 system contract
   /// @dev The excess fee is the difference between the maximum fee and the actual fee paid.
   /// @dev Emits a {UnsentExcessFee} event if the excess fee is not sent.
   /// @param requests An array of consolidation requests.
@@ -141,7 +151,7 @@ interface IObolValidatorManager {
     address excessFeeRecipient
   ) external payable;
 
-  /// Withdraws from validators using the EIP7002 system contract
+  /// @notice Withdraws from validators using the EIP7002 system contract
   /// @dev The caller must compute the fee before calling and send a sufficient msg.value amount.
   ///      Excess amount will be refunded.
   ///      Withdrawals that leave a validator with (0..32) ether
@@ -160,16 +170,16 @@ interface IObolValidatorManager {
     address excessFeeRecipient
   ) external payable;
 
-  /// Recovers non-OVM tokens to a recipient
+  /// @notice Recovers non-OVM tokens to a recipient
   /// @param nonOVMToken Token to recover (cannot be OVM token)
   /// @param recipient Address to receive recovered token
   function recoverFunds(address nonOVMToken, address recipient) external;
 
-  /// Withdraws pull balance for an account
+  /// @notice Withdraws pull balance for an account
   /// @param account Address to withdraw pull balance for
   function withdrawPullBalance(address account) external;
 
-  /// Returns the balance for the account `account`
+  /// @notice Returns the balance for the account `account`
   /// @param account Account to return balance for
   /// @return Account's withdrawable ether balance
   function getPullBalance(address account) external view returns (uint256);

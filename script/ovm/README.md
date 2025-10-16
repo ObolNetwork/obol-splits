@@ -145,7 +145,7 @@ After executing the script, verify your principal and reward recipient balances.
 
 ## SetBeneficiaryRecipientScript
 
-This script calls `setBeneficiaryRecipient()` for an ObolValidatorManager contract.
+This script calls `setBeneficiary()` for an ObolValidatorManager contract.
 
 To run this script, the following environment variables must be set:
 - `PRIVATE_KEY`: the private key of the account that will call the function

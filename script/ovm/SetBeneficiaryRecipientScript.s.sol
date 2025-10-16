@@ -7,7 +7,7 @@ import "./Utils.s.sol";
 import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 
 //
-// This script calls setBeneficiaryRecipient() for an ObolValidatorManager contract.
+// This script calls setBeneficiary() for an ObolValidatorManager contract.
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 //
@@ -30,7 +30,7 @@ contract SetBeneficiaryRecipientScript is Script {
 
     console.log("Current beneficiary recipient", ovm.beneficiaryRecipient());
 
-    ovm.setBeneficiaryRecipient(newBeneficiaryRecipient);
+    ovm.setBeneficiary(newBeneficiaryRecipient);
 
     console.log("New beneficiary recipient set to", ovm.beneficiaryRecipient());
 
