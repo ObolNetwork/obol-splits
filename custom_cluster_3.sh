@@ -21,6 +21,4 @@ cast send \
   --private-key $PRIVATE_KEY \
   $OWR_FACTORY \
   "createOWRecipient(address,address,address,uint256)" \
-  $RECOVERY_ADDRESS $PRINCIPAL_RECIPIENT_ADDRESS $REWARD_ADDRESS $PRINCIPAL_AMOUNT \
-  --value 0 \
-  --gas-price auto
+  $RECOVERY_ADDRESS $PRINCIPAL_RECIPIENT_ADDRESS $REWARD_ADDRESS $PRINCIPAL_AMOUNT
