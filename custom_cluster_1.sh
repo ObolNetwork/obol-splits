@@ -1,4 +1,4 @@
-# Requires the necessary addresses, including the SAFE that will control the split to be set in ./script/data/custom_cluster_1.json.
+# Requires the necessary addresses to be set in ./script/data/custom_cluster_1.json.
 
 # Source the RPC URL, PRIVATE_KEY, and factory addresses from the .env file
 source .env
