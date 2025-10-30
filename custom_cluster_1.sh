@@ -5,5 +5,5 @@ source .env
 
 # Create Immutable Split
 forge script script/splits/DeployScript.s.sol --sig "run(address,address,string)" \
-      --rpc-url $RPC_URL -vvv \
+      --rpc-url $RPC_URL --broadcast -vvv \
       $PULL_SPLIT_FACTORY $PUSH_SPLIT_FACTORY ./script/data/custom_cluster_1.json
