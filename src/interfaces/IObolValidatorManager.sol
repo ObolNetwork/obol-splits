@@ -109,7 +109,7 @@ interface IObolValidatorManager {
     bytes32 deposit_data_root
   ) external payable;
 
-  /// @notice Change the beneficiary recipient address
+  /// @notice Change the address that receives the principal
   /// @param newBeneficiary New beneficiary recipient address to set
   function setBeneficiary(address newBeneficiary) external;
 
@@ -123,12 +123,15 @@ interface IObolValidatorManager {
   /// @param newRewardRecipient New address to receive reward funds
   function setRewardRecipient(address newRewardRecipient) external;
 
-  /// @notice Sweeps a specific amount, or all ETH on the OVM to the beneficiary or a specified address.
+  /// @notice Sweeps a specific amount, or all ETH pending withdrawal to the beneficiary or a specified address.
   /// @dev Emits {Swept} event.
   /// @param beneficiary Address to which funds will be swept, if zero address, sweeps to the beneficiary address set
   /// on the contract
-  /// @param amount Amount of funds to sweep, if zero, sweeps all funds on contract
+  /// @param amount Amount of funds to sweep, if zero, sweeps all funds pending withdrawal for the beneficiary
   function sweep(address beneficiary, uint256 amount) external;
+
+  /// @notice This function always reverts with "Not implemented" message.
+  function sweepToBeneficiaryContract(address, uint256) external;
 
   /// @notice Distributes target token inside the contract to recipients
   /// @dev Pushes funds to recipients

@@ -54,7 +54,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// -----------------------------------------------------------------------
 
   /// Address to receive principal funds
-  address public beneficiaryAddress;
+  address public principalRecipient;
 
   /// Address to receive reward funds
   address public rewardRecipient;
@@ -104,7 +104,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
     depositSystemContract = _depositSystemContract;
-    beneficiaryAddress = _beneficiary;
+    principalRecipient = _beneficiary;
     rewardRecipient = _rewardRecipient;
     principalThreshold = _principalThreshold;
 
@@ -148,7 +148,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
       revert InvalidRequest_Params();
     }
 
-    beneficiaryAddress = newBeneficiary;
+    principalRecipient = newBeneficiary;
 
     emit BeneficiaryUpdated(newBeneficiary);
   }
@@ -178,22 +178,27 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   /// @inheritdoc IObolValidatorManager
   function sweep(address beneficiary, uint256 amount) external nonReentrant {
-    address recipient = beneficiaryAddress;
+    address recipient = principalRecipient;
     if (beneficiary != address(0)) {
       _checkOwner();
       recipient = beneficiary;
     }
 
-    // If amount is zero, sweep all funds on the contract
-    uint256 sweepAmount = amount == 0 ? address(this).balance : amount;
-    if (sweepAmount > address(this).balance || sweepAmount > amountOfPrincipalStake) {
+    // If amount is zero, sweep all funds in pullBalances for principalRecipient
+    uint256 sweepAmount = amount == 0 ? pullBalances[principalRecipient] : amount;
+    if (sweepAmount > pullBalances[principalRecipient]) {
       revert InvalidRequest_Params();
     }
 
-    amountOfPrincipalStake -= sweepAmount;
-    recipient.safeTransferETH(sweepAmount);
-
+    pullBalances[principalRecipient] -= sweepAmount;
     emit Swept(recipient, sweepAmount);
+
+    recipient.safeTransferETH(sweepAmount);
+  }
+
+  /// @inheritdoc IObolValidatorManager
+  function sweepToBeneficiaryContract(address, uint256) external nonReentrant {
+    revert("Not implemented");
   }
 
   /// @inheritdoc IObolValidatorManager
@@ -320,7 +325,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   /// @inheritdoc IObolValidatorManager
   function getBeneficiary() external view returns (address) {
-    return beneficiaryAddress;
+    return principalRecipient;
   }
 
   /// -----------------------------------------------------------------------
@@ -511,7 +516,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     }
 
     // pay out principal
-    _payout(beneficiaryAddress, _principalPayout, pullOrPush);
+    _payout(principalRecipient, _principalPayout, pullOrPush);
     // pay out reward
     _payout(rewardRecipient, _rewardPayout, pullOrPush);
 
