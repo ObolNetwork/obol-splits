@@ -95,6 +95,7 @@ contract ObolCollectorTest is Test {
     vm.assume(amountToDistribute > 0);
     vm.assume(fuzzWithdrawalAddress != address(0));
     vm.assume(fuzzFeeRecipient != address(0));
+    vm.assume(fuzzFeeRecipient != fuzzWithdrawalAddress);
 
     amountToDistribute = bound(amountToDistribute, 1, type(uint128).max);
     fuzzFeeShare = bound(fuzzFeeShare, 1, 8 * 1e4);

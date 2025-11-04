@@ -149,6 +149,8 @@ contract IMSC is Test {
     uint8 controllerSize
   ) public {
     vm.assume(ownerAddress != address(0));
+    vm.assume(ownerAddress.code.length == 0); // Ensure it's not a contract
+    vm.assume(uint160(ownerAddress) > 0xff); // Avoid precompiles and low addresses
     vm.assume(splitSeed != controllerSeed);
     vm.assume(splitSize > 1);
     vm.assume(controllerSize > 1);
