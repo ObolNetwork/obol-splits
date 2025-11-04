@@ -43,7 +43,7 @@ contract ObolValidatorManagerTest is Test {
 
   MockERC20 mERC20;
 
-  address internal beneficiaryRecipient;
+  address internal beneficiary;
   address internal rewardsRecipient;
   uint64 internal principalThreshold;
 
@@ -75,19 +75,19 @@ contract ObolValidatorManagerTest is Test {
     mERC20 = new MockERC20("demo", "DMT", 18);
     mERC20.mint(type(uint256).max);
 
-    beneficiaryRecipient = makeAddr("beneficiaryRecipient");
+    beneficiary = makeAddr("beneficiary");
     rewardsRecipient = makeAddr("rewardsRecipient");
     principalThreshold = BALANCE_CLASSIFICATION_THRESHOLD_GWEI;
 
     ovmETH = ovmFactory.createObolValidatorManager(
       address(this),
-      beneficiaryRecipient,
+      beneficiary,
       rewardsRecipient,
       principalThreshold
     );
     ovmETH_OR = ovmFactory.createObolValidatorManager(
       address(this),
-      beneficiaryRecipient,
+      beneficiary,
       rewardsRecipient,
       principalThreshold
     );
@@ -97,7 +97,7 @@ contract ObolValidatorManagerTest is Test {
   }
 
   function testDefaultParameters() public view {
-    assertEq(ovmETH.beneficiaryRecipient(), beneficiaryRecipient, "invalid beneficiary recipient");
+    assertEq(ovmETH.getBeneficiary(), beneficiary, "invalid beneficiary recipient");
     assertEq(ovmETH.rewardRecipient(), rewardsRecipient, "invalid rewards recipient");
     assertEq(ovmETH.principalThreshold(), BALANCE_CLASSIFICATION_THRESHOLD_GWEI, "invalid principal threshold");
   }
@@ -135,13 +135,13 @@ contract ObolValidatorManagerTest is Test {
 
   function testSetBeneficiaryRecipient() public {
     // initial recipient
-    assertEq(ovmETH.beneficiaryRecipient(), beneficiaryRecipient, "invalid beneficiary recipient");
+    assertEq(ovmETH.getBeneficiary(), beneficiary, "invalid beneficiary recipient");
 
     address newRecipient = makeAddr("newRecipient");
     vm.expectEmit(true, true, true, true);
     emit BeneficiaryUpdated(newRecipient);
     ovmETH.setBeneficiary(newRecipient);
-    assertEq(ovmETH.beneficiaryRecipient(), newRecipient);
+    assertEq(ovmETH.getBeneficiary(), newRecipient);
   }
 
   function testSetAmountOfPrincipalStake() public {
@@ -217,15 +217,15 @@ contract ObolValidatorManagerTest is Test {
     uint256 sweepAmount = 10 ether;
     address(ovmETH).safeTransferETH(sweepAmount);
 
-    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialBeneficiaryBalance = beneficiary.balance;
     uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
 
-    // Sweep to default beneficiary (address(0) means use beneficiaryRecipient)
+    // Sweep to default beneficiary (address(0) means use beneficiary)
     vm.expectEmit(true, true, true, true);
-    emit Swept(beneficiaryRecipient, sweepAmount);
+    emit Swept(beneficiary, sweepAmount);
     ovmETH.sweep(address(0), sweepAmount);
 
-    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + sweepAmount);
+    assertEq(beneficiary.balance, initialBeneficiaryBalance + sweepAmount);
     assertEq(address(ovmETH).balance, 0);
     assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - sweepAmount);
   }
@@ -254,15 +254,15 @@ contract ObolValidatorManagerTest is Test {
     address(ovmETH).safeTransferETH(15 ether);
 
     uint256 contractBalance = address(ovmETH).balance;
-    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialBeneficiaryBalance = beneficiary.balance;
     uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
 
     // Sweep all funds (amount = 0 means sweep all)
     vm.expectEmit(true, true, true, true);
-    emit Swept(beneficiaryRecipient, contractBalance);
+    emit Swept(beneficiary, contractBalance);
     ovmETH.sweep(address(0), 0);
 
-    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + contractBalance);
+    assertEq(beneficiary.balance, initialBeneficiaryBalance + contractBalance);
     assertEq(address(ovmETH).balance, 0);
     assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - contractBalance);
   }
@@ -272,16 +272,16 @@ contract ObolValidatorManagerTest is Test {
     address(ovmETH).safeTransferETH(20 ether);
 
     uint256 sweepAmount = 8 ether;
-    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialBeneficiaryBalance = beneficiary.balance;
     uint256 initialContractBalance = address(ovmETH).balance;
     uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
 
     // Sweep partial amount
     vm.expectEmit(true, true, true, true);
-    emit Swept(beneficiaryRecipient, sweepAmount);
+    emit Swept(beneficiary, sweepAmount);
     ovmETH.sweep(address(0), sweepAmount);
 
-    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + sweepAmount);
+    assertEq(beneficiary.balance, initialBeneficiaryBalance + sweepAmount);
     assertEq(address(ovmETH).balance, initialContractBalance - sweepAmount);
     assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - sweepAmount);
   }
@@ -341,14 +341,14 @@ contract ObolValidatorManagerTest is Test {
     address _user = vm.addr(0x9);
     vm.startPrank(_user);
 
-    uint256 initialBeneficiaryBalance = beneficiaryRecipient.balance;
+    uint256 initialBeneficiaryBalance = beneficiary.balance;
     uint256 initialAmountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
 
     vm.expectEmit(true, true, true, true);
-    emit Swept(beneficiaryRecipient, sweepAmount);
+    emit Swept(beneficiary, sweepAmount);
     ovmETH.sweep(address(0), sweepAmount);
 
-    assertEq(beneficiaryRecipient.balance, initialBeneficiaryBalance + sweepAmount);
+    assertEq(beneficiary.balance, initialBeneficiaryBalance + sweepAmount);
     assertEq(ovmETH.amountOfPrincipalStake(), initialAmountOfPrincipalStake - sweepAmount);
 
     vm.stopPrank();
@@ -614,11 +614,11 @@ contract ObolValidatorManagerTest is Test {
     assertEq(mERC20.balanceOf(recoveryAddress), 1 ether);
 
     vm.expectEmit(true, true, true, true);
-    emit RecoverNonOVMFunds(address(mERC20), beneficiaryRecipient, 1 ether);
-    ovmETH_OR.recoverFunds(address(mERC20), beneficiaryRecipient);
+    emit RecoverNonOVMFunds(address(mERC20), beneficiary, 1 ether);
+    ovmETH_OR.recoverFunds(address(mERC20), beneficiary);
     assertEq(address(ovmETH_OR).balance, 1 ether);
     assertEq(mERC20.balanceOf(address(ovmETH_OR)), 0 ether);
-    assertEq(mERC20.balanceOf(beneficiaryRecipient), 1 ether);
+    assertEq(mERC20.balanceOf(beneficiary), 1 ether);
 
     vm.stopPrank();
 
@@ -659,7 +659,7 @@ contract ObolValidatorManagerTest is Test {
 
   function testCan_distributeToNoRecipients() public {
     ovmETH.distributeFunds();
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
   }
 
   function testCan_emitOnDistributeToNoRecipients() public {
@@ -688,7 +688,7 @@ contract ObolValidatorManagerTest is Test {
     emit DistributeFunds(principalPayout, rewardPayout, 0);
     ovmETH.distributeFunds();
     assertEq(address(ovmETH).balance, 0 ether);
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
     assertEq(rewardsRecipient.balance, 1 ether);
   }
 
@@ -717,7 +717,7 @@ contract ObolValidatorManagerTest is Test {
     emit DistributeFunds(INITIAL_DEPOSIT_AMOUNT + secondDeposit, rewardPayout, 0);
     ovmETH.distributeFunds();
     assertEq(address(ovmETH).balance, 0 ether);
-    assertEq(beneficiaryRecipient.balance, INITIAL_DEPOSIT_AMOUNT + secondDeposit);
+    assertEq(beneficiary.balance, INITIAL_DEPOSIT_AMOUNT + secondDeposit);
     assertEq(rewardsRecipient.balance, rewardPayout);
   }
 
@@ -732,7 +732,7 @@ contract ObolValidatorManagerTest is Test {
     emit DistributeFunds(INITIAL_DEPOSIT_AMOUNT, secondDeposit + rewardPayout, 0);
     ovmETH.distributeFunds();
     assertEq(address(ovmETH).balance, 0 ether);
-    assertEq(beneficiaryRecipient.balance, INITIAL_DEPOSIT_AMOUNT);
+    assertEq(beneficiary.balance, INITIAL_DEPOSIT_AMOUNT);
     assertEq(rewardsRecipient.balance, rewardPayout + secondDeposit);
   }
 
@@ -744,7 +744,7 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.distributeFunds();
 
     assertEq(address(ovmETH).balance, 0 ether);
-    assertEq(beneficiaryRecipient.balance, 32 ether);
+    assertEq(beneficiary.balance, 32 ether);
     assertEq(rewardsRecipient.balance, 0 ether);
   }
 
@@ -782,10 +782,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.distributeFundsPull();
 
     assertEq(address(ovmETH).balance, 36 ether);
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
     assertEq(rewardsRecipient.balance, 0 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 32 ether);
+    assertEq(ovmETH.getPullBalance(beneficiary), 32 ether);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 4 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 36 ether);
@@ -793,21 +793,21 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.withdrawPullBalance(rewardsRecipient);
 
     assertEq(address(ovmETH).balance, 32 ether);
-    assertEq(beneficiaryRecipient.balance, 0);
+    assertEq(beneficiary.balance, 0);
     assertEq(rewardsRecipient.balance, 4 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 32 ether);
+    assertEq(ovmETH.getPullBalance(beneficiary), 32 ether);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 0);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 32 ether);
 
-    ovmETH.withdrawPullBalance(beneficiaryRecipient);
+    ovmETH.withdrawPullBalance(beneficiary);
 
     assertEq(address(ovmETH).balance, 0 ether);
-    assertEq(beneficiaryRecipient.balance, 32 ether);
+    assertEq(beneficiary.balance, 32 ether);
     assertEq(rewardsRecipient.balance, 4 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 0);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 0 ether);
@@ -821,10 +821,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.distributeFunds();
 
     assertEq(address(ovmETH).balance, 0, "3/incorrect balance");
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
     assertEq(rewardsRecipient.balance, 0.5 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0 ether);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0 ether);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 0 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 0 ether);
@@ -835,10 +835,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.distributeFundsPull();
 
     assertEq(address(ovmETH).balance, 1 ether);
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
     assertEq(rewardsRecipient.balance, 0.5 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0 ether);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0 ether);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 1 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 1 ether);
@@ -846,10 +846,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.distributeFunds();
 
     assertEq(address(ovmETH).balance, 1 ether);
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
     assertEq(rewardsRecipient.balance, 0.5 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 1 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 1 ether);
@@ -857,10 +857,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.distributeFundsPull();
 
     assertEq(address(ovmETH).balance, 1 ether);
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
     assertEq(rewardsRecipient.balance, 0.5 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 1 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 1 ether);
@@ -871,10 +871,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.distributeFunds();
 
     assertEq(address(ovmETH).balance, 1 ether);
-    assertEq(beneficiaryRecipient.balance, 0);
+    assertEq(beneficiary.balance, 0);
     assertEq(rewardsRecipient.balance, 1.5 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0 ether);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0 ether);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 1 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 1 ether);
@@ -882,10 +882,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.withdrawPullBalance(rewardsRecipient);
 
     assertEq(address(ovmETH).balance, 0 ether);
-    assertEq(beneficiaryRecipient.balance, 0);
+    assertEq(beneficiary.balance, 0);
     assertEq(rewardsRecipient.balance, 2.5 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0 ether);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0 ether);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 0 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 0);
@@ -894,10 +894,10 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.withdrawPullBalance(rewardsRecipient);
 
     assertEq(address(ovmETH).balance, 1 ether);
-    assertEq(beneficiaryRecipient.balance, 0 ether);
+    assertEq(beneficiary.balance, 0 ether);
     assertEq(rewardsRecipient.balance, 2.5 ether);
 
-    assertEq(ovmETH.getPullBalance(beneficiaryRecipient), 0 ether);
+    assertEq(ovmETH.getPullBalance(beneficiary), 0 ether);
     assertEq(ovmETH.getPullBalance(rewardsRecipient), 0 ether);
 
     assertEq(ovmETH.fundsPendingWithdrawal(), 0 ether);
@@ -915,12 +915,12 @@ contract ObolValidatorManagerTest is Test {
     vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
     uint256 principalThresholdWei = uint256(_threshold) * 1e9;
 
-    address _beneficiaryRecipient = makeAddr("beneficiaryRecipient");
+    address _beneficiary = makeAddr("beneficiary");
     address _rewardsRecipient = makeAddr("rewardsRecipient");
 
     ObolValidatorManager ovm = ovmFactory.createObolValidatorManager(
       address(this),
-      _beneficiaryRecipient,
+      _beneficiary,
       _rewardsRecipient,
       _threshold
     );
@@ -939,14 +939,14 @@ contract ObolValidatorManagerTest is Test {
 
     if (principalThresholdWei > _totalETHAmount) {
       // then all of the deposit should be classified as reward
-      assertEq(_beneficiaryRecipient.balance, 0, "should not classify reward as principal");
+      assertEq(_beneficiary.balance, 0, "should not classify reward as principal");
 
       assertEq(_rewardsRecipient.balance, _totalETHAmount, "invalid rewards amount");
     }
 
     if (_ethAmount > principalThresholdWei) {
       // then all of reward classified as principal
-      assertEq(_beneficiaryRecipient.balance, _totalETHAmount, "invalid principal amount");
+      assertEq(_beneficiary.balance, _totalETHAmount, "invalid principal amount");
 
       assertEq(_rewardsRecipient.balance, 0, "should not classify principal as reward");
     }
@@ -964,12 +964,12 @@ contract ObolValidatorManagerTest is Test {
     vm.assume(_threshold > 0 && _threshold < 2048 * 1e9);
     uint256 principalThresholdWei = uint256(_threshold) * 1e9;
 
-    address _beneficiaryRecipient = makeAddr("beneficiaryRecipient");
+    address _beneficiary = makeAddr("beneficiary");
     address _rewardsRecipient = makeAddr("rewardsRecipient");
 
     ObolValidatorManager ovm = ovmFactory.createObolValidatorManager(
       address(this),
-      _beneficiaryRecipient,
+      _beneficiary,
       _rewardsRecipient,
       _threshold
     );
@@ -985,9 +985,9 @@ contract ObolValidatorManagerTest is Test {
     assertEq(address(ovm).balance, _totalETHAmount);
     assertEq(ovm.fundsPendingWithdrawal(), _totalETHAmount);
 
-    uint256 principal = ovm.getPullBalance(_beneficiaryRecipient);
+    uint256 principal = ovm.getPullBalance(_beneficiary);
     assertEq(
-      ovm.getPullBalance(_beneficiaryRecipient),
+      ovm.getPullBalance(_beneficiary),
       (_ethAmount >= principalThresholdWei) ? _totalETHAmount : 0,
       "5/invalid recipient balance"
     );
@@ -999,13 +999,13 @@ contract ObolValidatorManagerTest is Test {
       "6/invalid recipient balance"
     );
 
-    ovm.withdrawPullBalance(_beneficiaryRecipient);
+    ovm.withdrawPullBalance(_beneficiary);
     ovm.withdrawPullBalance(_rewardsRecipient);
 
     assertEq(address(ovm).balance, 0);
     assertEq(ovm.fundsPendingWithdrawal(), 0);
 
-    assertEq(_beneficiaryRecipient.balance, principal, "10/invalid principal balance");
+    assertEq(_beneficiary.balance, principal, "10/invalid principal balance");
     assertEq(_rewardsRecipient.balance, reward, "11/invalid reward balance");
   }
 }

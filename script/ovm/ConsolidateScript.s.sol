@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Proprietary
+// SPDX-License-Identifier: NONE
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";

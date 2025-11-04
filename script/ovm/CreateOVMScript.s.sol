@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Proprietary
+// SPDX-License-Identifier: NONE
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
@@ -19,7 +19,7 @@ contract CreateOVMScript is Script {
   function run(
     address ovmFactory,
     address owner,
-    address beneficiaryRecipient,
+    address beneficiary,
     address rewardsRecipient,
     uint64 principalThreshold
   ) external {
@@ -33,7 +33,7 @@ contract CreateOVMScript is Script {
     if (owner == address(0)) {
       revert("Owner address cannot be zero");
     }
-    if (beneficiaryRecipient == address(0)) {
+    if (beneficiary == address(0)) {
       revert("Beneficiary recipient address cannot be zero");
     }
     if (rewardsRecipient == address(0)) {
@@ -48,7 +48,7 @@ contract CreateOVMScript is Script {
     ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(ovmFactory);
     ObolValidatorManager ovm = factory.createObolValidatorManager(
       owner,
-      beneficiaryRecipient,
+      beneficiary,
       rewardsRecipient,
       principalThreshold
     );

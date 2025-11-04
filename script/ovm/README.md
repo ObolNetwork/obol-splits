@@ -61,7 +61,7 @@ This script calls the `createObolValidatorManager` function of the `ObolValidato
 Script parameters:
 - `ovmFactory`: The address of the deployed `ObolValidatorManagerFactory` contract.
 - `owner`: The address of the owner of the new `ObolValidatorManager` contract.
-- `beneficiaryRecipient`: The address of the beneficiary recipient.
+- `beneficiary`: The address of the beneficiary recipient.
 - `rewardsRecipient`: The address of the rewards recipient.
 - `principalThreshold`: The principal threshold value (gwei), recommended value is `16000000000` (16 ether).
 
@@ -143,7 +143,7 @@ forge script script/ovm/DistributeFundsScript.s.sol --sig "run(address)" \
 
 After executing the script, verify your principal and reward recipient balances.
 
-## SetBeneficiaryRecipientScript
+## SetBeneficiaryScript
 
 This script calls `setBeneficiary()` for an ObolValidatorManager contract.
 
@@ -152,10 +152,10 @@ To run this script, the following environment variables must be set:
 
 Script parameters:
 - `ovmAddress`: The address of the deployed `ObolValidatorManager` contract.
-- `newBeneficiaryRecipient`: The address of the new beneficiary recipient.
+- `newBeneficiary`: The address of the new beneficiary recipient.
 
 ```bash
-forge script script/ovm/SetBeneficiaryRecipientScript.s.sol --sig "run(address,address)" \
+forge script script/ovm/SetBeneficiaryScript.s.sol --sig "run(address,address)" \
    --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
 ```
 

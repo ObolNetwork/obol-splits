@@ -110,8 +110,8 @@ interface IObolValidatorManager {
   ) external payable;
 
   /// @notice Change the beneficiary recipient address
-  /// @param newBeneficiaryRecipient New beneficiary recipient address to set
-  function setBeneficiary(address newBeneficiaryRecipient) external;
+  /// @param newBeneficiary New beneficiary recipient address to set
+  function setBeneficiary(address newBeneficiary) external;
 
   /// @notice Overrides the current amount of principal stake
   /// @param newAmount New amount of principal stake (wei)
@@ -125,10 +125,10 @@ interface IObolValidatorManager {
 
   /// @notice Sweeps a specific amount, or all ETH on the OVM to the beneficiary or a specified address.
   /// @dev Emits {Swept} event.
-  /// @param beneficiary Address to which funds will be swept, if zero address, sweeps to the beneficiary address set
+  /// @param _beneficiary Address to which funds will be swept, if zero address, sweeps to the beneficiary address set
   /// on the contract
-  /// @param amount Amount of funds to sweep, if zero, sweeps all funds on contract
-  function sweep(address beneficiary, uint256 amount) external;
+  /// @param _amount Amount of funds to sweep, if zero, sweeps all funds on contract
+  function sweep(address _beneficiary, uint256 _amount) external;
 
   /// @notice Distributes target token inside the contract to recipients
   /// @dev Pushes funds to recipients
@@ -202,7 +202,7 @@ interface IObolValidatorManager {
 
   /// @notice Returns the current principal recipient address
   /// @return Address that receives principal stake distributions
-  function beneficiaryRecipient() external view returns (address);
+  function getBeneficiary() external view returns (address);
 
   /// @notice Returns the reward recipient address
   /// @return Address that receives reward distributions

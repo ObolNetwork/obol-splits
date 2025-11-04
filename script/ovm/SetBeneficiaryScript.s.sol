@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Proprietary
+// SPDX-License-Identifier: NONE
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
@@ -11,8 +11,8 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 // To run this script, the following environment variables must be set:
 // - PRIVATE_KEY: the private key of the account that will deploy the contract
 //
-contract SetPrincipalRecipientScript is Script {
-  function run(address ovmAddress, address newBeneficiaryRecipient) external {
+contract SetBeneficiaryScript is Script {
+  function run(address ovmAddress, address newBeneficiary) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
     if (privKey == 0) {
       revert("set PRIVATE_KEY env var before using this script");
@@ -20,7 +20,7 @@ contract SetPrincipalRecipientScript is Script {
     if (!Utils.isContract(ovmAddress)) {
       revert("OVM address is not set or invalid");
     }
-    if (newBeneficiaryRecipient == address(0)) {
+    if (newBeneficiary == address(0)) {
       revert("New beneficiary recipient address cannot be zero");
     }
 
@@ -28,11 +28,11 @@ contract SetPrincipalRecipientScript is Script {
 
     ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
 
-    console.log("Current beneficiary recipient", ovm.beneficiaryRecipient());
+    console.log("Current beneficiary", ovm.beneficiary());
 
-    ovm.setBeneficiary(newBeneficiaryRecipient);
+    ovm.setBeneficiary(newBeneficiary);
 
-    console.log("New beneficiary recipient set to", ovm.beneficiaryRecipient());
+    console.log("New beneficiary set to", ovm.beneficiary());
 
     vm.stopBroadcast();
   }

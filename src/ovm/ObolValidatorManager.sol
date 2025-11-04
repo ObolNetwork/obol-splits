@@ -54,7 +54,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// -----------------------------------------------------------------------
 
   /// Address to receive principal funds
-  address public beneficiaryRecipient;
+  address public beneficiary;
 
   /// Address to receive reward funds
   address public rewardRecipient;
@@ -78,14 +78,14 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     address _withdrawalSystemContract,
     address _depositSystemContract,
     address _owner,
-    address _beneficiaryRecipient,
+    address _beneficiary,
     address _rewardRecipient,
     uint64 _principalThreshold
   ) {
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
     depositSystemContract = _depositSystemContract;
-    beneficiaryRecipient = _beneficiaryRecipient;
+    beneficiary = _beneficiary;
     rewardRecipient = _rewardRecipient;
     principalThreshold = _principalThreshold;
 
@@ -124,14 +124,14 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function setBeneficiary(address newBeneficiaryRecipient) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
-    if (newBeneficiaryRecipient == address(0)) {
+  function setBeneficiary(address newBeneficiary) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
+    if (newBeneficiary == address(0)) {
       revert InvalidRequest_Params();
     }
 
-    beneficiaryRecipient = newBeneficiaryRecipient;
+    beneficiary = newBeneficiary;
 
-    emit BeneficiaryUpdated(newBeneficiaryRecipient);
+    emit BeneficiaryUpdated(newBeneficiary);
   }
 
   /// @inheritdoc IObolValidatorManager
@@ -158,20 +158,20 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function sweep(address beneficiary, uint256 amount) external nonReentrant {
-    address recipient = beneficiaryRecipient;
-    if (beneficiary != address(0)) {
+  function sweep(address _beneficiary, uint256 _amount) external nonReentrant {
+    address recipient = beneficiary;
+    if (_beneficiary != address(0)) {
       _checkOwner();
-      recipient = beneficiary;
+      recipient = _beneficiary;
     }
 
     // If amount is zero, sweep all funds on the contract
-    uint256 sweepAmount = amount == 0 ? address(this).balance : amount;
+    uint256 sweepAmount = _amount == 0 ? address(this).balance : _amount;
     if (sweepAmount > address(this).balance || sweepAmount > amountOfPrincipalStake) {
       revert InvalidRequest_Params();
     }
 
-    amountOfPrincipalStake -= uint128(sweepAmount);
+    amountOfPrincipalStake -= sweepAmount;
     recipient.safeTransferETH(sweepAmount);
 
     emit Swept(recipient, sweepAmount);
@@ -221,7 +221,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
         if (!success) {
           revert InvalidConsolidation_Failed();
         }
-        
+
         // Emit consolidation event for each operation
         emit ConsolidationRequested(requests[i].srcPubKeys[j], requests[i].targetPubKey, fee);
       }
@@ -245,7 +245,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     // Check if fee exceeds maximum allowed, otherwise get fee
     uint256 fee = _validateAndReturnFee(withdrawalSystemContract, maxFeePerWithdrawal);
     uint256 totalFeePaid = 0;
-    
+
     for (uint256 i; i < pubKeys.length; i++) {
       _validatePubkeyLength(pubKeys[i]);
 
@@ -297,6 +297,11 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// @inheritdoc IObolValidatorManager
   function getPullBalance(address account) external view returns (uint256) {
     return pullBalances[account];
+  }
+
+  /// @inheritdoc IObolValidatorManager
+  function getBeneficiary() external view returns (address) {
+    return beneficiary;
   }
 
   /// -----------------------------------------------------------------------
@@ -487,7 +492,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     }
 
     // pay out principal
-    _payout(beneficiaryRecipient, _principalPayout, pullOrPush);
+    _payout(beneficiary, _principalPayout, pullOrPush);
     // pay out reward
     _payout(rewardRecipient, _rewardPayout, pullOrPush);
 
