@@ -54,7 +54,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// -----------------------------------------------------------------------
 
   /// Address to receive principal funds
-  address public beneficiary;
+  address public beneficiaryAddress;
 
   /// Address to receive reward funds
   address public rewardRecipient;
@@ -82,10 +82,29 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     address _rewardRecipient,
     uint64 _principalThreshold
   ) {
+    if (_consolidationSystemContract == address(0)) {
+      revert InvalidRequest_Params();
+    }
+    if (_withdrawalSystemContract == address(0)) {
+      revert InvalidRequest_Params();
+    }
+    if (_depositSystemContract == address(0)) {
+      revert InvalidRequest_Params();
+    }
+    if (_owner == address(0)) {
+      revert InvalidRequest_Params();
+    }
+    if (_beneficiary == address(0)) {
+      revert InvalidRequest_Params();
+    }
+    if (_rewardRecipient == address(0)) {
+      revert InvalidRequest_Params();
+    }
+
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
     depositSystemContract = _depositSystemContract;
-    beneficiary = _beneficiary;
+    beneficiaryAddress = _beneficiary;
     rewardRecipient = _rewardRecipient;
     principalThreshold = _principalThreshold;
 
@@ -129,7 +148,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
       revert InvalidRequest_Params();
     }
 
-    beneficiary = newBeneficiary;
+    beneficiaryAddress = newBeneficiary;
 
     emit BeneficiaryUpdated(newBeneficiary);
   }
@@ -158,15 +177,15 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function sweep(address _beneficiary, uint256 _amount) external nonReentrant {
-    address recipient = beneficiary;
-    if (_beneficiary != address(0)) {
+  function sweep(address beneficiary, uint256 amount) external nonReentrant {
+    address recipient = beneficiaryAddress;
+    if (beneficiary != address(0)) {
       _checkOwner();
-      recipient = _beneficiary;
+      recipient = beneficiary;
     }
 
     // If amount is zero, sweep all funds on the contract
-    uint256 sweepAmount = _amount == 0 ? address(this).balance : _amount;
+    uint256 sweepAmount = amount == 0 ? address(this).balance : amount;
     if (sweepAmount > address(this).balance || sweepAmount > amountOfPrincipalStake) {
       revert InvalidRequest_Params();
     }
@@ -301,7 +320,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   /// @inheritdoc IObolValidatorManager
   function getBeneficiary() external view returns (address) {
-    return beneficiary;
+    return beneficiaryAddress;
   }
 
   /// -----------------------------------------------------------------------
@@ -492,7 +511,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     }
 
     // pay out principal
-    _payout(beneficiary, _principalPayout, pullOrPush);
+    _payout(beneficiaryAddress, _principalPayout, pullOrPush);
     // pay out reward
     _payout(rewardRecipient, _rewardPayout, pullOrPush);
 

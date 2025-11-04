@@ -28,11 +28,11 @@ contract SetBeneficiaryScript is Script {
 
     ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
 
-    console.log("Current beneficiary", ovm.beneficiary());
+    console.log("Current beneficiary", ovm.getBeneficiary());
 
     ovm.setBeneficiary(newBeneficiary);
 
-    console.log("New beneficiary set to", ovm.beneficiary());
+    console.log("New beneficiary set to", ovm.getBeneficiary());
 
     vm.stopBroadcast();
   }

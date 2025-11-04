@@ -125,10 +125,10 @@ interface IObolValidatorManager {
 
   /// @notice Sweeps a specific amount, or all ETH on the OVM to the beneficiary or a specified address.
   /// @dev Emits {Swept} event.
-  /// @param _beneficiary Address to which funds will be swept, if zero address, sweeps to the beneficiary address set
+  /// @param beneficiary Address to which funds will be swept, if zero address, sweeps to the beneficiary address set
   /// on the contract
-  /// @param _amount Amount of funds to sweep, if zero, sweeps all funds on contract
-  function sweep(address _beneficiary, uint256 _amount) external;
+  /// @param amount Amount of funds to sweep, if zero, sweeps all funds on contract
+  function sweep(address beneficiary, uint256 amount) external;
 
   /// @notice Distributes target token inside the contract to recipients
   /// @dev Pushes funds to recipients
