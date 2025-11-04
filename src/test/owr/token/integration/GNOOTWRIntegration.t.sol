@@ -82,8 +82,6 @@ contract GNOOWTRIntegration is OWRTestHelper, Test {
     vm.assume(fuzzRewardRecipient != address(0));
     vm.assume(fuzzPrincipalRecipient != address(0));
     vm.assume(fuzzRewardRecipient != fuzzPrincipalRecipient);
-    vm.assume(fuzzRewardRecipient != address(this));
-    vm.assume(fuzzPrincipalRecipient != address(this));
     vm.assume(amountToDistribute > 0);
     fuzzThreshold = bound(fuzzThreshold, 1, type(uint96).max);
 
