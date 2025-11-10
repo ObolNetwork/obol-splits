@@ -27,6 +27,7 @@ contract ObolValidatorManagerTest is Test {
   event ConsolidationRequested(bytes srcPubKey, bytes targetPubKey, uint256 indexed fee);
   event WithdrawalRequested(bytes pubkey, uint64 indexed amount, uint256 indexed fee);
   event UnsentExcessFee(address indexed excessFeeRecipient, uint256 indexed excessFee);
+  event Transferred(address indexed newBeneficiary, address indexed newOwner);
 
   address public ENS_REVERSE_REGISTRAR = 0x084b1c3C81545d370f3634392De611CaaBFf8148;
 
@@ -1014,5 +1015,24 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(_beneficiary.balance, principal, "10/invalid principal balance");
     assertEq(_rewardsRecipient.balance, reward, "11/invalid reward balance");
+  }
+
+  function test_Transfer_HappyPath() public {
+    address newBeneficiary = makeAddr("newBeneficiary");
+    address newOwner = makeAddr("newOwner");
+    
+    assertEq(ovmETH.getBeneficiary(), beneficiary, "initial beneficiary should match");
+    assertEq(ovmETH.owner(), address(this), "initial owner should be this contract");
+    
+    vm.expectEmit(true, true, true, true);
+    emit BeneficiaryUpdated(newBeneficiary);
+    
+    vm.expectEmit(true, true, true, true);
+    emit Transferred(newBeneficiary, newOwner);
+    
+    ovmETH.transfer(newBeneficiary, newOwner);
+    
+    assertEq(ovmETH.getBeneficiary(), newBeneficiary, "beneficiary should be updated");
+    assertEq(ovmETH.owner(), newOwner, "owner should be transferred");
   }
 }

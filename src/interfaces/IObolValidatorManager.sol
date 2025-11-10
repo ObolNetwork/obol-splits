@@ -70,6 +70,11 @@ interface IObolValidatorManager {
   /// @param excessFee The amount of excess fee sent.
   event UnsentExcessFee(address indexed excessFeeRecipient, uint256 indexed excessFee);
 
+  /// @notice Emitted when the ownership of the TVS is transferred to a new owner.
+  /// @param newBeneficiary The address of the new beneficiary.
+  /// @param newOwner The address of the new owner.
+  event Transferred(address indexed newBeneficiary, address indexed newOwner);
+
   /// -----------------------------------------------------------------------
   /// Errors
   /// -----------------------------------------------------------------------
@@ -186,6 +191,14 @@ interface IObolValidatorManager {
   /// @param account Account to return balance for
   /// @return Account's withdrawable ether balance
   function getPullBalance(address account) external view returns (uint256);
+
+  /// @notice Transfers the ownership of the OVM.
+  /// @dev This function sets a new beneficiary, transfers ownership to a new owner.
+  /// @dev Only the owner can call this function.
+  /// @dev Emits a {Transferred} event.
+  /// @param newBeneficiary The new beneficiary address.
+  /// @param newOwner The new owner address.
+  function transfer(address newBeneficiary, address newOwner) external;
 
   /// -----------------------------------------------------------------------
   /// ObolValidatorManager variable getters

@@ -120,7 +120,10 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     uint256 oldAmountOfPrincipalStake = amountOfPrincipalStake;
     amountOfPrincipalStake += msg.value;
     IDepositContract(depositSystemContract).deposit{value: msg.value}(
-      pubkey, withdrawal_credentials, signature, deposit_data_root
+      pubkey,
+      withdrawal_credentials,
+      signature,
+      deposit_data_root
     );
 
     emit PrincipalStakeAmountUpdated(amountOfPrincipalStake, oldAmountOfPrincipalStake);
@@ -215,7 +218,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
         // Add the consolidation request
         bytes memory callData = bytes.concat(requests[i].srcPubKeys[j], requests[i].targetPubKey);
-        (bool success,) = consolidationSystemContract.call{value: fee}(callData);
+        (bool success, ) = consolidationSystemContract.call{value: fee}(callData);
         if (!success) revert InvalidConsolidation_Failed();
 
         // Emit consolidation event for each operation
@@ -247,7 +250,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
       // Add the withdrawal request
       bytes memory callData = abi.encodePacked(pubKeys[i], amounts[i]);
-      (bool success,) = withdrawalSystemContract.call{value: fee}(callData);
+      (bool success, ) = withdrawalSystemContract.call{value: fee}(callData);
       if (!success) revert InvalidWithdrawal_Failed();
       totalFeePaid += fee;
 
@@ -280,6 +283,17 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     account.safeTransferETH(amount);
 
     emit PullBalanceWithdrawn(account, amount);
+  }
+
+  /// @inheritdoc IObolValidatorManager
+  function transfer(address newBeneficiary, address newOwner) external onlyOwner {
+    if (newBeneficiary == address(0)) revert InvalidRequest_Params();
+    principalRecipient = newBeneficiary;
+    emit BeneficiaryUpdated(newBeneficiary);
+
+    transferOwnership(newOwner);
+
+    emit Transferred(newBeneficiary, newOwner);
   }
 
   /// -----------------------------------------------------------------------
@@ -321,22 +335,18 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function hasAnyRole(address user, uint256 roles)
-    public
-    view
-    override(IObolValidatorManager, OwnableRoles)
-    returns (bool)
-  {
+  function hasAnyRole(
+    address user,
+    uint256 roles
+  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
     return super.hasAnyRole(user, roles);
   }
 
   /// @inheritdoc IObolValidatorManager
-  function hasAllRoles(address user, uint256 roles)
-    public
-    view
-    override(IObolValidatorManager, OwnableRoles)
-    returns (bool)
-  {
+  function hasAllRoles(
+    address user,
+    uint256 roles
+  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
     return super.hasAllRoles(user, roles);
   }
 
@@ -371,12 +381,9 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function ownershipHandoverExpiresAt(address pendingOwner)
-    public
-    view
-    override(IObolValidatorManager, Ownable)
-    returns (uint256 result)
-  {
+  function ownershipHandoverExpiresAt(
+    address pendingOwner
+  ) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
     return super.ownershipHandoverExpiresAt(pendingOwner);
   }
 
@@ -418,7 +425,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   function _refundExcessFee(uint256 _totalValueReceived, uint256 _totalFeePaid, address _excessFeeRecipient) internal {
     // send excess value back to _excessFeeRecipient
     if (_totalValueReceived > _totalFeePaid) {
-      (bool success,) = payable(_excessFeeRecipient).call{value: _totalValueReceived - _totalFeePaid}("");
+      (bool success, ) = payable(_excessFeeRecipient).call{value: _totalValueReceived - _totalFeePaid}("");
       if (!success) emit UnsentExcessFee(_excessFeeRecipient, _totalValueReceived - _totalFeePaid);
     }
   }
