@@ -8,34 +8,17 @@ Obol Splits is a suite of Solidity smart contracts enabling safe creation and ma
 
 ## Development Commands
 
-### Setup
 ```sh
-# Install Foundry first: https://github.com/foundry-rs/foundry#installation
-forge install
-cp .env.sample .env
-```
+# Setup
+forge install && cp .env.sample .env
 
-### Testing
-```sh
-# Run all tests
-forge test
+# Testing
+forge test                                    # All tests
+forge test --match-contract C --match-test t  # Specific test
+forge test --gas-report                       # With gas reporting
 
-# Run specific test
-forge test --match-contract ContractTest --match-test testFunction -vv
-
-# Run with gas reporting
-forge test --gas-report
-```
-
-### Building
-```sh
-# Compile contracts and generate ABIs
+# Build & Deploy
 forge build
-```
-
-### Deployment
-```sh
-# Deploy using forge create or run deployment scripts in script/ directory
 forge script script/DeployFactoryScript.s.sol
 ```
 
@@ -43,77 +26,44 @@ forge script script/DeployFactoryScript.s.sol
 
 ### Core Contract Types
 
-**ObolValidatorManager (OVM)** - Main validator management contract
-- Manages ETH2 validator deposits, withdrawals (EIP-7002), and consolidations (EIP-7251)
-- Uses role-based access control via OwnableRoles (6 distinct roles: WITHDRAWAL, CONSOLIDATION, SET_BENEFICIARY, RECOVER_FUNDS, SET_REWARD, DEPOSIT)
-- Two-phase fund distribution: PUSH (direct transfer) or PULL (recipient withdraws later)
-- Principal threshold in gwei determines recipient routing (>= threshold → principal, < threshold → reward)
-- Location: src/ovm/ObolValidatorManager.sol
+**ObolValidatorManager (OVM)** - Validator management with ETH2 deposits, withdrawals (EIP-7002), consolidations (EIP-7251)
+- 6 role-based permissions: WITHDRAWAL (0x01), CONSOLIDATION (0x02), SET_BENEFICIARY (0x04), RECOVER_FUNDS (0x08), SET_REWARD (0x10), DEPOSIT (0x20)
+- PUSH/PULL distribution modes; principal threshold (gwei) routes funds
+- `sweep()` extracts from `pullBalances[principalRecipient]` - anyone can call with beneficiary=address(0), owner for custom address
+- Non-proxy (deployed via `new`, not Clone)
 
-**OptimisticWithdrawalRecipient (OWR)** - ETH distribution contract
-- Distributes ETH to two recipients based on 16 ETH threshold
-- Uses Clone proxy pattern (Solady) for gas-efficient deployment
-- Supports both PUSH and PULL distribution modes
-- Location: src/owr/OptimisticWithdrawalRecipient.sol
+**OptimisticWithdrawalRecipient (OWR)** - ETH distribution via 16 ETH threshold, Clone proxy, PUSH/PULL modes
 
-**OptimisticTokenWithdrawalRecipient** - Multi-token version of OWR
-- Same as OWR but accepts configurable threshold and any ERC20 token
-- Location: src/owr/token/OptimisticTokenWithdrawalRecipient.sol
+**OptimisticTokenWithdrawalRecipient** - OWR for ERC20 with configurable threshold
 
-**ObolLidoSplit** - Lido integration wrapper
-- Wraps rebasing stETH to non-rebasing wstETH for 0xSplits compatibility
-- Uses BaseSplit pattern with Clone proxy
-- Location: src/lido/ObolLidoSplit.sol
+**ObolLidoSplit** - Wraps stETH→wstETH for 0xSplits (Clone + BaseSplit)
 
-**ObolEtherfiSplit** - EtherFi integration wrapper
-- Wraps rebasing eETH to non-rebasing weETH
-- Identical pattern to ObolLidoSplit
-- Location: src/etherfi/ObolEtherfiSplit.sol
+**ObolEtherfiSplit** - Wraps eETH→weETH for 0xSplits (Clone + BaseSplit)
 
-**ImmutableSplitController** - 0xSplits controller
-- Immutable configuration for 0xSplits SplitMain
-- Uses CWIA (Contract With Immutable Arguments) pattern
-- Location: src/controllers/ImmutableSplitController.sol
+**ImmutableSplitController** - Immutable 0xSplits config (CWIA pattern)
 
 ### Factory Pattern
 
-All contracts use Clone factories for gas-efficient deployment via Solady's LibClone:
-- OptimisticWithdrawalRecipientFactory
-- OptimisticTokenWithdrawalRecipientFactory
-- ObolValidatorManagerFactory
-- ObolLidoSplitFactory
-- ObolEtherfiSplitFactory
-- ObolCollectorFactory
-- ImmutableSplitControllerFactory
+Clone factories (Solady LibClone): OptimisticWithdrawalRecipientFactory, OptimisticTokenWithdrawalRecipientFactory, ObolLidoSplitFactory, ObolEtherfiSplitFactory, ObolCollectorFactory, ImmutableSplitControllerFactory
 
-### Key Architectural Patterns
+**Exception**: ObolValidatorManagerFactory deploys full instances via `new` (not clones)
 
-**Clone Proxy (Solady)**: Minimal proxy with constructor arguments encoded in bytecode (CWIA optimization). Used by OWR, ObolLidoSplit, ObolEtherfiSplit, ObolCollector, ImmutableSplitController.
+### Key Patterns
 
-**Two-Phase Distribution**: PUSH (0) for direct transfers, PULL (1) for deferred withdrawals. Prevents malicious recipients from blocking distributions.
+- **Clone Proxy**: Minimal proxy with CWIA optimization (all except OVM)
+- **Two-Phase Distribution**: PUSH (0) = direct transfer; PULL (1) = deferred via `withdrawPullBalance()`. Prevents malicious recipient DOS.
+- **Sweep (OVM)**: Extract from `pullBalances[principalRecipient]`. Anyone if beneficiary=0, owner for custom address. Amount=0 sweeps all.
+- **BaseSplit**: Abstract base with distribute(), rescueFunds(), fee mechanism (PERCENTAGE_SCALE=1e5)
+- **Rebasing Wrapping**: stETH→wstETH, eETH→weETH for 0xSplits
 
-**BaseSplit Template**: Abstract base class providing distribute(), rescueFunds(), and fee mechanism (PERCENTAGE_SCALE = 1e5). All split contracts inherit from this.
+## Constants & External Integrations
 
-**Role-Based Access Control**: OVM uses bit-flag roles allowing multiple roles per address. Other contracts use standard Ownable or public functions.
+**Constants:**
+- `BALANCE_CLASSIFICATION_THRESHOLD_GWEI = 16 ether / 1 gwei` (OVM tests), `BALANCE_CLASSIFICATION_THRESHOLD = 16 ether` (OWR)
+- `PERCENTAGE_SCALE = 1e5`, `PUBLIC_KEY_LENGTH = 48`, Distribution modes: `PUSH = 0, PULL = 1`
+- OVM Roles: WITHDRAWAL (0x01), CONSOLIDATION (0x02), SET_BENEFICIARY (0x04), RECOVER_FUNDS (0x08), SET_REWARD (0x10), DEPOSIT (0x20)
 
-**Rebasing Token Wrapping**: Intercepts rebasing tokens (stETH, eETH) and wraps to non-rebasing versions (wstETH, weETH) for 0xSplits integration.
-
-## Important Constants and Values
-
-- `BALANCE_CLASSIFICATION_THRESHOLD = 16 ether` (OWR threshold)
-- `PERCENTAGE_SCALE = 1e5` (100000 = 100%)
-- `PUBLIC_KEY_LENGTH = 48` (validator pubkey length)
-- OVM threshold stored in gwei, converted to wei via `threshold * 1e9`
-
-## External Integrations
-
-- **0xSplits**: SplitMain for fund distribution
-- **Lido**: stETH/wstETH token wrapping
-- **EtherFi**: eETH/weETH token wrapping
-- **Ethereum Deposit Contract**: ETH2 staking deposits
-- **EIP-7002 System Contract**: Partial withdrawal requests (address 0x09Fc772D0857550724b07B850a4323f39112aAaA)
-- **EIP-7251 System Contract**: Validator consolidation requests (address 0x00431C4A4e22b7cbe7fc2f3DDa91BE1D4dF9EFf6)
-- **ENS Reverse Registrar**: Contract naming
+**Integrations:** 0xSplits (SplitMain), Lido (stETH/wstETH), EtherFi (eETH/weETH), Deposit Contract (ETH2), EIP-7002 (0x09Fc...aAaA), EIP-7251 (0x0043...EFf6), ENS Reverse Registrar
 
 ## Project Structure
 
@@ -123,51 +73,72 @@ src/
 ├── collector/        ObolCollector for reward collection
 ├── controllers/      ImmutableSplitController
 ├── etherfi/          EtherFi integration (eETH → weETH)
-├── interfaces/       All interface definitions
+├── interfaces/       All interface definitions (IObolValidatorManager, etc.)
 ├── lido/             Lido integration (stETH → wstETH)
-├── ovm/              ObolValidatorManager (main validator manager)
+├── ovm/              ObolValidatorManager and ObolValidatorManagerFactory
 ├── owr/              OptimisticWithdrawalRecipient (ETH distribution)
 │   └── token/        Token-based withdrawal recipient
 └── test/             Test suite organized by feature
+    ├── ovm/          OVM tests and mocks
+    ├── owr/          OWR tests
+    └── ...
 
-script/               24+ deployment scripts
+script/               Deployment and management scripts
+├── ovm/              OVM-specific scripts (12 scripts)
+│   ├── DeployFactoryScript.s.sol
+│   ├── CreateOVMScript.s.sol
+│   ├── DepositScript.s.sol
+│   ├── DistributeFundsScript.s.sol
+│   ├── ConsolidateScript.s.sol
+│   ├── WithdrawScript.s.sol
+│   ├── GrantRolesScript.s.sol
+│   ├── SetBeneficiaryScript.s.sol
+│   ├── SetRewardRecipientScript.s.sol
+│   ├── SetAmountOfPrincipalStakeScript.s.sol
+│   ├── SystemContractFeesScript.s.sol
+│   └── Utils.s.sol
+├── splits/           0xSplits deployment scripts
+└── data/             Sample configuration JSON files
 ```
 
-## Testing Approach
+## Testing & Security
 
-- **Unit tests**: Individual contract functionality, role checks, fee calculations
-- **Integration tests**: End-to-end flows (lido/, etherfi/, owr/token/integration/)
-- **Mocks**: SystemContractMock (EIP-7002/7251), DepositContractMock, MockERC20/1155/NFT
-- **Fuzzing**: Configured for 100 runs per test
-- Test files mirror src/ structure and use .t.sol suffix
+**Testing:**
+- Unit tests (role checks, fees, distribution), integration tests (lido/, etherfi/, owr/token/integration/)
+- Mocks: SystemContractMock (EIP-7002/7251), DepositContractMock, MockERC20/1155/NFT
+- 100 fuzz runs, .t.sol suffix, 43+ OVM tests (PUSH/PULL, sweep, roles, edge cases)
+- OVM test pattern: ≥16 ether → beneficiary, <16 ether → reward
 
-## Security Features
-
-- Reentrancy protection on OVM distribution functions
-- Two-phase distribution prevents denial-of-service
-- Role-based access control with granular permissions
-- Fund recovery mechanisms for stuck tokens
-- Public key validation (48-byte length checks)
-- Immutable configurations via CWIA pattern
+**Security:**
+- ReentrancyGuard on OVM distribute/sweep
+- PUSH/PULL prevents DOS, role-based access (6 OVM roles)
+- Fund recovery via `recoverFunds()`, 48-byte pubkey validation
+- Sweep allows emergency extraction, fee validation with refunds
+- `fundsPendingWithdrawal` prevents over-distribution
 
 ## Deployment Addresses
 
-**Mainnet:**
-- OptimisticWithdrawalRecipientFactory: 0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522
-- OptimisticWithdrawalRecipient: 0xe11eabf19a49c389d3e8735c35f8f34f28bdcb22
-- ObolLidoSplitFactory: 0xA9d94139A310150Ca1163b5E23f3E1dbb7D9E2A6
-- ObolLidoSplit: 0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3
-- ImmutableSplitControllerFactory: 0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4
-- ImmutableSplitController: 0xaF129979b773374dD3025d3F97353e73B0A6Cc8d
+**Mainnet:** OWRFactory: 0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522, OWR: 0xe11eabf19a49c389d3e8735c35f8f34f28bdcb22, ObolLidoSplitFactory: 0xA9d94139A310150Ca1163b5E23f3E1dbb7D9E2A6, ObolLidoSplit: 0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3, IMSCFactory: 0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4, IMSC: 0xaF129979b773374dD3025d3F97353e73B0A6Cc8d
 
-**Sepolia:**
-- OptimisticWithdrawalRecipientFactory: 0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a
-- OptimisticWithdrawalRecipient: 0x99585e71ab1118682d51efefca0a170c70eef0d6
+**Sepolia:** OWRFactory: 0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a, OWR: 0x99585e71ab1118682d51efefca0a170c70eef0d6
 
-## Important Notes
+## Notes
 
-- Project uses Foundry's Shanghai EVM version
-- Solidity version: 0.8.19
-- Gas reporting enabled for all contracts
-- Audited contracts - see https://docs.obol.tech/docs/sec/smart_contract_audit
-- Code formatting: 2-space tabs, 120 char line length, no bracket spacing
+Solidity 0.8.19, Shanghai EVM, gas reports enabled, audited (https://docs.obol.tech/docs/sec/smart_contract_audit), formatting: 2-space tabs, 120 char lines, no bracket spacing
+
+## OVM Workflows
+
+**Lifecycle:**
+1. Deploy: `ObolValidatorManagerFactory.createObolValidatorManager(owner, beneficiary, rewardRecipient, principalThreshold)`
+2. Grant roles: `grantRoles(user, DEPOSIT_ROLE | WITHDRAWAL_ROLE)`
+3. Deposit: `deposit(pubkey, withdrawal_credentials, signature, deposit_data_root)` with 32 ETH
+4. Distribute: `distributeFunds()` (PUSH) or `distributeFundsPull()` (PULL), then `withdrawPullBalance(account)`
+5. Emergency: `sweep(address(0), 0)` extracts all principal pull balance to beneficiary
+
+**Distribution:** If `balance - fundsPendingWithdrawal >= principalThreshold * 1e9` AND `amountOfPrincipalStake > 0`: pay principal first (up to `amountOfPrincipalStake`), overflow to reward. Else: all to reward. `amountOfPrincipalStake` decrements on payout.
+
+**Sweep:** `sweep(address(0), amount)` anyone→principalRecipient; `sweep(customAddr, amount)` owner→custom; `sweep(address(0), 0)` sweeps all
+
+**EIP-7002 Withdrawals:** `withdraw(pubKeys, amounts, maxFeePerWithdrawal, excessFeeRecipient)` - requires WITHDRAWAL_ROLE, ETH for `fee * pubKeys.length`
+
+**EIP-7251 Consolidations:** `consolidate(requests, maxFeePerConsolidation, excessFeeRecipient)` - requires CONSOLIDATION_ROLE, max 63 source pubkeys per request

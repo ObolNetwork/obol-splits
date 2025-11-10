@@ -14,25 +14,17 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 contract GrantRolesScript is Script {
   function run(address ovmAddress, address account, uint256 roles) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-    if (privKey == 0) {
-      revert("set PRIVATE_KEY env var before using this script");
-    }
-    if (!Utils.isContract(ovmAddress)) {
-      revert("OVM address is not set or invalid");
-    }
-    if (account == address(0)) {
-      revert("Account address cannot be zero");
-    }
-    if (roles == 0) {
-      revert("Roles cannot be zero");
-    }
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
+    if (!Utils.isContract(ovmAddress)) revert("OVM address is not set or invalid");
+    if (account == address(0)) revert("Account address cannot be zero");
+    if (roles == 0) revert("Roles cannot be zero");
 
     vm.startBroadcast(privKey);
 
     ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
     ovm.grantRoles(account, roles);
 
-    console.log("New roles for account", ovm.rolesOf(account));
+    console.log("Account %s now has roles: %d", account, ovm.rolesOf(account));
 
     vm.stopBroadcast();
   }

@@ -11,7 +11,6 @@ contract ObolValidatorManagerFactory {
   /// -----------------------------------------------------------------------
   /// errors
   /// -----------------------------------------------------------------------
-
   /// Owner cannot be address(0)
   error Invalid_Owner();
 
@@ -35,11 +34,7 @@ contract ObolValidatorManagerFactory {
   /// @param rewardRecipient Address to distribute reward payment to
   /// @param principalThreshold Principal vs rewards classification threshold (gwei)
   event CreateObolValidatorManager(
-    address indexed ovm,
-    address indexed owner,
-    address beneficiary,
-    address rewardRecipient,
-    uint64 principalThreshold
+    address indexed ovm, address indexed owner, address beneficiary, address rewardRecipient, uint64 principalThreshold
   );
 
   /// -----------------------------------------------------------------------

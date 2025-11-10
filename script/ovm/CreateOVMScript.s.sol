@@ -20,38 +20,22 @@ contract CreateOVMScript is Script {
     address ovmFactory,
     address owner,
     address beneficiary,
-    address rewardsRecipient,
+    address rewardRecipient,
     uint64 principalThreshold
   ) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-    if (privKey == 0) {
-      revert("set PRIVATE_KEY env var before using this script");
-    }
-    if (!Utils.isContract(ovmFactory)) {
-      revert("OVM Factory address is not set or invalid");
-    }
-    if (owner == address(0)) {
-      revert("Owner address cannot be zero");
-    }
-    if (beneficiary == address(0)) {
-      revert("Beneficiary recipient address cannot be zero");
-    }
-    if (rewardsRecipient == address(0)) {
-      revert("Rewards recipient address cannot be zero");
-    }
-    if (principalThreshold == 0) {
-      revert("Principal threshold cannot be zero");
-    }
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
+    if (!Utils.isContract(ovmFactory)) revert("OVM Factory address is not set or invalid");
+    if (owner == address(0)) revert("Owner address cannot be zero");
+    if (beneficiary == address(0)) revert("Beneficiary recipient address cannot be zero");
+    if (rewardRecipient == address(0)) revert("Reward recipient address cannot be zero");
+    if (principalThreshold == 0) revert("Principal threshold cannot be zero");
 
     vm.startBroadcast(privKey);
 
     ObolValidatorManagerFactory factory = ObolValidatorManagerFactory(ovmFactory);
-    ObolValidatorManager ovm = factory.createObolValidatorManager(
-      owner,
-      beneficiary,
-      rewardsRecipient,
-      principalThreshold
-    );
+    ObolValidatorManager ovm =
+      factory.createObolValidatorManager(owner, beneficiary, rewardRecipient, principalThreshold);
 
     console.log("ObolValidatorManager created at address", address(ovm));
     Utils.printExplorerUrl(address(ovm));

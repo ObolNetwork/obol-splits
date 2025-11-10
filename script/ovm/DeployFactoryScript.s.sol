@@ -28,24 +28,15 @@ contract DeployFactoryScript is Script {
 
   function run(string calldata name) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-    if (privKey == 0) {
-      revert("set PRIVATE_KEY env var before using this script");
-    }
-    if (!Utils.isContract(ensReverseRegistrar)) {
-      revert("ENS Reverse Registrar address is not set or invalid");
-    }
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
+    if (!Utils.isContract(ensReverseRegistrar)) revert("ENS Reverse Registrar address is not set or invalid");
 
     address ensOwner = vm.addr(privKey);
 
     vm.startBroadcast(privKey);
 
     ObolValidatorManagerFactory factory = new ObolValidatorManagerFactory{salt: keccak256(bytes(name))}(
-      consolidationSysContract,
-      withdrawalSysContract,
-      depositSysContract,
-      name,
-      ensReverseRegistrar,
-      ensOwner
+      consolidationSysContract, withdrawalSysContract, depositSysContract, name, ensReverseRegistrar, ensOwner
     );
 
     console.log("ObolValidatorManagerFactory deployed at", address(factory));

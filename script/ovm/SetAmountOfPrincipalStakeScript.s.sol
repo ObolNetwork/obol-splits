@@ -14,22 +14,19 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 contract SetAmountOfPrincipalStakeScript is Script {
   function run(address ovmAddress, uint256 newAmount) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-    if (privKey == 0) {
-      revert("set PRIVATE_KEY env var before using this script");
-    }
-    if (!Utils.isContract(ovmAddress)) {
-      revert("OVM address is not set or invalid");
-    }
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
+    if (!Utils.isContract(ovmAddress)) revert("OVM address is not set or invalid");
 
     vm.startBroadcast(privKey);
 
     ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
 
-    console.log("Current amount of principal stake", ovm.amountOfPrincipalStake());
+    console.log("OVM address:", ovmAddress);
+    console.log("Current amount of principal stake: %d gwei", ovm.amountOfPrincipalStake() / 1 gwei);
 
     ovm.setAmountOfPrincipalStake(newAmount);
 
-    console.log("New amount of principal stake", ovm.amountOfPrincipalStake());
+    console.log("New amount of principal stake: %d gwei", ovm.amountOfPrincipalStake() / 1 gwei);
 
     vm.stopBroadcast();
   }

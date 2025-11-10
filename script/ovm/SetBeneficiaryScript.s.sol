@@ -14,25 +14,20 @@ import {ObolValidatorManager} from "src/ovm/ObolValidatorManager.sol";
 contract SetBeneficiaryScript is Script {
   function run(address ovmAddress, address newBeneficiary) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-    if (privKey == 0) {
-      revert("set PRIVATE_KEY env var before using this script");
-    }
-    if (!Utils.isContract(ovmAddress)) {
-      revert("OVM address is not set or invalid");
-    }
-    if (newBeneficiary == address(0)) {
-      revert("New beneficiary recipient address cannot be zero");
-    }
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
+    if (!Utils.isContract(ovmAddress)) revert("OVM address is not set or invalid");
+    if (newBeneficiary == address(0)) revert("New beneficiary recipient address cannot be zero");
 
     vm.startBroadcast(privKey);
 
     ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
 
-    console.log("Current beneficiary", ovm.getBeneficiary());
+    console.log("OVM address:", ovmAddress);
+    console.log("Current beneficiary: %s", ovm.getBeneficiary());
 
     ovm.setBeneficiary(newBeneficiary);
 
-    console.log("New beneficiary set to", ovm.getBeneficiary());
+    console.log("New beneficiary: %s", ovm.getBeneficiary());
 
     vm.stopBroadcast();
   }

@@ -27,12 +27,8 @@ contract DepositScript is Script {
 
   function run(address ovmAddress, string memory depositFilePath) external {
     uint256 privKey = vm.envUint("PRIVATE_KEY");
-    if (privKey == 0) {
-      revert("set PRIVATE_KEY env var before using this script");
-    }
-    if (!Utils.isContract(ovmAddress)) {
-      revert("OVM address is not set or invalid");
-    }
+    if (privKey == 0) revert("set PRIVATE_KEY env var before using this script");
+    if (!Utils.isContract(ovmAddress)) revert("OVM address is not set or invalid");
 
     console.log("Reading deposit data from file: %s", depositFilePath);
 
@@ -49,24 +45,24 @@ contract DepositScript is Script {
     for (uint256 j = 0; j < depositDatas.length; j++) {
       DepositData memory depositData = depositDatas[j];
 
-      console.log("Deposit at index %d for amount of %d ether:", j, depositData.amount / 1 gwei);
+      console.log("Deposit at index %d for amount of %d gwei:", j, depositData.amount);
       console.log("  PK: %s", depositData.pubkey);
       console.log("  WC: %s", depositData.withdrawal_credentials);
 
       totalAmount += depositData.amount;
     }
 
-    console.log("Total amount will be deposited: %d ether", totalAmount / 1 gwei);
-    require(totalAmount > address(this).balance, "You don't have enough balance to deposit");
+    console.log("Total amount will be deposited: %d gwei", totalAmount);
+    require(address(this).balance >= totalAmount * 1 gwei, "You don't have enough balance to deposit");
 
     ObolValidatorManager ovm = ObolValidatorManager(payable(ovmAddress));
-    console.log("Currently staked amount: %d ether", ovm.amountOfPrincipalStake() / 1 ether);
+    console.log("Currently staked amount: %d gwei", ovm.amountOfPrincipalStake() / 1 gwei);
 
     // Executing deposits...
     for (uint256 j = 0; j < depositDatas.length; j++) {
       DepositData memory depositData = depositDatas[j];
 
-      console.log("Depositing %s for amount of %d ether", depositData.pubkey, depositData.amount / 1 gwei);
+      console.log("Depositing %s for amount of %d gwei", depositData.pubkey, depositData.amount);
 
       bytes memory pubkey = vm.parseBytes(depositData.pubkey);
       bytes memory withdrawal_credentials = vm.parseBytes(depositData.withdrawal_credentials);
@@ -75,7 +71,7 @@ contract DepositScript is Script {
       uint256 deposit_amount = depositData.amount * 1 gwei;
       ovm.deposit{value: deposit_amount}(pubkey, withdrawal_credentials, signature, deposit_data_root);
 
-      console.log("Deposit successful for amount: %d ether", depositData.amount / 1 gwei);
+      console.log("Deposit successful for amount: %d gwei", depositData.amount);
     }
 
     console.log("All deposits executed successfully.");

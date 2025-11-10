@@ -17,7 +17,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// -----------------------------------------------------------------------
   /// libraries
   /// -----------------------------------------------------------------------
-
   using SafeTransferLib for address;
 
   /// -----------------------------------------------------------------------
@@ -82,24 +81,12 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     address _rewardRecipient,
     uint64 _principalThreshold
   ) {
-    if (_consolidationSystemContract == address(0)) {
-      revert InvalidRequest_Params();
-    }
-    if (_withdrawalSystemContract == address(0)) {
-      revert InvalidRequest_Params();
-    }
-    if (_depositSystemContract == address(0)) {
-      revert InvalidRequest_Params();
-    }
-    if (_owner == address(0)) {
-      revert InvalidRequest_Params();
-    }
-    if (_beneficiary == address(0)) {
-      revert InvalidRequest_Params();
-    }
-    if (_rewardRecipient == address(0)) {
-      revert InvalidRequest_Params();
-    }
+    if (_consolidationSystemContract == address(0)) revert InvalidRequest_Params();
+    if (_withdrawalSystemContract == address(0)) revert InvalidRequest_Params();
+    if (_depositSystemContract == address(0)) revert InvalidRequest_Params();
+    if (_owner == address(0)) revert InvalidRequest_Params();
+    if (_beneficiary == address(0)) revert InvalidRequest_Params();
+    if (_rewardRecipient == address(0)) revert InvalidRequest_Params();
 
     consolidationSystemContract = _consolidationSystemContract;
     withdrawalSystemContract = _withdrawalSystemContract;
@@ -133,10 +120,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     uint256 oldAmountOfPrincipalStake = amountOfPrincipalStake;
     amountOfPrincipalStake += msg.value;
     IDepositContract(depositSystemContract).deposit{value: msg.value}(
-      pubkey,
-      withdrawal_credentials,
-      signature,
-      deposit_data_root
+      pubkey, withdrawal_credentials, signature, deposit_data_root
     );
 
     emit PrincipalStakeAmountUpdated(amountOfPrincipalStake, oldAmountOfPrincipalStake);
@@ -144,9 +128,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   /// @inheritdoc IObolValidatorManager
   function setBeneficiary(address newBeneficiary) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
-    if (newBeneficiary == address(0)) {
-      revert InvalidRequest_Params();
-    }
+    if (newBeneficiary == address(0)) revert InvalidRequest_Params();
 
     principalRecipient = newBeneficiary;
 
@@ -155,9 +137,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   /// @inheritdoc IObolValidatorManager
   function setAmountOfPrincipalStake(uint256 newAmount) external onlyOwnerOrRoles(SET_BENEFICIARY_ROLE) {
-    if (newAmount == amountOfPrincipalStake) {
-      return;
-    }
+    if (newAmount == amountOfPrincipalStake) return;
 
     uint256 oldAmount = amountOfPrincipalStake;
     amountOfPrincipalStake = newAmount;
@@ -167,9 +147,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   /// @inheritdoc IObolValidatorManager
   function setRewardRecipient(address newRewardRecipient) external onlyOwnerOrRoles(SET_REWARD_ROLE) {
-    if (newRewardRecipient == address(0)) {
-      revert InvalidRequest_Params();
-    }
+    if (newRewardRecipient == address(0)) revert InvalidRequest_Params();
 
     rewardRecipient = newRewardRecipient;
 
@@ -186,9 +164,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
     // If amount is zero, sweep all funds in pullBalances for principalRecipient
     uint256 sweepAmount = amount == 0 ? pullBalances[principalRecipient] : amount;
-    if (sweepAmount > pullBalances[principalRecipient]) {
-      revert InvalidRequest_Params();
-    }
+    if (sweepAmount > pullBalances[principalRecipient]) revert InvalidRequest_Params();
 
     pullBalances[principalRecipient] -= sweepAmount;
     emit Swept(recipient, sweepAmount);
@@ -223,9 +199,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     // Calculate total number of consolidation operations
     uint256 totalNumOfConsolidationOperations = 0;
     for (uint256 i = 0; i < requests.length; i++) {
-      if (requests[i].srcPubKeys.length == 0 || requests[i].srcPubKeys.length > 63) {
-        revert InvalidRequest_Params();
-      }
+      if (requests[i].srcPubKeys.length == 0 || requests[i].srcPubKeys.length > 63) revert InvalidRequest_Params();
       totalNumOfConsolidationOperations += requests[i].srcPubKeys.length;
     }
     // Check if the msg.value is enough to cover the fees
@@ -241,10 +215,8 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
         // Add the consolidation request
         bytes memory callData = bytes.concat(requests[i].srcPubKeys[j], requests[i].targetPubKey);
-        (bool success, ) = consolidationSystemContract.call{value: fee}(callData);
-        if (!success) {
-          revert InvalidConsolidation_Failed();
-        }
+        (bool success,) = consolidationSystemContract.call{value: fee}(callData);
+        if (!success) revert InvalidConsolidation_Failed();
 
         // Emit consolidation event for each operation
         emit ConsolidationRequested(requests[i].srcPubKeys[j], requests[i].targetPubKey, fee);
@@ -275,10 +247,8 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
       // Add the withdrawal request
       bytes memory callData = abi.encodePacked(pubKeys[i], amounts[i]);
-      (bool success, ) = withdrawalSystemContract.call{value: fee}(callData);
-      if (!success) {
-        revert InvalidWithdrawal_Failed();
-      }
+      (bool success,) = withdrawalSystemContract.call{value: fee}(callData);
+      if (!success) revert InvalidWithdrawal_Failed();
       totalFeePaid += fee;
 
       // Emit withdrawal event for each validator
@@ -300,9 +270,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// @inheritdoc IObolValidatorManager
   function withdrawPullBalance(address account) external {
     uint256 amount = pullBalances[account];
-    if (amount == 0) {
-      return;
-    }
+    if (amount == 0) return;
 
     unchecked {
       // shouldn't underflow; fundsPendingWithdrawal = sum(pullBalances)
@@ -353,18 +321,22 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function hasAnyRole(
-    address user,
-    uint256 roles
-  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+  function hasAnyRole(address user, uint256 roles)
+    public
+    view
+    override(IObolValidatorManager, OwnableRoles)
+    returns (bool)
+  {
     return super.hasAnyRole(user, roles);
   }
 
   /// @inheritdoc IObolValidatorManager
-  function hasAllRoles(
-    address user,
-    uint256 roles
-  ) public view override(IObolValidatorManager, OwnableRoles) returns (bool) {
+  function hasAllRoles(address user, uint256 roles)
+    public
+    view
+    override(IObolValidatorManager, OwnableRoles)
+    returns (bool)
+  {
     return super.hasAllRoles(user, roles);
   }
 
@@ -399,9 +371,12 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   }
 
   /// @inheritdoc IObolValidatorManager
-  function ownershipHandoverExpiresAt(
-    address pendingOwner
-  ) public view override(IObolValidatorManager, Ownable) returns (uint256 result) {
+  function ownershipHandoverExpiresAt(address pendingOwner)
+    public
+    view
+    override(IObolValidatorManager, Ownable)
+    returns (uint256 result)
+  {
     return super.ownershipHandoverExpiresAt(pendingOwner);
   }
 
@@ -413,9 +388,7 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// @param value The value.
   /// @param totalFee The total fee.
   function _validateSufficientValueForFee(uint256 value, uint256 totalFee) internal pure {
-    if (value < totalFee) {
-      revert InvalidRequest_NotEnoughFee();
-    }
+    if (value < totalFee) revert InvalidRequest_NotEnoughFee();
   }
 
   /// Internal function to validate the fee. Used for pectra related operations.
@@ -426,22 +399,16 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   function _validateAndReturnFee(address feeContract, uint256 maxAllowedFee) internal view returns (uint256 fee) {
     // Read current fee from the contract
     (bool readOK, bytes memory feeData) = feeContract.staticcall("");
-    if (!readOK) {
-      revert InvalidRequest_SystemGetFee();
-    }
+    if (!readOK) revert InvalidRequest_SystemGetFee();
     fee = uint256(bytes32(feeData));
 
-    if (fee > maxAllowedFee) {
-      revert InvalidRequest_NotEnoughFee();
-    }
+    if (fee > maxAllowedFee) revert InvalidRequest_NotEnoughFee();
   }
 
   /// Internal function to validate that a public key is exactly 48 bytes in length
   /// @param pubkey The public key to validate
   function _validatePubkeyLength(bytes memory pubkey) internal pure {
-    if (pubkey.length != PUBLIC_KEY_LENGTH) {
-      revert InvalidRequest_Params();
-    }
+    if (pubkey.length != PUBLIC_KEY_LENGTH) revert InvalidRequest_Params();
   }
 
   /// Internal function to refund the excess fee for pectra related operations.
@@ -451,10 +418,8 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   function _refundExcessFee(uint256 _totalValueReceived, uint256 _totalFeePaid, address _excessFeeRecipient) internal {
     // send excess value back to _excessFeeRecipient
     if (_totalValueReceived > _totalFeePaid) {
-      (bool success, ) = payable(_excessFeeRecipient).call{value: _totalValueReceived - _totalFeePaid}("");
-      if (!success) {
-        emit UnsentExcessFee(_excessFeeRecipient, _totalValueReceived - _totalFeePaid);
-      }
+      (bool success,) = payable(_excessFeeRecipient).call{value: _totalValueReceived - _totalFeePaid}("");
+      if (!success) emit UnsentExcessFee(_excessFeeRecipient, _totalValueReceived - _totalFeePaid);
     }
   }
 

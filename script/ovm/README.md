@@ -62,7 +62,7 @@ Script parameters:
 - `ovmFactory`: The address of the deployed `ObolValidatorManagerFactory` contract.
 - `owner`: The address of the owner of the new `ObolValidatorManager` contract.
 - `beneficiary`: The address of the beneficiary recipient.
-- `rewardsRecipient`: The address of the rewards recipient.
+- `rewardRecipient`: The address of the reward recipient.
 - `principalThreshold`: The principal threshold value (gwei), recommended value is `16000000000` (16 ether).
 
 Example usage:
@@ -123,7 +123,7 @@ Typical output:
 
 ```
 == Logs ==
-   New roles for account 0x0C
+  Account 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72 now has roles: 12
 ```
 
 ## DistributeFundsScript
@@ -139,6 +139,24 @@ Script parameters:
 ```bash
 forge script script/ovm/DistributeFundsScript.s.sol --sig "run(address)" \
    --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+```
+
+Typical output:
+
+```
+== Logs ==
+  OVM address: 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  --- State Before Distribution ---
+  OVM balance: 32000000000 gwei
+  Amount of principal stake: 32000000000 gwei
+  Funds pending withdrawal: 0 gwei
+  Principal threshold: 16000000000 gwei
+  Beneficiary (principal recipient): 0x46aB8712c7A5423b717F648529B1c7A17099750A
+  Reward recipient: 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
+  --- Distributing Funds ---
+  --- State After Distribution ---
+  Amount of principal stake: 0 gwei
+  Distribution completed successfully
 ```
 
 After executing the script, verify your principal and reward recipient balances.
@@ -163,8 +181,9 @@ Typical output:
 
 ```
 == Logs ==
-  Current principal recipient 0x46aB8712c7A5423b717F648529B1c7A17099750A
-  New principal recipient set to 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
+  OVM address: 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  Current beneficiary: 0x46aB8712c7A5423b717F648529B1c7A17099750A
+  New beneficiary: 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
 ```
 
 ## SetAmountOfPrincipalStakeScript
@@ -188,8 +207,9 @@ Typical output:
 
 ```
 == Logs ==
-  Current amount of principal stake 1000000000000000000
-  New amount of principal stake 2000000000000000000
+  OVM address: 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  Current amount of principal stake: 1000000000 gwei
+  New amount of principal stake: 2000000000 gwei
 ```
 
 ## SetRewardRecipientScript
@@ -212,8 +232,9 @@ Typical output:
 
 ```
 == Logs ==
-  Current reward recipient 0x46aB8712c7A5423b717F648529B1c7A17099750A
-  New reward recipient set to 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
+  OVM address: 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  Current reward recipient: 0x46aB8712c7A5423b717F648529B1c7A17099750A
+  New reward recipient: 0xE84E904936C595C55b9Ad08532d9aD0A5d76df72
 ```
 
 ## ConsolidateScript
@@ -226,22 +247,38 @@ The `consolidate()` function signature uses a `ConsolidationRequest[]` structure
 - Support for batching multiple consolidation operations in a single transaction
 - Enhanced validation (max 63 source validators per consolidation, EIP-7251 compliance)
 
-*By default, the script uses at most 100 wei for the fee, with excess returned to the sender.*
-
 To run this script, the following environment variables must be set:
 - `PRIVATE_KEY`: the private key of the account that will call the function
 
 Script parameters:
 - `ovmAddress`: The address of the deployed `ObolValidatorManager` contract.
-- `src`: The source validator public key (hex).
-- `dst`: The destination validator public key (hex).
+- `src`: The source validator public key (hex, 48 bytes).
+- `dst`: The destination validator public key (hex, 48 bytes).
+- `maxFeePerConsolidation`: Maximum fee per consolidation operation (wei).
+- `excessFeeRecipient`: Address to receive excess fees.
 
 ```bash
-forge script script/ovm/ConsolidateScript.s.sol --sig "run(address,bytes,bytes)" \
+forge script script/ovm/ConsolidateScript.s.sol --sig "run(address,bytes,bytes,uint256,address)" \
    --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
    0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
    0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
-   0xa035b995117ddd4d34d5b9cae477795183b6805563c301c3e8a323d68aeef614ee9b6509cc0781c53f5ab545f78be46c
+   0xa035b995117ddd4d34d5b9cae477795183b6805563c301c3e8a323d68aeef614ee9b6509cc0781c53f5ab545f78be46c \
+   1000000000000000 \
+   0x46aB8712c7A5423b717F648529B1c7A17099750A
+```
+
+Typical output:
+
+```
+== Logs ==
+  OVM address: 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  Source pubkey (first 20 bytes):
+  0x99bcf2494c940e21301b56c2358a3733b5b1035a
+  Destination pubkey (first 20 bytes):
+  0xa035b995117ddd4d34d5b9cae477795183b68055
+  Max fee per consolidation: 1000000000000000 wei
+  Excess fee recipient: 0x46aB8712c7A5423b717F648529B1c7A17099750A
+  Consolidation request submitted successfully
 ```
 
 **Note**: The script internally converts the single source/destination pair into a `ConsolidationRequest[]` structure as required by the function signature.
@@ -257,25 +294,93 @@ The `withdraw()` function signature includes:
 - Enhanced validation and reentrancy protection
 - Automatic excess fee refunding with fallback event emission
 
-*By default, the script uses at most 100 wei for the fee, with excess returned to the sender.*
+To run this script, the following environment variables must be set:
+- `PRIVATE_KEY`: the private key of the account that will call the function
+
+Script parameters:
+- `ovmAddress`: The address of the deployed `ObolValidatorManager` contract.
+- `pubkey`: The validator public key (hex, 48 bytes).
+- `amount`: The amount to withdraw (gwei).
+- `maxFeePerWithdrawal`: Maximum fee per withdrawal request (wei).
+- `excessFeeRecipient`: Address to receive excess fees.
+
+```bash
+forge script script/ovm/WithdrawScript.s.sol --sig "run(address,bytes,uint64,uint256,address)" \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
+   0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
+   0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
+   10000000000 \
+   1000000000000000 \
+   0x46aB8712c7A5423b717F648529B1c7A17099750A
+```
+
+Typical output:
+
+```
+== Logs ==
+  OVM address: 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  Withdrawing for pubkey (first 20 bytes):
+  0x99bcf2494c940e21301b56c2358a3733b5b1035a
+  Amount to withdraw: 10000000000 gwei
+  Max fee per withdrawal: 1000000000000000 wei
+  Excess fee recipient: 0x46aB8712c7A5423b717F648529B1c7A17099750A
+  --- Executing Withdraw ---
+  Withdrawal request submitted successfully
+```
+
+**Note**: The script internally converts the single validator/amount pair into arrays as required by the batch-supporting function signature.
+
+## SweepScript
+
+This script calls `sweep()` for an `ObolValidatorManager` contract to sweep funds from the pull balance to a recipient.
+
+The `sweep()` function behavior:
+- If `beneficiary` is `address(0)`, funds are swept to the principal recipient (anyone can call)
+- If `beneficiary` is specified, only the owner can call and funds are swept to that address
+- If `amount` is `0`, all available pull balance for the principal recipient is swept
+- Otherwise, the specified amount is swept
 
 To run this script, the following environment variables must be set:
 - `PRIVATE_KEY`: the private key of the account that will call the function
 
 Script parameters:
 - `ovmAddress`: The address of the deployed `ObolValidatorManager` contract.
-- `src`: The validator public key (hex).
-- `amount`: The amount to withdraw (gwei).
+- `beneficiary`: The beneficiary address (`address(0)` to sweep to principal recipient).
+- `amount`: Amount to sweep in wei (`0` to sweep all available balance).
 
 ```bash
-forge script script/ovm/WithdrawScript.s.sol --sig "run(address,bytes,uint64)" \
+# Sweep all funds to principal recipient (anyone can call)
+forge script script/ovm/SweepScript.s.sol --sig "run(address,address,uint256)" \
    --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
    0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
-   0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 \
-   10000000000
+   0x0000000000000000000000000000000000000000 \
+   0
+
+# Sweep specific amount to custom beneficiary (owner only)
+forge script script/ovm/SweepScript.s.sol --sig "run(address,address,uint256)" \
+   --rpc-url https://ethereum-sepolia-rpc.publicnode.com --broadcast \
+   0x197d3c66a06FfD98F7316D71190EbD74262103b5 \
+   0xE84E904936C595C55b9Ad08532d9aD0A5d76df72 \
+   1000000000000000000
 ```
 
-**Note**: The script internally converts the single validator/amount pair into arrays as required by the batch-supporting function signature.
+Typical output:
+
+```
+== Logs ==
+  OVM address: 0x197d3c66a06FfD98F7316D71190EbD74262103b5
+  --- State Before Sweep ---
+  Principal recipient: 0x46aB8712c7A5423b717F648529B1c7A17099750A
+  Pull balance for principal recipient: 16000000000 gwei
+  Funds pending withdrawal: 16000000000 gwei
+  Sweeping to principal recipient (no beneficiary override)
+  Amount: ALL available pull balance
+  --- Executing Sweep ---
+  --- State After Sweep ---
+  Pull balance for principal recipient: 0 gwei
+  Funds pending withdrawal: 0 gwei
+  Sweep completed successfully
+```
 
 ## DepositScript
 
@@ -296,4 +401,21 @@ Usage:
 forge script script/ovm/DepositScript.s.sol --sig "run(address,string)" \
    --rpc-url https://ethereum-sepolia-rpc.publicnode.com \
    --broadcast 0x197d3c66a06FfD98F7316D71190EbD74262103b5 my_deposit_data.json
+```
+
+Typical output:
+
+```
+== Logs ==
+  Reading deposit data from file: my_deposit_data.json
+  Number of deposit records: 1
+  Deposit at index 0 for amount of 32000000000 gwei:
+    PK: 0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03
+    WC: 0x010000000000000000000000197d3c66a06ffd98f7316d71190ebd74262103b5
+  Total amount will be deposited: 32000000000 gwei
+  Currently staked amount: 0 gwei
+  --- Executing Deposits ---
+  Depositing 0x99bcf2494c940e21301b56c2358a3733b5b1035aa2d0856274b1015fe52d9116d74a771190e954190fcf8b607107de03 for amount of 32000000000 gwei
+  Deposit successful for amount: 32000000000 gwei
+  All deposits executed successfully.
 ```
