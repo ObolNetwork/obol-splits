@@ -169,6 +169,11 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     uint256 sweepAmount = amount == 0 ? pullBalances[principalRecipient] : amount;
     if (sweepAmount > pullBalances[principalRecipient]) revert InvalidRequest_Params();
 
+    unchecked {
+      // shouldn't underflow; fundsPendingWithdrawal = sum(pullBalances)
+      fundsPendingWithdrawal -= uint128(sweepAmount);
+    }
+
     pullBalances[principalRecipient] -= sweepAmount;
     emit Swept(recipient, sweepAmount);
 
@@ -308,6 +313,11 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// @inheritdoc IObolValidatorManager
   function getBeneficiary() external view returns (address) {
     return principalRecipient;
+  }
+
+  /// @inheritdoc IObolValidatorManager
+  function version() external pure returns (string memory) {
+    return "1.0.0";
   }
 
   /// -----------------------------------------------------------------------

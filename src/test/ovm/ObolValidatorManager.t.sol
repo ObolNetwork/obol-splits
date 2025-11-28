@@ -221,6 +221,7 @@ contract ObolValidatorManagerTest is Test {
 
     uint256 initialBeneficiaryBalance = beneficiary.balance;
     uint256 initialPullBalance = ovmETH.getPullBalance(beneficiary);
+    uint256 initialFundsPending = ovmETH.fundsPendingWithdrawal();
 
     // Sweep to default beneficiary (address(0) means use beneficiary)
     vm.expectEmit(true, true, true, true);
@@ -229,6 +230,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(beneficiary.balance, initialBeneficiaryBalance + sweepAmount);
     assertEq(ovmETH.getPullBalance(beneficiary), initialPullBalance - sweepAmount);
+    assertEq(ovmETH.fundsPendingWithdrawal(), initialFundsPending - sweepAmount);
   }
 
   function testSweep_toSpecificAddress() public {
@@ -240,6 +242,7 @@ contract ObolValidatorManagerTest is Test {
     address customRecipient = makeAddr("customRecipient");
     uint256 initialRecipientBalance = customRecipient.balance;
     uint256 initialPullBalance = ovmETH.getPullBalance(beneficiary);
+    uint256 initialFundsPending = ovmETH.fundsPendingWithdrawal();
 
     // Sweep to custom address (requires owner)
     vm.expectEmit(true, true, true, true);
@@ -248,6 +251,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(customRecipient.balance, initialRecipientBalance + sweepAmount);
     assertEq(ovmETH.getPullBalance(beneficiary), initialPullBalance - sweepAmount);
+    assertEq(ovmETH.fundsPendingWithdrawal(), initialFundsPending - sweepAmount);
   }
 
   function testSweep_allFunds() public {
@@ -257,6 +261,7 @@ contract ObolValidatorManagerTest is Test {
 
     uint256 pullBalanceBeneficiary = ovmETH.getPullBalance(beneficiary);
     uint256 initialBeneficiaryBalance = beneficiary.balance;
+    uint256 initialFundsPending = ovmETH.fundsPendingWithdrawal();
 
     // Sweep all funds (amount = 0 means sweep all from pullBalances[principalRecipient])
     vm.expectEmit(true, true, true, true);
@@ -265,6 +270,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(beneficiary.balance, initialBeneficiaryBalance + pullBalanceBeneficiary);
     assertEq(ovmETH.getPullBalance(beneficiary), 0);
+    assertEq(ovmETH.fundsPendingWithdrawal(), initialFundsPending - pullBalanceBeneficiary);
   }
 
   function testSweep_partialAmount() public {
@@ -275,6 +281,7 @@ contract ObolValidatorManagerTest is Test {
     uint256 sweepAmount = 20 ether;
     uint256 initialBeneficiaryBalance = beneficiary.balance;
     uint256 initialPullBalance = ovmETH.getPullBalance(beneficiary);
+    uint256 initialFundsPending = ovmETH.fundsPendingWithdrawal();
 
     // Sweep partial amount
     vm.expectEmit(true, true, true, true);
@@ -283,6 +290,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(beneficiary.balance, initialBeneficiaryBalance + sweepAmount);
     assertEq(ovmETH.getPullBalance(beneficiary), initialPullBalance - sweepAmount);
+    assertEq(ovmETH.fundsPendingWithdrawal(), initialFundsPending - sweepAmount);
   }
 
   function testCannot_sweepMoreThanBalance() public {
@@ -351,6 +359,7 @@ contract ObolValidatorManagerTest is Test {
 
     uint256 initialBeneficiaryBalance = beneficiary.balance;
     uint256 initialPullBalance = ovmETH.getPullBalance(beneficiary);
+    uint256 initialFundsPending = ovmETH.fundsPendingWithdrawal();
 
     vm.expectEmit(true, true, true, true);
     emit Swept(beneficiary, sweepAmount);
@@ -358,6 +367,7 @@ contract ObolValidatorManagerTest is Test {
 
     assertEq(beneficiary.balance, initialBeneficiaryBalance + sweepAmount);
     assertEq(ovmETH.getPullBalance(beneficiary), initialPullBalance - sweepAmount);
+    assertEq(ovmETH.fundsPendingWithdrawal(), initialFundsPending - sweepAmount);
 
     vm.stopPrank();
   }
@@ -1034,5 +1044,9 @@ contract ObolValidatorManagerTest is Test {
     
     assertEq(ovmETH.getBeneficiary(), newBeneficiary, "beneficiary should be updated");
     assertEq(ovmETH.owner(), newOwner, "owner should be transferred");
+  }
+
+  function testVersion() public view {
+    assertEq(ovmETH.version(), "1.0.0");
   }
 }
