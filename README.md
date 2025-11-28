@@ -6,7 +6,7 @@ This repo contains Obol Splits smart contracts. This suite of smart contracts an
 
 ### Disclaimer
 
-The following smart contracts are provided as is, without warranty. Details of their audits can be consulted [here](https://docs.obol.tech/docs/sec/overview). 
+The following smart contracts are provided as is, without warranty. Details of their audit can be consulted [here](https://docs.obol.tech/docs/sec/smart_contract_audit). 
 
 ## Quickstart
 
@@ -57,31 +57,19 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 
 #### Hoodi
 
-ObolValidatorManagerFactory: https://hoodi.etherscan.io/address/0xb1E1f5e90f4190F78182A8d5cbed774893Dd1558
-
-Note: the factory was deployed having ENS functionality disabled (there is no ENS deployment on hoodi yet).
-Use etherscan interface or `CreateObolValidatorManagerScript` to create OVM instances using the factory:
-
-```sh
-# this will set the owner and recipients to the deployer address; edit the script to set them to your desired values
-forge script script/CreateObolValidatorManagerScript.s.sol --sig "run(address)" --rpc-url https://rpc.hoodi.ethpandaops.io --broadcast 0xb1E1f5e90f4190F78182A8d5cbed774893Dd1558
-```
+ObolValidatorManagerFactory: TBD
 
 #### Sepolia
+
+ObolValidatorManagerFactory: TBD
 
 OptimisticWithdrawalRecipientFactory: https://sepolia.etherscan.io/address/0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a
 
 OptimisticWithdrawalRecipient: https://sepolia.etherscan.io/address/0x99585e71ab1118682d51efefca0a170c70eef0d6
 
-
-### Holesky
-
-ObolLidoSplitFactory: https://holesky.etherscan.io/address/0x934ec6B68cE7cC3b3E6106C686B5ad808ED26449
-
-ObolLidoSplit: https://holesky.etherscan.io/address/0x22bdC6609de39E569546184Bff4ba4716d34fEBd 
-
-
 #### Mainnet
+
+ObolValidatorManagerFactory: TBD
 
 OptimisticWithdrawalRecipientFactory: https://etherscan.io/address/0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522
 
