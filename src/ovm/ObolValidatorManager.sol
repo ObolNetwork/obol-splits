@@ -315,7 +315,8 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     return principalRecipient;
   }
 
-  /// @inheritdoc IObolValidatorManager
+  /// @notice Retrieves the version of the contract.
+  /// @return Version of the contract
   function version() external pure returns (string memory) {
     return "1.0.0";
   }

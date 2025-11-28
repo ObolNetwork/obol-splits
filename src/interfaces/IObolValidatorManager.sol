@@ -200,10 +200,6 @@ interface IObolValidatorManager {
   /// @param newOwner The new owner address.
   function transfer(address newBeneficiary, address newOwner) external;
 
-  /// @notice Retrieves the version of the contract.
-  /// @return Version of the contract
-  function version() external pure returns (string memory);
-
   /// -----------------------------------------------------------------------
   /// ObolValidatorManager variable getters
   /// -----------------------------------------------------------------------
