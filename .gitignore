@@ -7,3 +7,4 @@ remappings.txt
 env/
 result.json
 deployments/
+.DS_Store
