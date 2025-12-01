@@ -57,11 +57,11 @@ This repo can be deployed with `forge create` or running the deployment scripts.
 
 #### Hoodi
 
-ObolValidatorManagerFactory: TBD
+ObolValidatorManagerFactory: https://hoodi.etherscan.io/address/0x5754C8665B7e7BF15E83fCdF6d9636684B782b12
 
 #### Sepolia
 
-ObolValidatorManagerFactory: TBD
+ObolValidatorManagerFactory: https://sepolia.etherscan.io/address/0xF32F8B563d8369d40C45D5d667C2B26937F2A3d3
 
 OptimisticWithdrawalRecipientFactory: https://sepolia.etherscan.io/address/0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a
 
@@ -69,7 +69,7 @@ OptimisticWithdrawalRecipient: https://sepolia.etherscan.io/address/0x99585e71ab
 
 #### Mainnet
 
-ObolValidatorManagerFactory: TBD
+ObolValidatorManagerFactory: https://etherscan.io/address/0x2c26B5A373294CaccBd3DE817D9B7C6aea7De584
 
 OptimisticWithdrawalRecipientFactory: https://etherscan.io/address/0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522
 
