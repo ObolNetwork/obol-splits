@@ -22,6 +22,9 @@ ignored_error_codes = [2018, 5574]
 mainnet = "${MAINNET_RPC_URL}"
 sepolia = "${SEPOLIA_RPC_URL}"
 
+# Increase compute units for better rate limit handling
+compute_units_per_second = 330
+
 [fmt]
 bracket_spacing = false
 int_types = "long"
@@ -35,6 +38,9 @@ wrap_comments = true
 
 [fuzz]
 runs = 100
+
+[profile.ci]
+fuzz = { runs = 10 }  # Reduce fuzz runs in CI to avoid rate limits
 
 [etherscan]
 chiado = { key = "${ETHERSCAN_API_KEY}", url = "https://blockscout.com/gnosis/chiado/api" }

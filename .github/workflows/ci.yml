@@ -20,8 +20,19 @@ jobs:
         with:
           version: nightly
 
+      - name: Cache Forge dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.foundry/cache
+            cache
+          key: ${{ runner.os }}-foundry-${{ hashFiles('foundry.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-foundry-
+
       - name: Run tests
         env:
           SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
-        run: forge test -vvv
+          FOUNDRY_PROFILE: ci
+        run: forge test -vvv --no-rate-limit
