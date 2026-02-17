@@ -142,3 +142,60 @@ Solidity 0.8.19, Shanghai EVM, gas reports enabled, audited (https://docs.obol.t
 **EIP-7002 Withdrawals:** `withdraw(pubKeys, amounts, maxFeePerWithdrawal, excessFeeRecipient)` - requires WITHDRAWAL_ROLE, ETH for `fee * pubKeys.length`
 
 **EIP-7251 Consolidations:** `consolidate(requests, maxFeePerConsolidation, excessFeeRecipient)` - requires CONSOLIDATION_ROLE, max 63 source pubkeys per request
+
+## AI Skills (Claude Code MCP Tools)
+
+The `skills/` directory contains a single MCP server with 8 OVM management tools. An AI agent starting in this repo can use these tools to read and write OVM contracts conversationally.
+
+### Setup
+```sh
+cd skills && npm install && npm run build
+```
+
+### Run
+```sh
+# Single MCP server with all 8 tools
+node skills/dist/index.js
+
+# Test with MCP inspector
+cd skills && npx @modelcontextprotocol/inspector node dist/index.js
+```
+
+### Available Tools
+
+| Tool | Description | Required Role |
+|------|-------------|---------------|
+| `ovm_query` | Query OVM state, roles, check if address is OVM, list all OVMs | None (read-only) |
+| `ovm_deploy` | Deploy new OVM via factory | None (creates new) |
+| `ovm_grant_roles` | Grant RBAC roles on an OVM | Owner |
+| `ovm_revoke_roles` | Revoke RBAC roles from an OVM | Owner |
+| `ovm_distribute` | Distribute accumulated funds to recipients | None (anyone) |
+| `ovm_set_beneficiary` | Set new beneficiary (principal recipient) | SET_BENEFICIARY_ROLE |
+| `ovm_set_reward_recipient` | Set new reward recipient | SET_REWARD_ROLE |
+| `ovm_withdraw` | Request validator withdrawals (EIP-7002) | WITHDRAWAL_ROLE |
+
+### How It Works
+- **Read operations** (`ovm_query`) query the blockchain directly via public RPC
+- **Write operations** return transaction data (Cast commands + encoded calldata) for the user to sign - the skill never handles private keys
+- All tools support **mainnet, hoodi, and sepolia** networks
+- Custom RPC URLs accepted via `rpcUrl` parameter
+- OVM detection uses factory `CreateObolValidatorManager` event logs (no false positives)
+
+### Structure
+```
+skills/
+├── index.ts              # Single MCP server entry point (registers all 8 tools)
+├── package.json          # Shared dependencies (viem, @modelcontextprotocol/sdk)
+├── tsconfig.json         # Strict TypeScript config
+├── _shared/
+│   ├── constants.ts      # ABIs, network configs, role constants
+│   └── utils.ts          # Blockchain client, OVM detection, state reading
+├── ovm-query/index.ts    # Tool: read state + roles + list
+├── ovm-deploy/index.ts   # Tool: deploy via factory
+├── ovm-grant-roles/index.ts
+├── ovm-revoke-roles/index.ts
+├── ovm-distribute/index.ts
+├── ovm-set-beneficiary/index.ts
+├── ovm-set-reward-recipient/index.ts
+└── ovm-withdraw/index.ts
+```

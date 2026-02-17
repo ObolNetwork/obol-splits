@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true
+  },
+  "include": [
+    "index.ts",
+    "_shared/**/*.ts",
+    "ovm-query/**/*.ts",
+    "ovm-deploy/**/*.ts",
+    "ovm-grant-roles/**/*.ts",
+    "ovm-revoke-roles/**/*.ts",
+    "ovm-distribute/**/*.ts",
+    "ovm-set-beneficiary/**/*.ts",
+    "ovm-set-reward-recipient/**/*.ts",
+    "ovm-withdraw/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
