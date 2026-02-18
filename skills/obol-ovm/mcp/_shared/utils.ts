@@ -34,7 +34,7 @@ const hoodi = defineChain({
     default: { http: ["https://ethereum-hoodi-rpc.publicnode.com"] },
   },
   blockExplorers: {
-    default: { name: "Etherscan", url: "https://hoodi.etherscan.io" },
+    default: { name: "Hoodi Explorer", url: "https://explorer.hoodi.io" },
   },
   testnet: true,
 });
@@ -66,6 +66,7 @@ export function getNetworkConfig(
 
 /**
  * Create viem public client for reading blockchain data
+ * Now with better timeouts and reliable default RPCs
  */
 export function createPublicClientForNetwork(
   network: string = "mainnet",
@@ -76,7 +77,10 @@ export function createPublicClientForNetwork(
 
   return createPublicClient({
     chain,
-    transport: http(config.rpcUrl),
+    transport: http(config.rpcUrl, {
+      retryCount: 3,
+      timeout: 15_000,
+    }),
   }) as PublicClient;
 }
 

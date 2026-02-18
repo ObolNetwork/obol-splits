@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
-    "rootDir": ".",
+    "rootDir": "mcp",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,16 +13,7 @@
     "sourceMap": true
   },
   "include": [
-    "index.ts",
-    "_shared/**/*.ts",
-    "ovm-query/**/*.ts",
-    "ovm-deploy/**/*.ts",
-    "ovm-grant-roles/**/*.ts",
-    "ovm-revoke-roles/**/*.ts",
-    "ovm-distribute/**/*.ts",
-    "ovm-set-beneficiary/**/*.ts",
-    "ovm-set-reward-recipient/**/*.ts",
-    "ovm-withdraw/**/*.ts"
+    "mcp/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

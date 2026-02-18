@@ -13,7 +13,7 @@ import {
   formatOVMData,
   getNetworkConfig,
   NETWORKS,
-} from "../_shared/utils.js";
+} from "../../_shared/utils.js";
 
 export const tool: Tool = {
   name: "ovm_query",
@@ -37,7 +37,7 @@ export const tool: Tool = {
       },
       rpcUrl: {
         type: "string",
-        description: "Custom RPC URL for faster queries",
+        description: "Custom RPC URL (optional). Use if default RPC has connectivity issues or for faster queries. Example: 'https://your-rpc.com'",
       },
       list: {
         type: "boolean",

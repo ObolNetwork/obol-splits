@@ -1,5 +1,5 @@
 /**
- * OVM Set Beneficiary Tool - Update the principal recipient on an OVM
+ * OVM Distribute Tool - Distribute accumulated funds to recipients
  */
 
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -7,25 +7,26 @@ import {
   createPublicClientForNetwork,
   validateAddress,
   isOVM,
+  readOVMState,
+  formatOVMData,
   encodeFunctionData,
   OVMABI,
   NETWORKS,
   getNetworkConfig,
-} from "../_shared/utils.js";
+} from "../../_shared/utils.js";
 
 export const tool: Tool = {
-  name: "ovm_set_beneficiary",
+  name: "ovm_distribute",
   description:
-    "Set a new beneficiary (principal recipient) on an Obol Validator Manager (OVM). Requires SET_BENEFICIARY_ROLE. Returns Cast command and encoded calldata.",
+    "Distribute accumulated funds on an Obol Validator Manager (OVM) to the principal and reward recipients. Funds above the principal threshold go to the beneficiary, the rest to the reward recipient. Returns Cast command and encoded calldata.",
   inputSchema: {
     type: "object" as const,
     properties: {
       ovmAddress: { type: "string", description: "OVM contract address" },
-      newBeneficiary: { type: "string", description: "New beneficiary address" },
       network: { type: "string", enum: ["mainnet", "hoodi", "sepolia"], description: "Network (default: mainnet)" },
       rpcUrl: { type: "string", description: "Custom RPC URL" },
     },
-    required: ["ovmAddress", "newBeneficiary"],
+    required: ["ovmAddress"],
   },
 };
 
@@ -40,10 +41,9 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
 
   try {
     const ovmAddress = validateAddress(args.ovmAddress as string);
-    const newBeneficiary = validateAddress(args.newBeneficiary as string);
     const networkConfig = getNetworkConfig(network, args.rpcUrl as string | undefined);
-
     const publicClient = createPublicClientForNetwork(network, args.rpcUrl as string | undefined);
+
     const { isOVM: isOVMContract } = await isOVM(ovmAddress, publicClient, network);
     if (!isOVMContract) {
       return JSON.stringify({
@@ -51,27 +51,36 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
       });
     }
 
+    const state = await readOVMState(ovmAddress, publicClient);
+    const formattedState = formatOVMData(state);
+
     const encodedData = encodeFunctionData({
       abi: OVMABI,
-      functionName: "setBeneficiary",
-      args: [newBeneficiary],
+      functionName: "distributeFunds",
+      args: [],
     });
 
     const castCommand = `cast send ${ovmAddress} \\
-  "setBeneficiary(address)" \\
-  ${newBeneficiary} \\
+  "distributeFunds()" \\
   --rpc-url ${networkConfig.rpcUrl} \\
   --private-key $PRIVATE_KEY`;
 
     return JSON.stringify({
-      operation: "setBeneficiary",
+      operation: "distributeFunds",
       ovmAddress,
-      newBeneficiary,
+      currentState: {
+        balance: formattedState.balance,
+        principalRecipient: state.principalRecipient,
+        rewardRecipient: state.rewardRecipient,
+        principalThreshold: formattedState.principalThreshold,
+        fundsPendingWithdrawal: formattedState.fundsPendingWithdrawal,
+        amountOfPrincipalStake: formattedState.amountOfPrincipalStake,
+      },
       transactionData: {
         to: ovmAddress,
         data: encodedData,
         value: "0",
-        description: `Set beneficiary to ${newBeneficiary}`,
+        description: "Distribute accumulated funds to principal and reward recipients",
       },
       castCommand,
       metamaskInstructions: [
@@ -82,10 +91,10 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
         `5. Paste: ${encodedData}`,
         "6. Confirm transaction",
       ].join("\n"),
-      message: "Ready to execute. Requires SET_BENEFICIARY_ROLE.",
+      message: "Ready to distribute. Anyone can call this function.",
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    return JSON.stringify({ error: `Failed to prepare set beneficiary: ${message}` });
+    return JSON.stringify({ error: `Failed to prepare distribute: ${message}` });
   }
 }

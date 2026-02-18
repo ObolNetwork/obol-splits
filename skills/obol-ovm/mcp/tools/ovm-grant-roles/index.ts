@@ -1,5 +1,5 @@
 /**
- * OVM Distribute Tool - Distribute accumulated funds to recipients
+ * OVM Grant Roles Tool - Grant RBAC roles on an OVM
  */
 
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -7,26 +7,31 @@ import {
   createPublicClientForNetwork,
   validateAddress,
   isOVM,
-  readOVMState,
-  formatOVMData,
   encodeFunctionData,
   OVMABI,
   NETWORKS,
+  encodeRoles,
   getNetworkConfig,
-} from "../_shared/utils.js";
+} from "../../_shared/utils.js";
 
 export const tool: Tool = {
-  name: "ovm_distribute",
+  name: "ovm_grant_roles",
   description:
-    "Distribute accumulated funds on an Obol Validator Manager (OVM) to the principal and reward recipients. Funds above the principal threshold go to the beneficiary, the rest to the reward recipient. Returns Cast command and encoded calldata.",
+    "Grant roles to an address on an Obol Validator Manager (OVM). Available roles: WITHDRAWAL_ROLE, CONSOLIDATION_ROLE, SET_BENEFICIARY_ROLE, RECOVER_FUNDS_ROLE, SET_REWARD_ROLE, DEPOSIT_ROLE. Returns Cast command and encoded calldata.",
   inputSchema: {
     type: "object" as const,
     properties: {
       ovmAddress: { type: "string", description: "OVM contract address" },
+      targetAddress: { type: "string", description: "Address to grant roles to" },
+      roles: {
+        type: "array",
+        items: { type: "string" },
+        description: "Roles to grant (e.g. ['WITHDRAWAL_ROLE', 'DEPOSIT_ROLE'])",
+      },
       network: { type: "string", enum: ["mainnet", "hoodi", "sepolia"], description: "Network (default: mainnet)" },
       rpcUrl: { type: "string", description: "Custom RPC URL" },
     },
-    required: ["ovmAddress"],
+    required: ["ovmAddress", "targetAddress", "roles"],
   },
 };
 
@@ -41,9 +46,10 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
 
   try {
     const ovmAddress = validateAddress(args.ovmAddress as string);
+    const targetAddress = validateAddress(args.targetAddress as string);
     const networkConfig = getNetworkConfig(network, args.rpcUrl as string | undefined);
-    const publicClient = createPublicClientForNetwork(network, args.rpcUrl as string | undefined);
 
+    const publicClient = createPublicClientForNetwork(network, args.rpcUrl as string | undefined);
     const { isOVM: isOVMContract } = await isOVM(ovmAddress, publicClient, network);
     if (!isOVMContract) {
       return JSON.stringify({
@@ -51,36 +57,31 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
       });
     }
 
-    const state = await readOVMState(ovmAddress, publicClient);
-    const formattedState = formatOVMData(state);
-
+    const roles = args.roles as string[];
+    const rolesValue = encodeRoles(roles);
     const encodedData = encodeFunctionData({
       abi: OVMABI,
-      functionName: "distributeFunds",
-      args: [],
+      functionName: "grantRoles",
+      args: [targetAddress, BigInt(rolesValue)],
     });
 
     const castCommand = `cast send ${ovmAddress} \\
-  "distributeFunds()" \\
+  "grantRoles(address,uint256)" \\
+  ${targetAddress} ${rolesValue} \\
   --rpc-url ${networkConfig.rpcUrl} \\
   --private-key $PRIVATE_KEY`;
 
     return JSON.stringify({
-      operation: "distributeFunds",
+      operation: "grantRoles",
       ovmAddress,
-      currentState: {
-        balance: formattedState.balance,
-        principalRecipient: state.principalRecipient,
-        rewardRecipient: state.rewardRecipient,
-        principalThreshold: formattedState.principalThreshold,
-        fundsPendingWithdrawal: formattedState.fundsPendingWithdrawal,
-        amountOfPrincipalStake: formattedState.amountOfPrincipalStake,
-      },
+      targetAddress,
+      roles,
+      rolesValue,
       transactionData: {
         to: ovmAddress,
         data: encodedData,
         value: "0",
-        description: "Distribute accumulated funds to principal and reward recipients",
+        description: `Grant roles ${roles.join(", ")} to ${targetAddress}`,
       },
       castCommand,
       metamaskInstructions: [
@@ -91,10 +92,10 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
         `5. Paste: ${encodedData}`,
         "6. Confirm transaction",
       ].join("\n"),
-      message: "Ready to distribute. Anyone can call this function.",
+      message: "Ready to execute. Requires owner permissions on the OVM.",
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    return JSON.stringify({ error: `Failed to prepare distribute: ${message}` });
+    return JSON.stringify({ error: `Failed to prepare grant roles: ${message}` });
   }
 }

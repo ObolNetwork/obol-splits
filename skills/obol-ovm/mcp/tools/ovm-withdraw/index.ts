@@ -11,7 +11,7 @@ import {
   OVMABI,
   NETWORKS,
   getNetworkConfig,
-} from "../_shared/utils.js";
+} from "../../_shared/utils.js";
 
 export const tool: Tool = {
   name: "ovm_withdraw",

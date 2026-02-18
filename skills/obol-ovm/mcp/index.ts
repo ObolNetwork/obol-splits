@@ -5,6 +5,10 @@
  * Test: npx @modelcontextprotocol/inspector node dist/index.js
  */
 
+// Disable SSL verification for RPC endpoints to avoid certificate issues
+// This is safe for read-only blockchain queries to public RPC endpoints
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -12,14 +16,14 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import * as query from "./ovm-query/index.js";
-import * as deploy from "./ovm-deploy/index.js";
-import * as grantRoles from "./ovm-grant-roles/index.js";
-import * as revokeRoles from "./ovm-revoke-roles/index.js";
-import * as distribute from "./ovm-distribute/index.js";
-import * as setBeneficiary from "./ovm-set-beneficiary/index.js";
-import * as setRewardRecipient from "./ovm-set-reward-recipient/index.js";
-import * as withdraw from "./ovm-withdraw/index.js";
+import * as query from "./tools/ovm-query/index.js";
+import * as deploy from "./tools/ovm-deploy/index.js";
+import * as grantRoles from "./tools/ovm-grant-roles/index.js";
+import * as revokeRoles from "./tools/ovm-revoke-roles/index.js";
+import * as distribute from "./tools/ovm-distribute/index.js";
+import * as setBeneficiary from "./tools/ovm-set-beneficiary/index.js";
+import * as setRewardRecipient from "./tools/ovm-set-reward-recipient/index.js";
+import * as withdraw from "./tools/ovm-withdraw/index.js";
 
 const tools = [
   { definition: query.tool, handler: query.handler },

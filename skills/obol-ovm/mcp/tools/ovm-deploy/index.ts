@@ -9,7 +9,7 @@ import {
   encodeFunctionData,
   OVMFactoryABI,
   NETWORKS,
-} from "../_shared/utils.js";
+} from "../../_shared/utils.js";
 
 export const tool: Tool = {
   name: "ovm_deploy",

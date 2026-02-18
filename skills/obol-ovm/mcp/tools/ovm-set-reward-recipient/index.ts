@@ -1,5 +1,5 @@
 /**
- * OVM Grant Roles Tool - Grant RBAC roles on an OVM
+ * OVM Set Reward Recipient Tool - Update the reward recipient on an OVM
  */
 
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -10,28 +10,22 @@ import {
   encodeFunctionData,
   OVMABI,
   NETWORKS,
-  encodeRoles,
   getNetworkConfig,
-} from "../_shared/utils.js";
+} from "../../_shared/utils.js";
 
 export const tool: Tool = {
-  name: "ovm_grant_roles",
+  name: "ovm_set_reward_recipient",
   description:
-    "Grant roles to an address on an Obol Validator Manager (OVM). Available roles: WITHDRAWAL_ROLE, CONSOLIDATION_ROLE, SET_BENEFICIARY_ROLE, RECOVER_FUNDS_ROLE, SET_REWARD_ROLE, DEPOSIT_ROLE. Returns Cast command and encoded calldata.",
+    "Set a new reward recipient on an Obol Validator Manager (OVM). Requires SET_REWARD_ROLE. Returns Cast command and encoded calldata.",
   inputSchema: {
     type: "object" as const,
     properties: {
       ovmAddress: { type: "string", description: "OVM contract address" },
-      targetAddress: { type: "string", description: "Address to grant roles to" },
-      roles: {
-        type: "array",
-        items: { type: "string" },
-        description: "Roles to grant (e.g. ['WITHDRAWAL_ROLE', 'DEPOSIT_ROLE'])",
-      },
+      newRewardRecipient: { type: "string", description: "New reward recipient address" },
       network: { type: "string", enum: ["mainnet", "hoodi", "sepolia"], description: "Network (default: mainnet)" },
       rpcUrl: { type: "string", description: "Custom RPC URL" },
     },
-    required: ["ovmAddress", "targetAddress", "roles"],
+    required: ["ovmAddress", "newRewardRecipient"],
   },
 };
 
@@ -46,7 +40,7 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
 
   try {
     const ovmAddress = validateAddress(args.ovmAddress as string);
-    const targetAddress = validateAddress(args.targetAddress as string);
+    const newRewardRecipient = validateAddress(args.newRewardRecipient as string);
     const networkConfig = getNetworkConfig(network, args.rpcUrl as string | undefined);
 
     const publicClient = createPublicClientForNetwork(network, args.rpcUrl as string | undefined);
@@ -57,31 +51,27 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
       });
     }
 
-    const roles = args.roles as string[];
-    const rolesValue = encodeRoles(roles);
     const encodedData = encodeFunctionData({
       abi: OVMABI,
-      functionName: "grantRoles",
-      args: [targetAddress, BigInt(rolesValue)],
+      functionName: "setRewardRecipient",
+      args: [newRewardRecipient],
     });
 
     const castCommand = `cast send ${ovmAddress} \\
-  "grantRoles(address,uint256)" \\
-  ${targetAddress} ${rolesValue} \\
+  "setRewardRecipient(address)" \\
+  ${newRewardRecipient} \\
   --rpc-url ${networkConfig.rpcUrl} \\
   --private-key $PRIVATE_KEY`;
 
     return JSON.stringify({
-      operation: "grantRoles",
+      operation: "setRewardRecipient",
       ovmAddress,
-      targetAddress,
-      roles,
-      rolesValue,
+      newRewardRecipient,
       transactionData: {
         to: ovmAddress,
         data: encodedData,
         value: "0",
-        description: `Grant roles ${roles.join(", ")} to ${targetAddress}`,
+        description: `Set reward recipient to ${newRewardRecipient}`,
       },
       castCommand,
       metamaskInstructions: [
@@ -92,10 +82,10 @@ export async function handler(args: Record<string, unknown>): Promise<string> {
         `5. Paste: ${encodedData}`,
         "6. Confirm transaction",
       ].join("\n"),
-      message: "Ready to execute. Requires owner permissions on the OVM.",
+      message: "Ready to execute. Requires SET_REWARD_ROLE.",
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    return JSON.stringify({ error: `Failed to prepare grant roles: ${message}` });
+    return JSON.stringify({ error: `Failed to prepare set reward recipient: ${message}` });
   }
 }

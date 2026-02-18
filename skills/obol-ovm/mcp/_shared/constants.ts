@@ -27,6 +27,7 @@ export interface NetworkConfig {
   deploymentBlock: bigint;
   launchpadUrl: string;
   rpcUrl: string;
+  fallbackRpcUrls?: string[];
 }
 
 export const NETWORKS: Record<string, NetworkConfig> = {
@@ -37,6 +38,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     deploymentBlock: 23919948n,
     launchpadUrl: "https://launchpad.obol.org",
     rpcUrl: "https://eth.llamarpc.com",
+    fallbackRpcUrls: ["https://rpc.ankr.com/eth", "https://ethereum.publicnode.com"],
   },
   hoodi: {
     name: "Hoodi Testnet",
@@ -45,6 +47,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     deploymentBlock: 0n,
     launchpadUrl: "https://hoodi.launchpad.obol.org",
     rpcUrl: "https://ethereum-hoodi-rpc.publicnode.com",
+    fallbackRpcUrls: ["https://rpc-hoodi.eu.gateway.fm", "https://hoodi.drpc.org"],
   },
   sepolia: {
     name: "Sepolia Testnet",
@@ -53,6 +56,7 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     deploymentBlock: 9159573n,
     launchpadUrl: "https://sepolia.launchpad.obol.org",
     rpcUrl: "https://sepolia.drpc.org",
+    fallbackRpcUrls: ["https://rpc.ankr.com/eth_sepolia", "https://ethereum-sepolia.publicnode.com"],
   },
 };
 
