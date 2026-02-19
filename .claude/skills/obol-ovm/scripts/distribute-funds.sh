@@ -12,7 +12,7 @@ OVM="${1:?Usage: distribute-funds.sh <ovm_address> [network]}"
 NETWORK="${2:-mainnet}"
 
 case "$NETWORK" in
-  mainnet) DEFAULT_RPC="https://eth.llamarpc.com" ;;
+  mainnet) DEFAULT_RPC="https://ethereum-rpc.publicnode.com" ;;
   hoodi)   DEFAULT_RPC="https://ethereum-hoodi-rpc.publicnode.com" ;;
   sepolia) DEFAULT_RPC="https://sepolia.drpc.org" ;;
   *) echo "Error: unsupported network '$NETWORK'. Use: mainnet, hoodi, sepolia" >&2; exit 1 ;;

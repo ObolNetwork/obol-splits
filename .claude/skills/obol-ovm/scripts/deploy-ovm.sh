@@ -15,7 +15,7 @@ NETWORK="${5:-mainnet}"
 
 # Factory addresses per network
 case "$NETWORK" in
-  mainnet)   FACTORY="0x2c26B5A373294CaccBd3DE817D9B7C6aea7De584"; DEFAULT_RPC="https://eth.llamarpc.com" ;;
+  mainnet)   FACTORY="0x2c26B5A373294CaccBd3DE817D9B7C6aea7De584"; DEFAULT_RPC="https://ethereum-rpc.publicnode.com" ;;
   hoodi)     FACTORY="0x5754C8665B7e7BF15E83fCdF6d9636684B782b12"; DEFAULT_RPC="https://ethereum-hoodi-rpc.publicnode.com" ;;
   sepolia)   FACTORY="0xF32F8B563d8369d40C45D5d667C2B26937F2A3d3"; DEFAULT_RPC="https://sepolia.drpc.org" ;;
   *) echo "Error: unsupported network '$NETWORK'. Use: mainnet, hoodi, sepolia" >&2; exit 1 ;;

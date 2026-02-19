@@ -30,7 +30,7 @@ For write operations, always confirm with the user that `PRIVATE_KEY` is set. Ne
 
 ## Scripts
 
-All scripts are in `skills/obol-ovm/scripts/`. Every script accepts an optional network argument (defaults to `mainnet`). Supported networks: `mainnet`, `hoodi`, `sepolia`.
+All scripts are in `.claude/skills/obol-ovm/scripts/`. Every script accepts an optional network argument (defaults to `mainnet`). Supported networks: `mainnet`, `hoodi`, `sepolia`.
 
 Override the default RPC by setting `RPC_URL` env var.
 
@@ -38,7 +38,7 @@ Override the default RPC by setting `RPC_URL` env var.
 
 Before performing write operations on an address, verify it was deployed by the factory:
 ```bash
-skills/obol-ovm/scripts/check-is-ovm.sh <address> [network]
+.claude/skills/obol-ovm/scripts/check-is-ovm.sh <address> [network]
 ```
 Queries `CreateObolValidatorManager` event logs from the factory. Exits 0 if the address is an OVM, exits 1 if not. Run this before grant-roles, revoke-roles, distribute, set-beneficiary, set-reward-recipient, or withdraw to catch mistakes early.
 
@@ -46,15 +46,21 @@ Queries `CreateObolValidatorManager` event logs from the factory. Exits 0 if the
 
 **Query OVM state:**
 ```bash
-skills/obol-ovm/scripts/query-ovm.sh <ovm_address> [network]
+.claude/skills/obol-ovm/scripts/query-ovm.sh <ovm_address> [network]
 ```
 Returns owner, principal/reward recipients, threshold, balances, version.
 
 **Query roles for an address:**
 ```bash
-skills/obol-ovm/scripts/query-roles.sh <ovm_address> <target_address> [network]
+.claude/skills/obol-ovm/scripts/query-roles.sh <ovm_address> <target_address> [network]
 ```
 Returns the decoded role bitmask showing which roles the target has.
+
+**Query EIP-7002/7251 system contract fees:**
+```bash
+.claude/skills/obol-ovm/scripts/query-fees.sh [network]
+```
+Returns current withdrawal fee (EIP-7002) and consolidation fee (EIP-7251) in wei. Useful before calling withdraw or consolidate to know how much ETH to send.
 
 You can also query OVM state directly with `cast call` for individual fields:
 ```bash
@@ -70,43 +76,67 @@ Each write script checks that `PRIVATE_KEY` is set, prints what it's about to do
 
 **Deploy a new OVM:**
 ```bash
-skills/obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [threshold_gwei] [network]
+.claude/skills/obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [threshold_gwei] [network]
 ```
 Default threshold is 16 gwei. Deploys via the network's factory contract.
 
 **Grant roles:**
 ```bash
-skills/obol-ovm/scripts/grant-roles.sh <ovm_address> <target_address> <roles_value> [network]
+.claude/skills/obol-ovm/scripts/grant-roles.sh <ovm_address> <target_address> <roles_value> [network]
 ```
 
 **Revoke roles:**
 ```bash
-skills/obol-ovm/scripts/revoke-roles.sh <ovm_address> <target_address> <roles_value> [network]
+.claude/skills/obol-ovm/scripts/revoke-roles.sh <ovm_address> <target_address> <roles_value> [network]
 ```
 
 **Distribute funds:**
 ```bash
-skills/obol-ovm/scripts/distribute-funds.sh <ovm_address> [network]
+.claude/skills/obol-ovm/scripts/distribute-funds.sh <ovm_address> [network]
 ```
 Anyone can call this — no special role required.
 
 **Set beneficiary:**
 ```bash
-skills/obol-ovm/scripts/set-beneficiary.sh <ovm_address> <new_beneficiary> [network]
+.claude/skills/obol-ovm/scripts/set-beneficiary.sh <ovm_address> <new_beneficiary> [network]
 ```
 Requires SET_BENEFICIARY_ROLE (4).
 
 **Set reward recipient:**
 ```bash
-skills/obol-ovm/scripts/set-reward-recipient.sh <ovm_address> <new_reward_recipient> [network]
+.claude/skills/obol-ovm/scripts/set-reward-recipient.sh <ovm_address> <new_reward_recipient> [network]
 ```
 Requires SET_REWARD_ROLE (16).
 
 **Request validator withdrawal (EIP-7002):**
 ```bash
-skills/obol-ovm/scripts/withdraw.sh <ovm_address> <pubkeys_csv> <amounts_csv> <max_fee_wei> <excess_fee_recipient> [network]
+.claude/skills/obol-ovm/scripts/withdraw.sh <ovm_address> <pubkeys_csv> <amounts_csv> <max_fee_wei> <excess_fee_recipient> [network]
 ```
 Requires WITHDRAWAL_ROLE (1). Sends ETH = max_fee * num_validators for fees.
+
+**Consolidate validators (EIP-7251):**
+```bash
+.claude/skills/obol-ovm/scripts/consolidate.sh <ovm_address> <source_pubkey> <dest_pubkey> <max_fee_wei> <excess_fee_recipient> [network]
+```
+Requires CONSOLIDATION_ROLE (2). Consolidates stake from source validator into destination. Sends max_fee as ETH. Query current fees with `query-fees.sh` first.
+
+**Deposit for validator(s):**
+```bash
+.claude/skills/obol-ovm/scripts/deposit.sh <ovm_address> <deposit_json_path> [network]
+```
+Requires DEPOSIT_ROLE (32). Reads a deposit data JSON file (standard format from deposit CLI) and executes deposits via `forge script`. Each deposit sends 32 ETH.
+
+**Set principal stake amount:**
+```bash
+.claude/skills/obol-ovm/scripts/set-principal-stake.sh <ovm_address> <new_amount_wei> [network]
+```
+Requires owner. Sets `amountOfPrincipalStake` which controls how much of distributed funds goes to the principal recipient. Queries and prints current value before changing.
+
+**Sweep pull balance:**
+```bash
+.claude/skills/obol-ovm/scripts/sweep.sh <ovm_address> <beneficiary> <amount_wei> [network]
+```
+Extracts funds from `pullBalances[principalRecipient]`. Pass `0x0000000000000000000000000000000000000000` as beneficiary to sweep to principal recipient (anyone can call). Pass a custom address to sweep there (owner only). Amount=0 sweeps all.
 
 ## Role System
 
@@ -154,16 +184,16 @@ When `distributeFunds()` is called:
 ### Deploy and configure a new OVM
 ```
 1. User sets PRIVATE_KEY env var
-2. Deploy:    ./scripts/deploy-ovm.sh <owner> <beneficiary> <reward> 16 hoodi
+2. Deploy:    .claude/skills/obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward> 16 hoodi
 3. Query tx receipt to get the new OVM address from logs
-4. Grant roles: ./scripts/grant-roles.sh <new_ovm> <operator_addr> 33 hoodi
-5. Verify:    ./scripts/query-roles.sh <new_ovm> <operator_addr> hoodi
+4. Grant roles: .claude/skills/obol-ovm/scripts/grant-roles.sh <new_ovm> <operator_addr> 33 hoodi
+5. Verify:    .claude/skills/obol-ovm/scripts/query-roles.sh <new_ovm> <operator_addr> hoodi
 ```
 
 ### Check OVM state and distribute
 ```
-1. Query:     ./scripts/query-ovm.sh <ovm_address> mainnet
-2. If balance > 0, distribute: ./scripts/distribute-funds.sh <ovm_address> mainnet
+1. Query:     .claude/skills/obol-ovm/scripts/query-ovm.sh <ovm_address> mainnet
+2. If balance > 0, distribute: .claude/skills/obol-ovm/scripts/distribute-funds.sh <ovm_address> mainnet
 ```
 
 ### Listing OVMs on a network

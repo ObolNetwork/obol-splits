@@ -16,7 +16,7 @@ ROLES="${3:?Missing roles value (e.g. 1 for WITHDRAWAL, 63 for ALL)}"
 NETWORK="${4:-mainnet}"
 
 case "$NETWORK" in
-  mainnet) DEFAULT_RPC="https://eth.llamarpc.com" ;;
+  mainnet) DEFAULT_RPC="https://ethereum-rpc.publicnode.com" ;;
   hoodi)   DEFAULT_RPC="https://ethereum-hoodi-rpc.publicnode.com" ;;
   sepolia) DEFAULT_RPC="https://sepolia.drpc.org" ;;
   *) echo "Error: unsupported network '$NETWORK'. Use: mainnet, hoodi, sepolia" >&2; exit 1 ;;

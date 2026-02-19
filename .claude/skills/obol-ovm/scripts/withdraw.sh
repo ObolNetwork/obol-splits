@@ -20,7 +20,7 @@ EXCESS_RECIPIENT="${5:?Missing excess fee recipient address}"
 NETWORK="${6:-mainnet}"
 
 case "$NETWORK" in
-  mainnet) DEFAULT_RPC="https://eth.llamarpc.com" ;;
+  mainnet) DEFAULT_RPC="https://ethereum-rpc.publicnode.com" ;;
   hoodi)   DEFAULT_RPC="https://ethereum-hoodi-rpc.publicnode.com" ;;
   sepolia) DEFAULT_RPC="https://sepolia.drpc.org" ;;
   *) echo "Error: unsupported network '$NETWORK'. Use: mainnet, hoodi, sepolia" >&2; exit 1 ;;
