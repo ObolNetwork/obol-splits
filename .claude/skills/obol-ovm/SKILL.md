@@ -136,7 +136,7 @@ Example: grant WITHDRAWAL + DEPOSIT = pass `33` as the roles value.
 
 | Network | RPC URL |
 |---------|---------|
-| mainnet | `https://eth.llamarpc.com` |
+| mainnet | `https://ethereum-rpc.publicnode.com` |
 | hoodi | `https://ethereum-hoodi-rpc.publicnode.com` |
 | sepolia | `https://sepolia.drpc.org` |
 
