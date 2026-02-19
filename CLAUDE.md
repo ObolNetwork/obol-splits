@@ -126,9 +126,9 @@ script/               Deployment and management scripts
 
 Solidity 0.8.19, Shanghai EVM, gas reports enabled, audited (https://docs.obol.tech/docs/sec/smart_contract_audit), formatting: 2-space tabs, 120 char lines, no bracket spacing
 
-## OVM MCP Tools
+## OVM Scripts
 
-For ALL OVM operations (querying contracts, deploying, managing roles, distributing funds, withdrawals), use the MCP tools from the `obol-ovm` server registered in `.mcp.json`. Do NOT use `cast`, `forge script`, or direct RPC calls for OVM interactions. See `skills/obol-ovm/SKILL.md` for full tool documentation, parameters, and example flows.
+For OVM operations (querying contracts, deploying, managing roles, distributing funds, withdrawals), use the shell scripts in `skills/obol-ovm/scripts/`. These scripts use `cast` from Foundry. Write operations require the `PRIVATE_KEY` env var to be set (scripts pass it to `cast` without reading it). See `skills/obol-ovm/SKILL.md` for full documentation.
 
 ## OVM Workflows
 

@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "obol-ovm": {
-      "command": "npx",
-      "args": ["tsx", "mcp/index.ts"],
-      "cwd": "skills/obol-ovm"
-    }
-  }
-}
