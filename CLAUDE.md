@@ -142,3 +142,4 @@ Solidity 0.8.19, Shanghai EVM, gas reports enabled, audited (https://docs.obol.t
 **EIP-7002 Withdrawals:** `withdraw(pubKeys, amounts, maxFeePerWithdrawal, excessFeeRecipient)` - requires WITHDRAWAL_ROLE, ETH for `fee * pubKeys.length`
 
 **EIP-7251 Consolidations:** `consolidate(requests, maxFeePerConsolidation, excessFeeRecipient)` - requires CONSOLIDATION_ROLE, max 63 source pubkeys per request
+
