@@ -22,8 +22,12 @@ contract ObolLidoSplitIntegrationTest is ObolLidoSplitTestHelper, Test {
     uint256 mainnetBlock = 17_421_005;
     vm.createSelectFork(getChain("mainnet").rpcUrl, mainnetBlock);
 
-    lidoSplitFactory =
-      new ObolLidoSplitFactory(address(0), 0, ERC20(STETH_MAINNET_ADDRESS), ERC20(WSTETH_MAINNET_ADDRESS));
+    lidoSplitFactory = new ObolLidoSplitFactory(
+      address(0),
+      0,
+      ERC20(STETH_MAINNET_ADDRESS),
+      ERC20(WSTETH_MAINNET_ADDRESS)
+    );
 
     accounts = new address[](2);
     accounts[0] = makeAddr("accounts0");
@@ -35,7 +39,7 @@ contract ObolLidoSplitIntegrationTest is ObolLidoSplitTestHelper, Test {
 
     splitter = ISplitMain(SPLIT_MAIN_MAINNET).createSplit(accounts, percentAllocations, 0, address(0));
 
-    lidoSplit = ObolLidoSplit(lidoSplitFactory.createCollector(address(0), splitter));
+    lidoSplit = ObolLidoSplit(lidoSplitFactory.createSplit(splitter));
   }
 
   function test_CanDistribute() public {

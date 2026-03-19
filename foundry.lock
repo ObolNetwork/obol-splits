@@ -1,0 +1,23 @@
+{
+  "lib/ds-test": {
+    "rev": "0a5da56b0d65960e6a994d2ec8245e6edd38c248"
+  },
+  "lib/forge-std": {
+    "branch": {
+      "name": "v1.3.0",
+      "rev": "3b20d60d14b343ee4f908cb8079495c07f5e8981"
+    }
+  },
+  "lib/solady": {
+    "branch": {
+      "name": "v0.0.123",
+      "rev": "77809c18e010b914dde9518956a4ae7cb507d383"
+    }
+  },
+  "lib/solmate": {
+    "rev": "2001af43aedb46fdc2335d2a7714fb2dae7cfcd1"
+  },
+  "lib/splits-utils": {
+    "rev": "fcab1b0359aec71cc4da0ee468ee1ae922584e42"
+  }
+}

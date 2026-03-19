@@ -6,11 +6,11 @@ This repo contains Obol Splits smart contracts. This suite of smart contracts an
 
 ### Disclaimer
 
-The following smart contracts are provided as is, without warranty. Details of their audit can be consulted [here](https://docs.obol.tech/docs/sec/smart_contract_audit). 
+The following smart contracts are provided as is, without warranty. Details of their audit can be consulted [here](https://docs.obol.org/docs/advanced-and-troubleshooting/security/overview).
 
 ## Quickstart
 
-This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.org/learn/intro/obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
+This repo is built with [foundry](https://github.com/foundry-rs/foundry), a rust-based solidity development environment, and relies on [solmate](https://github.com/Rari-Capital/solmate), an efficient solidity smart contract library. Read the docs on our [docs site](https://docs.obol.org/docs/learn/introduction/obol-splits) for more information on what Distributed Validators are, and their smart contract lifecycle.
 
 ### Installation
 
@@ -34,7 +34,7 @@ cp .env.sample .env
 forge test
 ```
 
-This command runs all tests.
+This command starts runs all tests.
 
 > NOTE: To run a specific test:
 ```sh
@@ -54,6 +54,17 @@ This command generates compilation output into the `out` directory.
 ### Deployment
 
 This repo can be deployed with `forge create` or running the deployment scripts.
+
+#### Create a new Lido Split
+
+To create a new Lido Splitter, setup your environment variables (`cp .env.sample .env` and ajust as needed) and then `source .env` to load them, then run the following command:
+
+```sh
+forge script script/ObolLidoSetupScript.sol:ObolLidoSetupScript --fork-url $RPC_URL -vvvv --sig "run(string,address,address)" "./script/data/lido-data.json" $SPLITMAIN $OBOL_LIDO_SPLIT_FACTORY
+```
+
+> [!TIP]
+> The above is setup as a dry-run, you must add `--broadcast` to the end of the command for the transaction to be sent to the network.
 
 #### Hoodi
 
