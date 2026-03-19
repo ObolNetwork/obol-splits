@@ -2,144 +2,69 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
-
-Obol Splits is a suite of Solidity smart contracts enabling safe creation and management of Distributed Validators for Ethereum Consensus-based networks. Built with Foundry, targeting Solidity 0.8.19 with Shanghai EVM compatibility.
-
 ## Development Commands
 
 ```sh
 # Setup
-forge install && cp .env.sample .env
+forge install && cp .env.sample .env  # fill in RPC URLs and ETHERSCAN_API_KEY
 
-# Testing
-forge test                                    # All tests
-forge test --match-contract C --match-test t  # Specific test
-forge test --gas-report                       # With gas reporting
-
-# Build & Deploy
+# Build
 forge build
-forge script script/DeployFactoryScript.s.sol
+
+# Test
+forge test -vvv                                          # all tests
+forge test --match-contract ObolLidoSplitTest -vvv       # specific contract
+forge test --match-contract ObolLidoSplitTest --match-test testCanDistribute -vv  # specific test
+forge test --gas-report                                  # with gas reporting
+
+# Format
+forge fmt
 ```
 
-## Architecture Overview
+Integration tests require `MAINNET_RPC_URL` and/or `SEPOLIA_RPC_URL` in `.env` for forked tests.
 
-### Core Contract Types
+## Architecture
 
-**ObolValidatorManager (OVM)** - Validator management with ETH2 deposits, withdrawals (EIP-7002), consolidations (EIP-7251)
-- 6 role-based permissions: WITHDRAWAL (0x01), CONSOLIDATION (0x02), SET_BENEFICIARY (0x04), RECOVER_FUNDS (0x08), SET_REWARD (0x10), DEPOSIT (0x20)
-- PUSH/PULL distribution modes; principal threshold (gwei) routes funds
-- `sweep()` extracts from `pullBalances[principalRecipient]` - anyone can call with beneficiary=address(0), owner for custom address
-- Non-proxy (deployed via `new`, not Clone)
+Solidity 0.8.19 on Foundry, targeting Shanghai EVM. The codebase provides composable contracts for Distributed Validator fund distribution, integrating with 0xSplits, Lido, Ether.fi, and Ethereum consensus layer contracts.
 
-**OptimisticWithdrawalRecipient (OWR)** - ETH distribution via 16 ETH threshold, Clone proxy, PUSH/PULL modes
+### Core Pattern: Factory + Clone
 
-**OptimisticTokenWithdrawalRecipient** - OWR for ERC20 with configurable threshold
+Nearly every contract has a corresponding factory that deploys minimal proxies using solady's `LibClone` (CWIA — Constructor With Immutable Arguments stored in code, not storage). **Exception**: `ObolValidatorManagerFactory` deploys full instances via `new`.
 
-**ObolLidoSplit** - Wraps stETH→wstETH for 0xSplits (Clone + BaseSplit)
+### Contract Modules
 
-**ObolEtherfiSplit** - Wraps eETH→weETH for 0xSplits (Clone + BaseSplit)
+| Module | Key Contract | Purpose |
+|--------|-------------|---------|
+| `src/base/` | `BaseSplit`, `BaseSplitFactory` | Abstract base for all splitting contracts. Fee mechanism: `PERCENTAGE_SCALE = 1e5` |
+| `src/collector/` | `ObolCollector` | Generic ETH/ERC20 reward collector with fee + distribute |
+| `src/lido/` | `ObolLidoSplit` | Wraps rebasing stETH→wstETH before distributing to SplitWallet |
+| `src/etherfi/` | `ObolEtherfiSplit` | Same pattern: wraps rebasing eETH→weETH |
+| `src/owr/` | `OptimisticWithdrawalRecipient` | ETH-only withdrawal with principal/reward threshold (16 ether). `src/owr/token/` adds ERC20 support |
+| `src/ovm/` | `ObolValidatorManager` | Validator lifecycle management: deposit, consolidation (EIP-7251), withdrawal (EIP-7002), distribution. Role-based access via solady `OwnableRoles` |
+| `src/controllers/` | `ImmutableSplitController` | Manages 0xSplits config updates with hardcoded recipients |
 
-**ImmutableSplitController** - Immutable 0xSplits config (CWIA pattern)
+### Key Design Decisions
 
-### Factory Pattern
+- **ETH as `address(0)`**: Throughout the codebase, native ETH is represented as `address(0)` in token parameters.
+- **PUSH/PULL distribution**: `PUSH (0)` transfers directly; `PULL (1)` defers via `withdrawPullBalance()`. Pull mode prevents malicious recipient DOS.
+- **Binary recipients**: OWR and OVM support exactly 2 recipients (principal and reward), routed by balance threshold.
+- **Rebasing wrapping**: Lido and Ether.fi integrations wrap rebasing tokens before sending to 0xSplits, which can't handle rebasing tokens natively.
+- **SafeTransferLib**: All token transfers use solmate's `SafeTransferLib`.
 
-Clone factories (Solady LibClone): OptimisticWithdrawalRecipientFactory, OptimisticTokenWithdrawalRecipientFactory, ObolLidoSplitFactory, ObolEtherfiSplitFactory, ObolCollectorFactory, ImmutableSplitControllerFactory
+### Test Organization
 
-**Exception**: ObolValidatorManagerFactory deploys full instances via `new` (not clones)
+Tests in `src/test/` mirror the source structure. Each module has:
+- Unit tests (`.t.sol` suffix)
+- Test helpers (e.g., `ObolLidoSplitTestHelper.sol`)
+- `integration/` subdirectories for fork-based tests
+- Mocks in `src/test/utils/mocks/` and `src/test/ovm/mocks/`
 
-### Key Patterns
+Fuzz testing configured at 100 runs.
 
-- **Clone Proxy**: Minimal proxy with CWIA optimization (all except OVM)
-- **Two-Phase Distribution**: PUSH (0) = direct transfer; PULL (1) = deferred via `withdrawPullBalance()`. Prevents malicious recipient DOS.
-- **Sweep (OVM)**: Extract from `pullBalances[principalRecipient]`. Anyone if beneficiary=0, owner for custom address. Amount=0 sweeps all.
-- **BaseSplit**: Abstract base with distribute(), rescueFunds(), fee mechanism (PERCENTAGE_SCALE=1e5)
-- **Rebasing Wrapping**: stETH→wstETH, eETH→weETH for 0xSplits
+### Formatting
 
-## Constants & External Integrations
+Configured in `foundry.toml [fmt]`: 2-space indentation, 120 char line length, no bracket spacing, double quotes, `attributes_first` multiline func headers.
 
-**Constants:**
-- `BALANCE_CLASSIFICATION_THRESHOLD_GWEI = 16 ether / 1 gwei` (OVM tests), `BALANCE_CLASSIFICATION_THRESHOLD = 16 ether` (OWR)
-- `PERCENTAGE_SCALE = 1e5`, `PUBLIC_KEY_LENGTH = 48`, Distribution modes: `PUSH = 0, PULL = 1`
-- OVM Roles: WITHDRAWAL (0x01), CONSOLIDATION (0x02), SET_BENEFICIARY (0x04), RECOVER_FUNDS (0x08), SET_REWARD (0x10), DEPOSIT (0x20)
+### Deployment Scripts
 
-**Integrations:** 0xSplits (SplitMain), Lido (stETH/wstETH), EtherFi (eETH/weETH), Deposit Contract (ETH2), EIP-7002 (0x09Fc...aAaA), EIP-7251 (0x0043...EFf6), ENS Reverse Registrar
-
-## Project Structure
-
-```
-src/
-├── base/             BaseSplit and BaseSplitFactory abstracts
-├── collector/        ObolCollector for reward collection
-├── controllers/      ImmutableSplitController
-├── etherfi/          EtherFi integration (eETH → weETH)
-├── interfaces/       All interface definitions (IObolValidatorManager, etc.)
-├── lido/             Lido integration (stETH → wstETH)
-├── ovm/              ObolValidatorManager and ObolValidatorManagerFactory
-├── owr/              OptimisticWithdrawalRecipient (ETH distribution)
-│   └── token/        Token-based withdrawal recipient
-└── test/             Test suite organized by feature
-    ├── ovm/          OVM tests and mocks
-    ├── owr/          OWR tests
-    └── ...
-
-script/               Deployment and management scripts
-├── ovm/              OVM-specific scripts (12 scripts)
-│   ├── DeployFactoryScript.s.sol
-│   ├── CreateOVMScript.s.sol
-│   ├── DepositScript.s.sol
-│   ├── DistributeFundsScript.s.sol
-│   ├── ConsolidateScript.s.sol
-│   ├── WithdrawScript.s.sol
-│   ├── GrantRolesScript.s.sol
-│   ├── SetBeneficiaryScript.s.sol
-│   ├── SetRewardRecipientScript.s.sol
-│   ├── SetAmountOfPrincipalStakeScript.s.sol
-│   ├── SystemContractFeesScript.s.sol
-│   └── Utils.s.sol
-├── splits/           0xSplits deployment scripts
-└── data/             Sample configuration JSON files
-```
-
-## Testing & Security
-
-**Testing:**
-- Unit tests (role checks, fees, distribution), integration tests (lido/, etherfi/, owr/token/integration/)
-- Mocks: SystemContractMock (EIP-7002/7251), DepositContractMock, MockERC20/1155/NFT
-- 100 fuzz runs, .t.sol suffix, 43+ OVM tests (PUSH/PULL, sweep, roles, edge cases)
-- OVM test pattern: ≥16 ether → beneficiary, <16 ether → reward
-
-**Security:**
-- ReentrancyGuard on OVM distribute/sweep
-- PUSH/PULL prevents DOS, role-based access (6 OVM roles)
-- Fund recovery via `recoverFunds()`, 48-byte pubkey validation
-- Sweep allows emergency extraction, fee validation with refunds
-- `fundsPendingWithdrawal` prevents over-distribution
-
-## Deployment Addresses
-
-**Mainnet:** OWRFactory: 0x119acd7844cbdd5fc09b1c6a4408f490c8f7f522, OWR: 0xe11eabf19a49c389d3e8735c35f8f34f28bdcb22, ObolLidoSplitFactory: 0xA9d94139A310150Ca1163b5E23f3E1dbb7D9E2A6, ObolLidoSplit: 0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3, IMSCFactory: 0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4, IMSC: 0xaF129979b773374dD3025d3F97353e73B0A6Cc8d
-
-**Sepolia:** OWRFactory: 0xca78f8fda7ec13ae246e4d4cd38b9ce25a12e64a, OWR: 0x99585e71ab1118682d51efefca0a170c70eef0d6
-
-## Notes
-
-Solidity 0.8.19, Shanghai EVM, gas reports enabled, audited (https://docs.obol.tech/docs/sec/smart_contract_audit), formatting: 2-space tabs, 120 char lines, no bracket spacing
-
-## OVM Workflows
-
-**Lifecycle:**
-1. Deploy: `ObolValidatorManagerFactory.createObolValidatorManager(owner, beneficiary, rewardRecipient, principalThreshold)`
-2. Grant roles: `grantRoles(user, DEPOSIT_ROLE | WITHDRAWAL_ROLE)`
-3. Deposit: `deposit(pubkey, withdrawal_credentials, signature, deposit_data_root)` with 32 ETH
-4. Distribute: `distributeFunds()` (PUSH) or `distributeFundsPull()` (PULL), then `withdrawPullBalance(account)`
-5. Emergency: `sweep(address(0), 0)` extracts all principal pull balance to beneficiary
-
-**Distribution:** If `balance - fundsPendingWithdrawal >= principalThreshold * 1e9` AND `amountOfPrincipalStake > 0`: pay principal first (up to `amountOfPrincipalStake`), overflow to reward. Else: all to reward. `amountOfPrincipalStake` decrements on payout.
-
-**Sweep:** `sweep(address(0), amount)` anyone→principalRecipient; `sweep(customAddr, amount)` owner→custom; `sweep(address(0), 0)` sweeps all
-
-**EIP-7002 Withdrawals:** `withdraw(pubKeys, amounts, maxFeePerWithdrawal, excessFeeRecipient)` - requires WITHDRAWAL_ROLE, ETH for `fee * pubKeys.length`
-
-**EIP-7251 Consolidations:** `consolidate(requests, maxFeePerConsolidation, excessFeeRecipient)` - requires CONSOLIDATION_ROLE, max 63 source pubkeys per request
-
+Scripts in `script/`, with OVM-specific scripts in `script/ovm/`. Lido deployment uses JSON config files from `script/data/`.
