@@ -11,12 +11,12 @@ jobs:
     name: Obol Manager Contracts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: onbjerg/foundry-toolchain@v1
+        uses: onbjerg/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1
         with:
           version: nightly
 
