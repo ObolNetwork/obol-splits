@@ -1,5 +1,5 @@
 ---
-name: obol-ovm
+name: deploy-obol-ovm
 description: |
   Manage Obol Validator Manager (OVM) smart contracts on Ethereum. Use this skill for any OVM operation: querying contract state, deploying new OVMs, managing roles (grant/revoke), distributing funds, setting beneficiaries or reward recipients, and requesting validator withdrawals. Trigger this skill whenever the user mentions OVM, Obol Validator Manager, validator management, distributed validators, or wants to interact with OVM contracts on mainnet/hoodi/sepolia.
 ---
@@ -7,6 +7,8 @@ description: |
 # Obol Validator Manager (OVM) Skill
 
 This skill provides scripts and knowledge to manage OVM contracts on Ethereum. OVM contracts manage distributed validators — handling ETH deposits, withdrawals (EIP-7002), consolidations (EIP-7251), and fund distribution to principal and reward recipients.
+
+OVM is the **current-generation** Obol smart-contract family and the default choice for new deployments. For legacy deployments using the older OptimisticWithdrawalRecipient (OWR) + 0xSplits pattern, see the `deploy-obol-splits-legacy` skill instead.
 
 ## Prerequisites
 
@@ -30,7 +32,7 @@ For write operations, always confirm with the user that `PRIVATE_KEY` is set. Ne
 
 ## Scripts
 
-All scripts are in `.claude/skills/obol-ovm/scripts/`. Every script accepts an optional network argument (defaults to `mainnet`). Supported networks: `mainnet`, `hoodi`, `sepolia`.
+All scripts are in `.claude/skills/deploy-obol-ovm/scripts/`. Every script accepts an optional network argument (defaults to `mainnet`). Supported networks: `mainnet`, `hoodi`, `sepolia`.
 
 Override the default RPC by setting `RPC_URL` env var.
 
@@ -38,7 +40,7 @@ Override the default RPC by setting `RPC_URL` env var.
 
 Before performing write operations on an address, verify it was deployed by the factory:
 ```bash
-.claude/skills/obol-ovm/scripts/check-is-ovm.sh <address> [network]
+.claude/skills/deploy-obol-ovm/scripts/check-is-ovm.sh <address> [network]
 ```
 Queries `CreateObolValidatorManager` event logs from the factory. Exits 0 if the address is an OVM, exits 1 if not. Run this before grant-roles, revoke-roles, distribute, set-beneficiary, set-reward-recipient, or withdraw to catch mistakes early.
 
@@ -46,19 +48,19 @@ Queries `CreateObolValidatorManager` event logs from the factory. Exits 0 if the
 
 **Query OVM state:**
 ```bash
-.claude/skills/obol-ovm/scripts/query-ovm.sh <ovm_address> [network]
+.claude/skills/deploy-obol-ovm/scripts/query-ovm.sh <ovm_address> [network]
 ```
 Returns owner, principal/reward recipients, threshold, balances, version.
 
 **Query roles for an address:**
 ```bash
-.claude/skills/obol-ovm/scripts/query-roles.sh <ovm_address> <target_address> [network]
+.claude/skills/deploy-obol-ovm/scripts/query-roles.sh <ovm_address> <target_address> [network]
 ```
 Returns the decoded role bitmask showing which roles the target has.
 
 **Query EIP-7002/7251 system contract fees:**
 ```bash
-.claude/skills/obol-ovm/scripts/query-fees.sh [network]
+.claude/skills/deploy-obol-ovm/scripts/query-fees.sh [network]
 ```
 Returns current withdrawal fee (EIP-7002) and consolidation fee (EIP-7251) in wei. Useful before calling withdraw or consolidate to know how much ETH to send.
 
@@ -76,65 +78,65 @@ Each write script checks that `PRIVATE_KEY` is set, prints what it's about to do
 
 **Deploy a new OVM:**
 ```bash
-.claude/skills/obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [threshold_gwei] [network]
+.claude/skills/deploy-obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [threshold_gwei] [network]
 ```
 Default threshold is 16 gwei. Deploys via the network's factory contract.
 
 **Grant roles:**
 ```bash
-.claude/skills/obol-ovm/scripts/grant-roles.sh <ovm_address> <target_address> <roles_value> [network]
+.claude/skills/deploy-obol-ovm/scripts/grant-roles.sh <ovm_address> <target_address> <roles_value> [network]
 ```
 
 **Revoke roles:**
 ```bash
-.claude/skills/obol-ovm/scripts/revoke-roles.sh <ovm_address> <target_address> <roles_value> [network]
+.claude/skills/deploy-obol-ovm/scripts/revoke-roles.sh <ovm_address> <target_address> <roles_value> [network]
 ```
 
 **Distribute funds:**
 ```bash
-.claude/skills/obol-ovm/scripts/distribute-funds.sh <ovm_address> [network]
+.claude/skills/deploy-obol-ovm/scripts/distribute-funds.sh <ovm_address> [network]
 ```
 Anyone can call this — no special role required.
 
 **Set beneficiary:**
 ```bash
-.claude/skills/obol-ovm/scripts/set-beneficiary.sh <ovm_address> <new_beneficiary> [network]
+.claude/skills/deploy-obol-ovm/scripts/set-beneficiary.sh <ovm_address> <new_beneficiary> [network]
 ```
 Requires SET_BENEFICIARY_ROLE (4).
 
 **Set reward recipient:**
 ```bash
-.claude/skills/obol-ovm/scripts/set-reward-recipient.sh <ovm_address> <new_reward_recipient> [network]
+.claude/skills/deploy-obol-ovm/scripts/set-reward-recipient.sh <ovm_address> <new_reward_recipient> [network]
 ```
 Requires SET_REWARD_ROLE (16).
 
 **Request validator withdrawal (EIP-7002):**
 ```bash
-.claude/skills/obol-ovm/scripts/withdraw.sh <ovm_address> <pubkeys_csv> <amounts_csv> <max_fee_wei> <excess_fee_recipient> [network]
+.claude/skills/deploy-obol-ovm/scripts/withdraw.sh <ovm_address> <pubkeys_csv> <amounts_csv> <max_fee_wei> <excess_fee_recipient> [network]
 ```
 Requires WITHDRAWAL_ROLE (1). Sends ETH = max_fee * num_validators for fees.
 
 **Consolidate validators (EIP-7251):**
 ```bash
-.claude/skills/obol-ovm/scripts/consolidate.sh <ovm_address> <source_pubkey> <dest_pubkey> <max_fee_wei> <excess_fee_recipient> [network]
+.claude/skills/deploy-obol-ovm/scripts/consolidate.sh <ovm_address> <source_pubkey> <dest_pubkey> <max_fee_wei> <excess_fee_recipient> [network]
 ```
 Requires CONSOLIDATION_ROLE (2). Consolidates stake from source validator into destination. Sends max_fee as ETH. Query current fees with `query-fees.sh` first.
 
 **Deposit for validator(s):**
 ```bash
-.claude/skills/obol-ovm/scripts/deposit.sh <ovm_address> <deposit_json_path> [network]
+.claude/skills/deploy-obol-ovm/scripts/deposit.sh <ovm_address> <deposit_json_path> [network]
 ```
 Requires DEPOSIT_ROLE (32). Reads a deposit data JSON file (standard format from deposit CLI) and executes deposits via `forge script`. Each deposit sends 32 ETH.
 
 **Set principal stake amount:**
 ```bash
-.claude/skills/obol-ovm/scripts/set-principal-stake.sh <ovm_address> <new_amount_wei> [network]
+.claude/skills/deploy-obol-ovm/scripts/set-principal-stake.sh <ovm_address> <new_amount_wei> [network]
 ```
 Requires owner. Sets `amountOfPrincipalStake` which controls how much of distributed funds goes to the principal recipient. Queries and prints current value before changing.
 
 **Sweep pull balance:**
 ```bash
-.claude/skills/obol-ovm/scripts/sweep.sh <ovm_address> <beneficiary> <amount_wei> [network]
+.claude/skills/deploy-obol-ovm/scripts/sweep.sh <ovm_address> <beneficiary> <amount_wei> [network]
 ```
 Extracts funds from `pullBalances[principalRecipient]`. Pass `0x0000000000000000000000000000000000000000` as beneficiary to sweep to principal recipient (anyone can call). Pass a custom address to sweep there (owner only). Amount=0 sweeps all.
 
@@ -156,11 +158,13 @@ Example: grant WITHDRAWAL + DEPOSIT = pass `33` as the roles value.
 
 ## Factory Addresses
 
-| Network | Factory Address |
-|---------|----------------|
-| mainnet | `0x2c26B5A373294CaccBd3DE817D9B7C6aea7De584` |
-| hoodi | `0x5754C8665B7e7BF15E83fCdF6d9636684B782b12` |
-| sepolia | `0xF32F8B563d8369d40C45D5d667C2B26937F2A3d3` |
+| Network | Factory Address | Deploy Block |
+|---------|----------------|--------------|
+| mainnet | `0x2c26B5A373294CaccBd3DE817D9B7C6aea7De584` | 23919948 |
+| hoodi | `0x5754C8665B7e7BF15E83fCdF6d9636684B782b12` | 1735335 |
+| sepolia | `0xF32F8B563d8369d40C45D5d667C2B26937F2A3d3` | 9159573 |
+
+Deploy blocks are the starting point for `cast logs` when enumerating OVMs (see "Listing OVMs on a network" below).
 
 ## Default RPCs
 
@@ -184,16 +188,16 @@ When `distributeFunds()` is called:
 ### Deploy and configure a new OVM
 ```
 1. User sets PRIVATE_KEY env var
-2. Deploy:    .claude/skills/obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward> 16 hoodi
+2. Deploy:    .claude/skills/deploy-obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward> 16 hoodi
 3. Query tx receipt to get the new OVM address from logs
-4. Grant roles: .claude/skills/obol-ovm/scripts/grant-roles.sh <new_ovm> <operator_addr> 33 hoodi
-5. Verify:    .claude/skills/obol-ovm/scripts/query-roles.sh <new_ovm> <operator_addr> hoodi
+4. Grant roles: .claude/skills/deploy-obol-ovm/scripts/grant-roles.sh <new_ovm> <operator_addr> 33 hoodi
+5. Verify:    .claude/skills/deploy-obol-ovm/scripts/query-roles.sh <new_ovm> <operator_addr> hoodi
 ```
 
 ### Check OVM state and distribute
 ```
-1. Query:     .claude/skills/obol-ovm/scripts/query-ovm.sh <ovm_address> mainnet
-2. If balance > 0, distribute: .claude/skills/obol-ovm/scripts/distribute-funds.sh <ovm_address> mainnet
+1. Query:     .claude/skills/deploy-obol-ovm/scripts/query-ovm.sh <ovm_address> mainnet
+2. If balance > 0, distribute: .claude/skills/deploy-obol-ovm/scripts/distribute-funds.sh <ovm_address> mainnet
 ```
 
 ### Listing OVMs on a network
@@ -204,7 +208,7 @@ cast logs --from-block <deploy_block> --to-block latest \
   "CreateObolValidatorManager(address indexed,address indexed,address,address,uint64)" \
   --rpc-url <rpc>
 ```
-Deploy blocks: mainnet=23919948, hoodi=1735335, sepolia=9159573.
+Deploy blocks are listed in the Factory Addresses table above.
 
 ## RPC Retry Rule
 
