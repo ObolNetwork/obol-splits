@@ -90,10 +90,6 @@ ObolLidoSplitFactory: https://etherscan.io/address/0xA9d94139A310150Ca1163b5E23f
 
 ObolLidoSplit: https://etherscan.io/address/0x2fB59065F049e0D0E3180C6312FA0FeB5Bbf0FE3
 
-ImmutableSplitControllerFactory: https://etherscan.io/address/0x49e7cA187F1E94d9A0d1DFBd6CCCd69Ca17F56a4
-
-ImmutableSplitController: https://etherscan.io/address/0xaF129979b773374dD3025d3F97353e73B0A6Cc8d
-
 ### Versioning
 
 Releases of this repo constitute post-fix review, audited commits. Consult the release notes and audits as not all contracts are in scope each audit.
