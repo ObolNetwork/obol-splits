@@ -41,7 +41,6 @@ Nearly every contract has a corresponding factory that deploys minimal proxies u
 | `src/etherfi/` | `ObolEtherfiSplit` | Same pattern: wraps rebasing eETH→weETH |
 | `src/owr/` | `OptimisticWithdrawalRecipient` | ETH-only withdrawal with principal/reward threshold (16 ether). `src/owr/token/` adds ERC20 support |
 | `src/ovm/` | `ObolValidatorManager` | Validator lifecycle management: deposit, consolidation (EIP-7251), withdrawal (EIP-7002), distribution. Role-based access via solady `OwnableRoles` |
-| `src/controllers/` | `ImmutableSplitController` | Manages 0xSplits config updates with hardcoded recipients |
 
 ### Key Design Decisions
 
