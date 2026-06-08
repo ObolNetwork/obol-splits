@@ -80,7 +80,7 @@ Each write script checks that `PRIVATE_KEY` is set, prints what it's about to do
 ```bash
 .claude/skills/deploy-obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [threshold_gwei] [network]
 ```
-Default threshold is 16 gwei. Deploys via the network's factory contract.
+Default threshold is `16000000000` gwei (= 16 ETH). The factory rejects values above `2048000000000` (2048 ETH). Deploys via the network's factory contract.
 
 **Grant roles:**
 ```bash
@@ -188,7 +188,7 @@ When `distributeFunds()` is called:
 ### Deploy and configure a new OVM
 ```
 1. User sets PRIVATE_KEY env var
-2. Deploy:    .claude/skills/deploy-obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward> 16 hoodi
+2. Deploy:    .claude/skills/deploy-obol-ovm/scripts/deploy-ovm.sh <owner> <beneficiary> <reward> 16000000000 hoodi
 3. Query tx receipt to get the new OVM address from logs
 4. Grant roles: .claude/skills/deploy-obol-ovm/scripts/grant-roles.sh <new_ovm> <operator_addr> 33 hoodi
 5. Verify:    .claude/skills/deploy-obol-ovm/scripts/query-roles.sh <new_ovm> <operator_addr> hoodi

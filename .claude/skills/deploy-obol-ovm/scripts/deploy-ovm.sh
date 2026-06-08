@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Deploy a new OVM contract via the factory
-# Usage: ./deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [principal_threshold_gwei] [network]
+# Usage: ./deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [threshold_gwei] [network]
+#
+# threshold_gwei: principal/reward classification threshold in GWEI (not ETH, not wei).
+#                 Default 16000000000 = 16 ETH. Max accepted by factory is 2048000000000 (2048 ETH).
 #
 # Requires: PRIVATE_KEY env var set (never read or printed, only passed to cast)
 # Requires: RPC_URL env var OR uses default for the network
@@ -10,7 +13,7 @@ set -euo pipefail
 OWNER="${1:?Usage: deploy-ovm.sh <owner> <beneficiary> <reward_recipient> [threshold_gwei] [network]}"
 BENEFICIARY="${2:?Missing beneficiary address}"
 REWARD_RECIPIENT="${3:?Missing reward recipient address}"
-THRESHOLD="${4:-16}"
+THRESHOLD_GWEI="${4:-16000000000}"
 NETWORK="${5:-mainnet}"
 
 # Factory addresses per network
@@ -28,17 +31,19 @@ if [ -z "${PRIVATE_KEY:-}" ]; then
   exit 1
 fi
 
+THRESHOLD_ETH=$(awk -v g="$THRESHOLD_GWEI" 'BEGIN { printf "%.9f", g / 1000000000 }')
+
 echo "Deploying OVM on $NETWORK..."
 echo "  Factory:    $FACTORY"
 echo "  Owner:      $OWNER"
 echo "  Beneficiary: $BENEFICIARY"
 echo "  Reward:     $REWARD_RECIPIENT"
-echo "  Threshold:  $THRESHOLD gwei"
+echo "  Threshold:  $THRESHOLD_GWEI gwei (= $THRESHOLD_ETH ETH)"
 echo "  RPC:        $RPC"
 echo ""
 
 cast send "$FACTORY" \
   "createObolValidatorManager(address,address,address,uint64)" \
-  "$OWNER" "$BENEFICIARY" "$REWARD_RECIPIENT" "$THRESHOLD" \
+  "$OWNER" "$BENEFICIARY" "$REWARD_RECIPIENT" "$THRESHOLD_GWEI" \
   --rpc-url "$RPC" \
   --private-key "$PRIVATE_KEY"
