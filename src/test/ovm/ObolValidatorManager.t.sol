@@ -93,8 +93,18 @@ contract ObolValidatorManagerTest is Test {
       principalThreshold
     );
 
-    ovmETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
-    ovmETH_OR.deposit{value: INITIAL_DEPOSIT_AMOUNT}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    ovmETH.deposit{value: INITIAL_DEPOSIT_AMOUNT}(
+      new bytes(0),
+      _withdrawalCredentials(ovmETH, 0x02),
+      new bytes(0),
+      bytes32(0)
+    );
+    ovmETH_OR.deposit{value: INITIAL_DEPOSIT_AMOUNT}(
+      new bytes(0),
+      _withdrawalCredentials(ovmETH_OR, 0x02),
+      new bytes(0),
+      bytes32(0)
+    );
   }
 
   function testDefaultParameters() public view {
@@ -113,8 +123,15 @@ contract ObolValidatorManagerTest is Test {
     uint256 depositAmount = 1 ether;
     vm.expectEmit(true, true, true, true);
     emit PrincipalStakeAmountUpdated(amountOfPrincipalStake + depositAmount, amountOfPrincipalStake);
-    ovmETH.deposit{value: depositAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    ovmETH.deposit{value: depositAmount}(new bytes(0), _withdrawalCredentials(ovmETH, 0x02), new bytes(0), bytes32(0));
     assertEq(address(depositMock).balance, depositMockBalance + depositAmount);
+    assertEq(ovmETH.amountOfPrincipalStake(), amountOfPrincipalStake + depositAmount);
+  }
+
+  function testDepositWithEth1WithdrawalCredentials() public {
+    uint256 amountOfPrincipalStake = ovmETH.amountOfPrincipalStake();
+    uint256 depositAmount = 1 ether;
+    ovmETH.deposit{value: depositAmount}(new bytes(0), _withdrawalCredentials(ovmETH, 0x01), new bytes(0), bytes32(0));
     assertEq(ovmETH.amountOfPrincipalStake(), amountOfPrincipalStake + depositAmount);
   }
 
@@ -125,13 +142,51 @@ contract ObolValidatorManagerTest is Test {
     ovmETH.grantRoles(_user, ovmETH.WITHDRAWAL_ROLE()); // unrelated role
     vm.startPrank(_user);
     vm.expectRevert(bytes4(0x82b42900));
-    ovmETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    ovmETH.deposit{value: 1 ether}(new bytes(0), _withdrawalCredentials(ovmETH, 0x02), new bytes(0), bytes32(0));
     vm.stopPrank();
 
     // unauthorized for owner after renounce
     ovmETH.renounceOwnership();
     vm.expectRevert(bytes4(0x82b42900));
+    ovmETH.deposit{value: 1 ether}(new bytes(0), _withdrawalCredentials(ovmETH, 0x02), new bytes(0), bytes32(0));
+  }
+
+  function testCannotDepositWithInvalidWithdrawalCredentials() public {
+    // empty credentials
+    vm.expectRevert(IObolValidatorManager.InvalidDeposit_WithdrawalCredentials.selector);
     ovmETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+
+    // wrong length: 31 bytes
+    vm.expectRevert(IObolValidatorManager.InvalidDeposit_WithdrawalCredentials.selector);
+    ovmETH.deposit{value: 1 ether}(new bytes(0), new bytes(31), new bytes(0), bytes32(0));
+
+    // wrong length: 33 bytes (valid credentials + 1 extra byte)
+    bytes memory tooLong = abi.encodePacked(_withdrawalCredentials(ovmETH, 0x02), bytes1(0));
+    vm.expectRevert(IObolValidatorManager.InvalidDeposit_WithdrawalCredentials.selector);
+    ovmETH.deposit{value: 1 ether}(new bytes(0), tooLong, new bytes(0), bytes32(0));
+
+    // wrong prefix: 0x00 (BLS credentials)
+    vm.expectRevert(IObolValidatorManager.InvalidDeposit_WithdrawalCredentials.selector);
+    ovmETH.deposit{value: 1 ether}(new bytes(0), _withdrawalCredentials(ovmETH, 0x00), new bytes(0), bytes32(0));
+
+    // wrong prefix: 0x03
+    vm.expectRevert(IObolValidatorManager.InvalidDeposit_WithdrawalCredentials.selector);
+    ovmETH.deposit{value: 1 ether}(new bytes(0), _withdrawalCredentials(ovmETH, 0x03), new bytes(0), bytes32(0));
+
+    // wrong address: credentials commit to an address other than the OVM
+    bytes memory wrongAddress = abi.encodePacked(bytes1(0x02), bytes11(0), makeAddr("attacker"));
+    vm.expectRevert(IObolValidatorManager.InvalidDeposit_WithdrawalCredentials.selector);
+    ovmETH.deposit{value: 1 ether}(new bytes(0), wrongAddress, new bytes(0), bytes32(0));
+
+    // non-zero padding bytes
+    bytes memory dirtyPadding = abi.encodePacked(bytes1(0x02), bytes11(uint88(1)), address(ovmETH));
+    vm.expectRevert(IObolValidatorManager.InvalidDeposit_WithdrawalCredentials.selector);
+    ovmETH.deposit{value: 1 ether}(new bytes(0), dirtyPadding, new bytes(0), bytes32(0));
+  }
+
+  /// Builds withdrawal credentials committing to the given OVM: prefix + 11 zero bytes + OVM address
+  function _withdrawalCredentials(ObolValidatorManager ovm, bytes1 prefix) internal pure returns (bytes memory) {
+    return abi.encodePacked(prefix, bytes11(0), address(ovm));
   }
 
   function testSetBeneficiaryRecipient() public {
@@ -725,7 +780,7 @@ contract ObolValidatorManagerTest is Test {
   function testCan_distributeToBothRecipients() public {
     // First deposit of 32eth is done in setUp()
     uint256 secondDeposit = 64 ether;
-    ovmETH.deposit{value: secondDeposit}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    ovmETH.deposit{value: secondDeposit}(new bytes(0), _withdrawalCredentials(ovmETH, 0x02), new bytes(0), bytes32(0));
     uint256 rewardPayout = 4 ether;
     address(ovmETH).safeTransferETH(INITIAL_DEPOSIT_AMOUNT + secondDeposit + rewardPayout);
 
@@ -783,7 +838,7 @@ contract ObolValidatorManagerTest is Test {
     ObolValidatorManagerReentrancy re = new ObolValidatorManagerReentrancy();
 
     ovmETH = ovmFactory.createObolValidatorManager(address(this), address(re), rewardsRecipient, 1e9);
-    ovmETH.deposit{value: 1 ether}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    ovmETH.deposit{value: 1 ether}(new bytes(0), _withdrawalCredentials(ovmETH, 0x02), new bytes(0), bytes32(0));
     address(ovmETH).safeTransferETH(33 ether);
 
     vm.expectRevert(SafeTransferLib.ETHTransferFailed.selector);
@@ -944,7 +999,7 @@ contract ObolValidatorManagerTest is Test {
     );
 
     uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
-    ovm.deposit{value: _totalETHAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    ovm.deposit{value: _totalETHAmount}(new bytes(0), _withdrawalCredentials(ovm, 0x02), new bytes(0), bytes32(0));
 
     /// test eth
     for (uint256 i = 0; i < _numDeposits; i++) {
@@ -993,7 +1048,7 @@ contract ObolValidatorManagerTest is Test {
     );
 
     uint256 _totalETHAmount = uint256(_numDeposits) * uint256(_ethAmount);
-    ovm.deposit{value: _totalETHAmount}(new bytes(0), new bytes(0), new bytes(0), bytes32(0));
+    ovm.deposit{value: _totalETHAmount}(new bytes(0), _withdrawalCredentials(ovm, 0x02), new bytes(0), bytes32(0));
 
     for (uint256 i = 0; i < _numDeposits; i++) {
       address(ovm).safeTransferETH(_ethAmount);
