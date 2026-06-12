@@ -97,6 +97,9 @@ interface IObolValidatorManager {
   /// @notice Invalid distribution
   error InvalidDistribution_TooLarge();
 
+  /// @notice Deposit withdrawal credentials do not commit to this contract's address
+  error InvalidDeposit_WithdrawalCredentials();
+
   /// -----------------------------------------------------------------------
   /// ObolValidatorManager functions
   /// -----------------------------------------------------------------------
@@ -104,6 +107,8 @@ interface IObolValidatorManager {
   /// @notice Submit a Phase 0 DepositData object.
   /// @param pubkey A BLS12-381 public key.
   /// @param withdrawal_credentials Commitment to a public key for withdrawals.
+  /// Must commit to this contract's address: a 0x01 or 0x02 prefix, 11 zero bytes,
+  /// and this contract's address. Reverts with InvalidDeposit_WithdrawalCredentials otherwise.
   /// @param signature A BLS12-381 signature.
   /// @param deposit_data_root The SHA-256 hash of the SSZ-encoded DepositData object.
   /// Used as a protection against malformed input.
