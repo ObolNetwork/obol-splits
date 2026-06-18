@@ -39,10 +39,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
 
   uint256 internal constant PUBLIC_KEY_LENGTH = 48;
 
-  uint256 internal constant WITHDRAWAL_CREDENTIALS_LENGTH = 32;
-  bytes32 internal constant ETH1_WITHDRAWAL_PREFIX = bytes32(uint256(0x01) << 248);
-  bytes32 internal constant COMPOUNDING_WITHDRAWAL_PREFIX = bytes32(uint256(0x02) << 248);
-
   /// -----------------------------------------------------------------------
   /// storage - immutable
   /// -----------------------------------------------------------------------
@@ -121,8 +117,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
     bytes calldata signature,
     bytes32 deposit_data_root
   ) external payable onlyOwnerOrRoles(DEPOSIT_ROLE) {
-    _validateWithdrawalCredentials(withdrawal_credentials);
-
     uint256 oldAmountOfPrincipalStake = amountOfPrincipalStake;
     amountOfPrincipalStake += msg.value;
     IDepositContract(depositSystemContract).deposit{value: msg.value}(
@@ -433,21 +427,6 @@ contract ObolValidatorManager is IObolValidatorManager, OwnableRoles, Reentrancy
   /// @param pubkey The public key to validate
   function _validatePubkeyLength(bytes memory pubkey) internal pure {
     if (pubkey.length != PUBLIC_KEY_LENGTH) revert InvalidRequest_Params();
-  }
-
-  /// Internal function to validate that withdrawal credentials commit to this contract's address,
-  /// so that validator withdrawals cannot bypass the principal/reward accounting.
-  /// Accepted formats: 0x01 (ETH1) or 0x02 (compounding) prefix, 11 zero bytes, this contract's address.
-  /// @param withdrawal_credentials The withdrawal credentials to validate
-  function _validateWithdrawalCredentials(bytes calldata withdrawal_credentials) internal view {
-    if (withdrawal_credentials.length != WITHDRAWAL_CREDENTIALS_LENGTH) revert InvalidDeposit_WithdrawalCredentials();
-
-    bytes32 credentials = bytes32(withdrawal_credentials);
-    bytes32 addressPart = bytes32(uint256(uint160(address(this))));
-    if (
-      credentials != (ETH1_WITHDRAWAL_PREFIX | addressPart)
-        && credentials != (COMPOUNDING_WITHDRAWAL_PREFIX | addressPart)
-    ) revert InvalidDeposit_WithdrawalCredentials();
   }
 
   /// Internal function to refund the excess fee for pectra related operations.
