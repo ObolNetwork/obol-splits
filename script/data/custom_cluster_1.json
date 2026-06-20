@@ -1,0 +1,31 @@
+[
+    {
+        "name": "Static",
+        "owner": "0x0000000000000000000000000000000000000000",
+        "totalAllocation": 1000000,
+        "distributionIncentive": 0,
+        "splitType": "pull",
+        "allocations": [
+            {
+                "recipient": "0x0000000000000000000000000000000000000001",
+                "allocation": 890000
+            },
+            {
+                "recipient": "0xDe5aE4De36c966747Ea7DF13BD9589642e2B1D0d",
+                "allocation": 10000
+            },
+            {
+                "recipient": "0x0000000000000000000000000000000000000002",
+                "allocation": 33333
+            },
+            {
+                "recipient": "0x0000000000000000000000000000000000000003",
+                "allocation": 33333
+            },
+            {
+                "recipient": "0x0000000000000000000000000000000000000004",
+                "allocation": 33334
+            }
+        ]
+    }
+]
