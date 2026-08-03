@@ -22,6 +22,7 @@ If you believe you have found a new, distinct issue, please report it to the Obo
 ## Other Logic & Implementation (OVM/OWR)
 
 * **`transfer()` role retention:** `ObolValidatorManager.transfer()` does not revoke operator roles after an ownership handoff. Revoking roles as part of a handoff is an operational responsibility of the owner.
+* **`transferOwnership()` role retention:** Transferring ownership does not reset roles granted by the previous owner. This is accepted behavior — the new owner is expected to review and adjust role assignments after the handoff.
 * **`deposit()` credential validation:** `deposit()` accepts arbitrary `withdrawal_credentials`, which can inflate internal accounting.
 * **`sweepToBeneficiaryContract()` reverting:** This interface method always reverts. This is intentional and required for TVS interface conformance.
 * **`withdrawPullBalance()` missing `nonReentrant` modifier:** The function follows the checks-effects-interactions pattern, which makes a reentrancy guard unnecessary.
