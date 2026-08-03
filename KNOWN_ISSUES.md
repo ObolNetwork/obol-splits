@@ -6,7 +6,7 @@ This document lists findings that have already been submitted and reviewed for t
 
 Many of these findings relate to the privileges of trusted roles. Before submitting a report, please review the documented [role risks and trust assumptions](https://docs.obol.org/next/learn/readme/obol-splits#role-risks-and-trust-assumptions) — behavior that falls within these assumptions is not considered a vulnerability.
 
-If you believe you have found a new, distinct issue, please report it to the Obol Security Team at [security@obol.network](mailto:security@obol.network).
+If you believe you have found a new, distinct issue, please report it to the Obol Security Team at [security@obol.tech](mailto:security@obol.tech).
 
 ## Reentrancy & Accounting
 
