@@ -93,3 +93,15 @@ ObolLidoSplit: https://etherscan.io/address/0x2fB59065F049e0D0E3180C6312FA0FeB5B
 ### Versioning
 
 Releases of this repo constitute post-fix review, audited commits. Consult the release notes and audits as not all contracts are in scope each audit.
+
+## License
+
+Unless a file's `SPDX-License-Identifier` says otherwise, the code in this repository is licensed under the
+[Apache License 2.0](LICENSE). Files marked `GPL-3.0-or-later` (much of it derived from 0xSplits) stay under the GPL,
+and files marked `MIT` or `CC0-1.0` stay under those licenses.
+
+The Obol Validator Manager v1.0.0 was deployed and verified with `SPDX-License-Identifier: Proprietary` headers (tag
+`ovm-v1.0.0`; block explorers hold a flattened copy). That code is also licensed under Apache-2.0. Only the headers
+changed since: the contract code is identical, but rebuild from the tag to reproduce the deployed metadata hash.
+
+The license grants no rights to Obol's names or trademarks (Apache-2.0, section 6).
