@@ -183,6 +183,7 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
     ERC20(STETH_MAINNET_ADDRESS).transfer(address(fuzzSplitWithFee), amountToDistribute);
 
     uint256 prevBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit);
+    uint256 prevFeeBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(fuzzFeeRecipient);
 
     uint256 balance = ERC20(STETH_MAINNET_ADDRESS).balanceOf(address(fuzzSplitWithFee));
 
@@ -192,14 +193,15 @@ contract ObolLidoSplitTest is ObolLidoSplitTestHelper, Test {
 
     assertTrue(amount > 0, "invalid amount");
 
-    uint256 afterBalance = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit);
+    uint256 received = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit) - prevBalance;
+    uint256 feeReceived = ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(fuzzFeeRecipient) - prevFeeBalance;
+    uint256 wrapped = received + feeReceived;
 
-    assertGe(afterBalance, prevBalance, "after balance greater");
+    // stETH share rounding can make wrap() return 1 wei less than getWstETHByStETH predicts
+    assertApproxEqAbs(wrapped, wstETHDistributed, 1, "invalid amount wrapped");
 
-    uint256 expectedFee = (wstETHDistributed * fuzzFeeShare) / PERCENTAGE_SCALE;
+    assertEq(feeReceived, (wrapped * fuzzFeeShare) / PERCENTAGE_SCALE, "invalid fee transferred");
 
-    assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(fuzzFeeRecipient), expectedFee, "invalid fee transferred");
-
-    assertEq(ERC20(WSTETH_MAINNET_ADDRESS).balanceOf(anotherSplit), wstETHDistributed - expectedFee, "invalid amount");
+    assertEq(received, amount, "invalid amount");
   }
 }
